@@ -1,3 +1,7 @@
+# Files from elfin-library
+elfin_blender_addon/library.blend
+elfin_blender_addon/xdb.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,0 +1,89 @@
+#!/bin/bash
+
+echo
+echo "Installing the Elfin Blender addon."
+echo
+echo " * If this script fails to guess your Blender directory,"
+echo "   you may set it manually using the BL_DIR environment "
+echo "   variable."
+echo
+
+# Fetch library files if not already fetched
+elfin_dir="elfin"
+if [[ ! -f $elfin_dir/library.blend ]] || [[ ! -f $elfin_dir/xdb.json ]]; then
+    ./fetch_library
+fi
+
+OS=${OS:-$(uname -s)}
+
+if [[ $OS == "Darwin" ]]; then
+    echo "OS: MacOS"
+    BL_DIR=${BL_DIR:-"$HOME/Library/Application Support/Blender/"}  
+    echo "Guessing Blender directory: $BL_DIR"
+elif [[ $OS == "Linux" ]]; then
+    if [[ "$(cat /proc/version)" =~ "Microsoft" ]]; then 
+        echo "OS: Linux (WSL)"
+        OS="WSL"
+        win_user_dir=$(wslpath $(cmd.exe /c "echo %USERPROFILE%" | sed -e 's/\r//g'))
+        BL_DIR=$win_user_dir"/AppData/Roaming/Blender Foundation/Blender/"
+    else
+        echo "OS: Linux"
+        BL_DIR=$HOME/.config/blender/
+    fi
+    echo "Guessing Blender directory: $BL_DIR"
+else
+    echo "OS: $OS"
+    if [[ -z $BL_DIR ]]; then
+        echo "Could not guess Blender directory."
+        echo "Please provide your Blender path (without the version directory):"
+        read -r BL_DIR
+    fi
+fi
+
+eval BL_DIR=\"$BL_DIR/\"
+BL_DIR="${BL_DIR//\'/}"
+
+# Prevent path spaces from breaking ls output into separate elements
+IFS='
+'
+if [[ ! -d $BL_DIR ]]; then
+    echo "Blender directory $BL_DIR does not exist."
+    exit 1
+fi
+
+bl_vers=($(ls -d "$BL_DIR"*/))
+n_vers=${#bl_vers[@]}
+
+for i in `seq 1 $n_vers`; do
+    echo "[${i}] " $(basename ${bl_vers[$(expr ${i} - 1)]})
+done
+
+echo "Which version of Blender should Elfin be installed to? Choose [1-${n_vers}]"
+read ver_id
+if [[ $ver_id -le $n_vers ]] && [[ $ver_id -gt 0 ]]; then
+    version=${bl_vers[$(expr ${ver_id} - 1)]}
+    bl_addon_path=${version}/scripts/addons/
+    echo "Will symlink belfin into ${bl_addon_path}"
+else
+    echo "Selection invalid"
+    exit 1
+fi
+
+# MacOS does not have realpath() so we define it here
+realpath() {
+    [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+}
+
+# WSL does not intepret ln -s properly on Windows' native filesystem
+link() {
+    if [[ $OS == "WSL" ]]; then
+        cmd.exe /c mklink /D "$(wslpath -w $2)" "$(wslpath -w $1)"
+    else
+        ln -s $1 $2
+    fi
+}
+
+source_path=$(realpath "$elfin_dir/")
+dest_path=$(realpath "$bl_addon_path")
+mkdir -p $dest_path
+link "$source_path" "$dest_path/$elfin_dir"

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo
+echo "Downloading the latest elfin-library from Github."
+echo
+
+ADDON_DIR='elfin_blender_addon'
+RAW_URL='https://raw.githubusercontent.com/joy13975/elfin-library/master'
+
+DB_FILE=xdb.json
+LIB_TAR=library.tar.bz2
+
+curl "$RAW_URL/$DB_FILE" > "$ADDON_DIR/$DB_FILE"
+curl "$RAW_URL/$LIB_TAR" > "$LIB_TAR"
+tar xjf "$LIB_TAR" -C "$ADDON_DIR"
+rm $LIB_TAR
+
+
+echo
+echo "Done fetching."
+echo
