@@ -4,7 +4,7 @@ echo
 echo "Downloading the latest elfin-library from Github."
 echo
 
-ADDON_DIR='elfin_blender_addon'
+ADDON_DIR='elfin'
 RAW_URL='https://raw.githubusercontent.com/joy13975/elfin-library/master'
 
 DB_FILE=xdb.json
