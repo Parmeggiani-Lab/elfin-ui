@@ -84,6 +84,19 @@ link() {
 }
 
 source_path=$(realpath "$elfin_dir/")
-dest_path=$(realpath "$bl_addon_path")
-mkdir -p $dest_path
-link "$source_path" "$dest_path/$elfin_dir"
+bl_addon_real_path=$(realpath "$bl_addon_path")
+mkdir -p $bl_addon_real_path
+
+dest_path="$bl_addon_real_path/$elfin_dir"
+if [[ -d $dest_path || -f $dest_path ]]; then
+	echo ""
+	read -e -p "Overwrite existing link? [Y/n]" YN
+	if [[ $YN != "y" && $YN != "Y" && $YN != "" ]]; then
+		echo 'Aborting.'
+		exit 0
+	fi
+
+	rm -rf $dest_path
+fi
+
+link "$source_path" "$dest_path"
