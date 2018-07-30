@@ -48,6 +48,8 @@ class ExtrudeNTerm(bpy.types.Operator):
                     ['double_data'][nterm_mod_name][sel_mod_name]
                 drop_frame(ext_mod, rel, fixed_mod=sel_mod)
             elif sel_ext_type_pair == ('single', 'hub'):
+                # Repeat for all N terms if hub is symmetric
+
                 # First drop to hub component frame
                 chain_xdata = xdb \
                     ['hub_data'][nterm_mod_name]\
@@ -176,11 +178,8 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
 
         if sel_mod_type == 'hub':
             hub_xdata = get_hub_module_xdata(sel_mod_name)
-            occupied_chains_ids = \
-                sel_mod.elfin.n_linkage.keys() + \
-                sel_mod.elfin.n_linkage.keys()
             for chain_id, chain_xdata in hub_xdata['component_data'].items():
-                if chain_id in occupied_chains_ids:
+                if chain_id in sel_mod.elfin.get_occupied_chains():
                     continue
                 for single_name in chain_xdata['n_connections']:
                     enum_tuples.append(
@@ -262,11 +261,8 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
 
         if sel_mod_type == 'hub':
             hub_xdata = get_hub_module_xdata(sel_mod_name)
-            occupied_chains_ids = \
-                sel_mod.elfin.c_linkage.keys() + \
-                sel_mod.elfin.n_linkage.keys()
             for chain_id, chain_xdata in hub_xdata['component_data'].items():
-                if chain_id in occupied_chains_ids:
+                if chain_id in sel_mod.elfin.get_occupied_chains():
                     continue
                 for single_name in chain_xdata['c_connections']:
                     enum_tuples.append(
@@ -425,21 +421,16 @@ class PlaceModule(bpy.types.Operator):
         if self.selected_module == color_change_placeholder:
             return {'FINISHED'}
 
-        try:
-            print('Placing module {}'.format(self.selected_module))
-            
-            sel_mod_name = self.selected_module.split('.')[1]
-            lmod = link_module(sel_mod_name)
+        print('Placing module {}'.format(self.selected_module))
+        
+        sel_mod_name = self.selected_module.split('.')[1]
+        lmod = link_module(sel_mod_name)
 
-            give_module_new_color(lmod, self.color)
-            lmod.hide = False # By default the obj is hidden
-            lmod.select = True
+        give_module_new_color(lmod, self.color)
+        lmod.hide = False # By default the obj is hidden
+        lmod.select = True
 
-            return {'FINISHED'}
-        except Exception as e:
-            if lmod:
-                delete_object(lmod)
-            raise e
+        return {'FINISHED'}
 
     def invoke(self, context, event):
         self.color = color_wheel.next_color()

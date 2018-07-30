@@ -243,45 +243,42 @@ def load_module_library():
     print('Module library loaded')
     return lib
 
-def get_double_module_xdata(single_a_name=None, single_b_name=None, double_name=None):
-    if double_name is not None:
-        name_parts = double_name.split('-')
-        if len(name_parts) != 2:
-            return False
-        single_a_name, single_b_name = name_parts
-
-    if single_a_name is None or single_b_name is None:
-        raise ValueError(('Either double_name or both '
-            'single_a_name and single_b_name must be specified.'))
-
-    xdata = bpy.context.scene.elfin.xdb['double_data'].get(
-        single_a_name,
-        {}
-        ).get(
-        single_b_name,
-        None
-        )
-    return xdata
-
-def get_hub_module_xdata(mod_name):
-    return bpy.context.scene.elfin.xdb['hub_data'].get(mod_name, None)
-
-def get_module_type(mod_name):
-    if get_hub_module_xdata(mod_name):
-        return 'hub'
-    elif get_double_module_xdata(double_name=mod_name):
-        return 'double'
-    else:
-        return 'single'
-
 def link_module(module_name):
-    with bpy.data.libraries.load(addon_paths.modlib_path) as (data_from, data_to):
-        data_to.objects = [module_name]
+    """Links a module module from library.blend. Supports all module types."""
+    try:
+        with bpy.data.libraries.load(addon_paths.modlib_path) as (data_from, data_to):
+            data_to.objects = [module_name]
 
-    linked_module = bpy.context.scene.objects.link(data_to.objects[0]).object
-    linked_module.elfin.module_name = module_name
-    linked_module.elfin.module_type = get_module_type(module_name)
-    linked_module.elfin.is_module = True
-    linked_module.elfin.self_object = linked_module
+        linked_module = bpy.context.scene.objects.link(data_to.objects[0]).object
+        linked_module.elfin.module_name = module_name
 
-    return linked_module
+        xdb = bpy.context.scene.elfin.xdb
+        single_xdata = xdb['single_data'].get(module_name, None)
+        if single_xdata:
+            linked_module.elfin.module_type = 'single'
+            linked_module.elfin.xdata = single_xdata
+        else:
+            hub_xdata = xdb['hub_data'].get(module_name, None)
+            if hub_xdata:
+                linked_module.elfin.module_type = 'hub'
+                linked_module.elfin.xdata = hub_xdata
+            else:
+                print('Warning: user is trying to link a module that is neither single or hub type')
+                single_a_name, single_b_name = module_name.split['-']
+                double_xdata = xdb['double_data'].get(
+                    single_a_name, {}).get(
+                    single_b_name, None)
+                if double_xdata:
+                    linked_module.elfin.module_type = 'double'
+                    linked_module.elfin.xdata = double_xdata
+                else:
+                    raise ValueError('Module name not found in xdb: ', mod_name)
+
+        linked_module.elfin.is_module = True
+        linked_module.elfin.self_object = linked_module
+
+        return linked_module
+    except Exception as e:
+        if linked_module:
+            delete_object(linked_module)
+        raise e

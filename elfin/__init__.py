@@ -88,8 +88,28 @@ class ElfinSceneProperties(ElfinProperties):
         self.property_unset('disable_collision_check')
 
 class LinkageProperty(bpy.types.PropertyGroup):
+    terminus = bpy.props.StringProperty()
+    source_chain_id = bpy.props.StringProperty()
     target_mod = bpy.props.PointerProperty(type=bpy.types.Object)
     target_chain_id = bpy.props.StringProperty()
+
+    def __repr__(self):
+        return 'Linkage => (Src CID={}, Tgt={}, Tgt CID={})'.format(
+            self.source_chain_id, self.target_mod, self.target_chain_id)
+
+    def sever(self):
+        if self.target_mod:
+            target_nl = self.target_mod.elfin.n_linkage \
+                if self.terminus == 'c' else \
+                self.target_mod.elfin.c_linkage
+            print('{} severing'.format(repr(self)))
+
+            # Remove back reference
+            target_nl[self.target_chain_id].target_mod = None
+            target_nl.remove(target_nl.find(self.target_chain_id))
+
+        # Remove forward reference
+        self.target_mod = None
 
 class ElfinObjectProperties(ElfinProperties):
     """Elfin's Object property catcher class"""
@@ -106,38 +126,31 @@ class ElfinObjectProperties(ElfinProperties):
 
     def new_c_link(self, source_chain_id, target_mod, target_chain_id):
         link = self.c_linkage.add()
-        link.name = source_chain_id
+        link.name = link.source_chain_id = source_chain_id
+        link.terminus = 'c'
         link.target_mod = target_mod
         link.target_chain_id = target_chain_id
 
     def new_n_link(self, source_chain_id, target_mod, target_chain_id):
         link = self.n_linkage.add()
-        link.name = source_chain_id
+        link.name = link.source_chain_id = source_chain_id
+        link.terminus = 'n'
         link.target_mod = target_mod
         link.target_chain_id = target_chain_id
+
+    def get_occupied_chains(self):
+        return self.c_linkage.keys() + self.n_linkage.keys()
 
     def show_links(self):
         print('Links of {}'.format(self.self_object.name))
         print('C links:')
-        for cl in self.c_linkage:
-            print(cl.name, cl.target_mod, cl.target_chain_id)
+        for cl in self.c_linkage: print(repr(cl))
         print('N links:')
-        for nl in self.n_linkage:
-            print(nl.name, nl.target_mod, nl.target_chain_id)
+        for nl in self.n_linkage: print(repr(nl))
 
     def sever_links(self):
-        for cl in self.c_linkage:
-            if cl.target_mod:
-                target_nl = cl.target_mod.elfin.n_linkage
-                print('{} severing itself from {}'.format(
-                    self.self_object.name, cl.target_chain_id))
-                target_nl.remove(target_nl.find(cl.target_chain_id))
-        for nl in self.n_linkage:
-            if nl.target_mod:
-                target_cl = nl.target_mod.elfin.c_linkage
-                print('{} severing itself from {}'.format(
-                    self.self_object.name, nl.target_chain_id))
-                target_cl.remove(target_cl.find(nl.target_chain_id))
+        for cl in self.c_linkage: cl.sever()
+        for nl in self.n_linkage: nl.sever()
 
     @property
     def mirrors(self):
