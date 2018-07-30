@@ -139,6 +139,14 @@ class ElfinObjectProperties(ElfinProperties):
                     self.self_object.name, nl.target_chain_id))
                 target_cl.remove(target_cl.find(nl.target_chain_id))
 
+    @property
+    def mirrors(self):
+        return self.get('_mirrors', None)
+
+    @mirrors.setter
+    def mirrors(self, value):
+        self['_mirrors'] = value
+
 # Panels -----------------------------------------
 
 class ExportPanel(bpy.types.Panel):
