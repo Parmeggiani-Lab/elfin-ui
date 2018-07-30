@@ -47,11 +47,11 @@ class ExtrudeNTerm(bpy.types.Operator):
                 sel_mod_name, 
                 extrude_from))
 
-            def touch_up_new_mod(new_mod):
+            def touch_up_new_mod(new_mod, sel_mod_chain_id=extrude_from):
                 give_module_new_color(new_mod, self.color)
                 new_mod.hide = False # Unhide (default is hidden)
-                sel_mod.elfin.new_n_link(extrude_from, new_mod, extrude_into)
-                new_mod.elfin.new_c_link(extrude_into, sel_mod, extrude_from)
+                sel_mod.elfin.new_n_link(sel_mod_chain_id, new_mod, extrude_into)
+                new_mod.elfin.new_c_link(extrude_into, sel_mod, sel_mod_chain_id)
                 new_mod.select = True
 
             sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
@@ -90,10 +90,18 @@ class ExtrudeNTerm(bpy.types.Operator):
                     hub_n_free_chains = \
                         set(sel_mod.elfin.xdata['component_data'].keys()) - \
                         set(sel_mod.elfin.n_linkage.keys())
+                    mirrors = [ext_mod]
+                    
                     for src_chain_id in hub_n_free_chains:
                         mirror_mod = link_module(nterm_mod_name)
+                        
                         extrude_hub_single(mirror_mod, src_chain_id)
-                        touch_up_new_mod(mirror_mod)
+                        mirrors.append(mirror_mod)
+                        
+                        touch_up_new_mod(mirror_mod, src_chain_id)
+
+                    for m in mirrors:
+                        m.elfin.mirrors = mirrors
 
             elif sel_ext_type_pair == ('hub', 'hub'):
                 self.report({'ERROR'}, 'Unimplemented')
@@ -134,11 +142,11 @@ class ExtrudeCTerm(bpy.types.Operator):
             print('Extruding module {} (chain {}) from {}\'s C-Term (chain {})'.format(
                 self.cterm_ext_module_selector, extrude_into, sel_mod_name, extrude_from))
 
-            def touch_up_new_mod(new_mod):
+            def touch_up_new_mod(new_mod, sel_mod_chain_id=extrude_from):
                 give_module_new_color(new_mod, self.color)
                 new_mod.hide = False # Unhide (default is hidden)
-                sel_mod.elfin.new_c_link(extrude_from, new_mod, extrude_into)
-                new_mod.elfin.new_n_link(extrude_into, sel_mod, extrude_from)
+                sel_mod.elfin.new_c_link(sel_mod_chain_id, new_mod, extrude_into)
+                new_mod.elfin.new_n_link(extrude_into, sel_mod, sel_mod_chain_id)
                 new_mod.select = True
 
             sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
@@ -180,7 +188,7 @@ class ExtrudeCTerm(bpy.types.Operator):
                     for src_chain_id in hub_c_free_chains:
                         mirror_mod = link_module(nterm_mod_name)
                         extrude_hub_single(mirror_mod, src_chain_id)
-                        touch_up_new_mod(mirror_mod)
+                        touch_up_new_mod(mirror_mod, src_chain_id)
             elif sel_ext_type_pair == ('hub', 'hub'):
                 self.report({'ERROR'}, 'Unimplemented')
                 return {'CANCELLED'}
@@ -259,11 +267,17 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
 
     def execute(self, context):
         if self.nterm_ext_module_selector != color_change_placeholder:
-            selection = context.selected_objects[:]
-            for sel_mod in selection:
+            # Filter mirrored modules
+            for s in context.selected_objects:
+                if s.select and s.elfin.mirrors:
+                    for m in s.elfin.mirrors:
+                        # Note that m could be the next s!
+                        if m is not s: m.select = False
+
+            for s in context.selected_objects:
                 print('TODO: Check same-hub selections')
                 bpy.ops.elfin.extrude_nterm_internal(
-                    target_name=sel_mod.name, 
+                    target_name=s.name, 
                     nterm_ext_module_selector=self.nterm_ext_module_selector,
                     color=self.color
                 )
