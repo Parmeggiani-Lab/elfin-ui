@@ -113,7 +113,6 @@ class LinkageProperty(bpy.types.PropertyGroup):
 
 class ElfinObjectProperties(ElfinProperties):
     """Elfin's Object property catcher class"""
-    
     is_module = bpy.props.BoolProperty(default=False)
     module_name = bpy.props.StringProperty()
     module_type = bpy.props.StringProperty()
@@ -151,6 +150,14 @@ class ElfinObjectProperties(ElfinProperties):
     def sever_links(self):
         for cl in self.c_linkage: cl.sever()
         for nl in self.n_linkage: nl.sever()
+
+    @property
+    def xdata(self):
+        return self.get('_xdata', None)
+
+    @xdata.setter
+    def xdata(self, value):
+        self['_xdata'] = value
 
     @property
     def mirrors(self):
