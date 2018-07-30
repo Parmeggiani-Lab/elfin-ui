@@ -172,13 +172,14 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
 
         sel_mod = context.selected_objects[0]
         sel_mod_name = sel_mod.elfin.module_name
-        
-        hub_xdata = get_hub_module_xdata(sel_mod_name)
-        if hub_xdata:
-            comp_xdata = hub_xdata['component_data']
-            occupied_chains_ids = sel_mod.elfin.n_linkage.keys() + \
+        sel_mod_type = sel_mod.elfin.module_type
+
+        if sel_mod_type == 'hub':
+            hub_xdata = get_hub_module_xdata(sel_mod_name)
+            occupied_chains_ids = \
+                sel_mod.elfin.n_linkage.keys() + \
                 sel_mod.elfin.n_linkage.keys()
-            for chain_id, chain_xdata in comp_xdata.items():
+            for chain_id, chain_xdata in hub_xdata['component_data'].items():
                 if chain_id in occupied_chains_ids:
                     continue
                 for single_name in chain_xdata['n_connections']:
@@ -188,7 +189,11 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
                             extrude_from=chain_id, 
                             extrude_into='A',
                             direction='N'))
-        else: # Current selected module is a single
+                if hub_xdata['symmetric']:
+                    # Only allow one chain to be extruded because other
+                    # "mirrors" will be generated automatically
+                    break
+        elif sel_mod_type == 'single':
             if len(sel_mod.elfin.n_linkage) == 0:
                 for single_a_name in context.scene.elfin.xdb['single_data']:
                     if get_double_module_xdata(single_a_name, sel_mod_name):
@@ -207,6 +212,11 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
                                 extrude_from='A',
                                 extrude_into=hub_comp_name,
                                 direction='N'))
+        else:
+            raise ValueError('Unknown module type: ', sel_mod_type)
+        if len(enum_tuples) == 1:
+            # Remove color change placeholder if nothing can be extruded
+            enum_tuples = []
         return enum_tuples
 
     nterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
@@ -248,13 +258,14 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
 
         sel_mod = context.selected_objects[0]
         sel_mod_name = sel_mod.elfin.module_name
+        sel_mod_type = sel_mod.elfin.module_type
 
-        hub_xdata = get_hub_module_xdata(sel_mod_name)
-        if hub_xdata:
-            comp_xdata = hub_xdata['component_data']
-            occupied_chains_ids = sel_mod.elfin.c_linkage.keys() + \
+        if sel_mod_type == 'hub':
+            hub_xdata = get_hub_module_xdata(sel_mod_name)
+            occupied_chains_ids = \
+                sel_mod.elfin.c_linkage.keys() + \
                 sel_mod.elfin.n_linkage.keys()
-            for chain_id, chain_xdata in comp_xdata.items():
+            for chain_id, chain_xdata in hub_xdata['component_data'].items():
                 if chain_id in occupied_chains_ids:
                     continue
                 for single_name in chain_xdata['c_connections']:
@@ -264,7 +275,11 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
                             extrude_from=chain_id, 
                             extrude_into='A',
                             direction='C')) 
-        else: # Current selected module is a single
+                if hub_xdata['symmetric']:
+                    # Only allow one chain to be extruded because other
+                    # "mirrors" will be generated automatically
+                    break
+        elif sel_mod_type == 'single':
             if len(sel_mod.elfin.c_linkage) == 0:
                 sel_mod_xdata = context.scene.elfin.xdb['double_data'][sel_mod_name]
                 for single_b_name in sel_mod_xdata:
@@ -283,6 +298,12 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
                                 extrude_from='A',
                                 extrude_into=hub_comp_name,
                                 direction='C'))
+        else:
+            raise ValueError('Unknown module type: ', sel_mod_type)
+
+        if len(enum_tuples) == 1:
+            # Remove color change placeholder if nothing can be extruded
+            enum_tuples = []
         return enum_tuples
 
     cterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
