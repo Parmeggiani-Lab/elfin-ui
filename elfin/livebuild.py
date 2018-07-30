@@ -203,6 +203,13 @@ class ExtrudeCTerm(bpy.types.Operator):
             raise e
         return {'FINISHED'}
 
+def filter_mirror_selection():
+    for s in bpy.context.selected_objects:
+        if s.select and s.elfin.mirrors:
+            for m in s.elfin.mirrors:
+                # Note that m could be the next s!
+                if m != s: m.select = False
+
 class ModuleExtrudeNTerm(bpy.types.Operator):
     bl_idname = 'elfin.module_extrude_nterm'
     bl_label = 'Extrude N (add a module to the nterm)'
@@ -267,15 +274,8 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
 
     def execute(self, context):
         if self.nterm_ext_module_selector != color_change_placeholder:
-            # Filter mirrored modules
+            filter_mirror_selection()
             for s in context.selected_objects:
-                if s.select and s.elfin.mirrors:
-                    for m in s.elfin.mirrors:
-                        # Note that m could be the next s!
-                        if m is not s: m.select = False
-
-            for s in context.selected_objects:
-                print('TODO: Check same-hub selections')
                 bpy.ops.elfin.extrude_nterm_internal(
                     target_name=s.name, 
                     nterm_ext_module_selector=self.nterm_ext_module_selector,
@@ -358,11 +358,10 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
 
     def execute(self, context):
         if self.cterm_ext_module_selector != color_change_placeholder:
-            selection = context.selected_objects[:]
-            for sel_mod in selection:
-                print('TODO: Check same-hub selections')
+            filter_mirror_selection()
+            for s in context.selected_objects:
                 bpy.ops.elfin.extrude_cterm_internal(
-                    target_name=sel_mod.name, 
+                    target_name=s.name, 
                     cterm_ext_module_selector=self.cterm_ext_module_selector,
                     color=self.color
                 )
