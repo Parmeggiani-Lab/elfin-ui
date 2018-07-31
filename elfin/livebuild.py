@@ -19,6 +19,20 @@ class JoinNetworks(bpy.types.Operator):
     def execute(self, context):
         raise NotImplementedError
 
+def create_module_mirrors(
+    root_mod, 
+    first_ext_mod, 
+    link_mod_name,
+    extrude_func):
+    new_mirrors = [first_ext_mod]
+    for m in root_mod.elfin.mirrors:
+        if m != root_mod:
+            mirror_mod = link_module(link_mod_name)
+            extrude_func(m, mirror_mod)
+            new_mirrors.append(mirror_mod)
+    for m in new_mirrors:
+        m.elfin.mirrors = new_mirrors
+
 class ExtrudeNTerm(bpy.types.Operator):
     bl_idname = 'elfin.extrude_nterm_internal'
     bl_label = 'Internal N Terminal extrusion operator'
@@ -57,36 +71,41 @@ class ExtrudeNTerm(bpy.types.Operator):
 
             sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
             if sel_ext_type_pair == ('single', 'single'):
-                def extrude_nterm_single_single(sel_mod, new_mod):
+                def extrude_single_single(sel_mod, new_mod):
                     rel = xdb['double_data'][nterm_mod_name][sel_mod_name]
                     drop_frame(new_mod, rel, fixed_mod=sel_mod)
                     touch_up_new_mod(sel_mod, new_mod)
 
-                extrude_nterm_single_single(sel_mod, ext_mod)
+                extrude_single_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
-                    mirrors = [ext_mod]
-                    for m in sel_mod.elfin.mirrors:
-                        if m != sel_mod:
-                            mirror_mod = link_module(nterm_mod_name)
-                            extrude_nterm_single_single(m, mirror_mod)
-                            mirrors.append(mirror_mod)
-                    for m in mirrors:
-                        m.elfin.mirrors = mirrors
+                    create_module_mirrors(
+                        sel_mod, 
+                        ext_mod, 
+                        nterm_mod_name, 
+                        extrude_single_single)
             elif sel_ext_type_pair == ('single', 'hub'):
-                # First drop to hub component frame
-                chain_xdata = xdb \
-                    ['hub_data'][nterm_mod_name]\
-                    ['component_data'][extrude_into]
-                rel = chain_xdata['c_connections'][sel_mod_name]
-                drop_frame(ext_mod, rel)
+                def extrude_single_hub(sel_mod, new_mod, hub_dst_chain_id):
+                    # First drop to hub component frame
+                    chain_xdata = xdb \
+                        ['hub_data'][nterm_mod_name]\
+                        ['component_data'][hub_dst_chain_id]
+                    rel = chain_xdata['c_connections'][sel_mod_name]
+                    drop_frame(new_mod, rel)
 
-                # Second drop to double B frame
-                rel = xdb \
-                    ['double_data'][chain_xdata['single_name']][sel_mod_name]
-                drop_frame(ext_mod, rel, fixed_mod=sel_mod)
+                    # Second drop to double B frame
+                    rel = xdb \
+                        ['double_data'][chain_xdata['single_name']][sel_mod_name]
+                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
+                    touch_up_new_mod(sel_mod, new_mod)
 
-                touch_up_new_mod(sel_mod, ext_mod)
+                extrude_single_hub(sel_mod, ext_mod, extrude_into)
+
+                # if sel_mod.elfin.mirrors:
+                #     mirrors [ext_mod]
+                #     for m in sel_mod.elfin.mirrors:
+                #         if m != sel_mod:
+                #             mirror_mod = link_module
             elif sel_ext_type_pair == ('hub', 'single'):
                 hub_xdata = xdb['hub_data']
                 comp_xdata = hub_xdata[sel_mod_name] \
@@ -161,23 +180,20 @@ class ExtrudeCTerm(bpy.types.Operator):
 
             sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
             if sel_ext_type_pair == ('single', 'single'):
-                def extrude_cterm_single_single(sel_mod, new_mod):
+                def extrude_single_single(sel_mod, new_mod):
                     rel = xdb \
                         ['double_data'][sel_mod_name][cterm_mod_name]
                     raise_frame(new_mod, rel, fixed_mod=sel_mod)
                     touch_up_new_mod(sel_mod, new_mod)
 
-                extrude_cterm_single_single(sel_mod, ext_mod)
+                extrude_single_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
-                    mirrors = [ext_mod]
-                    for m in sel_mod.elfin.mirrors:
-                        if m != sel_mod:
-                            mirror_mod = link_module(cterm_mod_name)
-                            extrude_cterm_single_single(m, mirror_mod)
-                            mirrors.append(mirror_mod)
-                    for m in mirrors:
-                        m.elfin.mirrors = mirrors
+                    create_module_mirrors(
+                        sel_mod, 
+                        ext_mod, 
+                        cterm_mod_name, 
+                        extrude_single_single)
             elif sel_ext_type_pair == ('single', 'hub'):
                 chain_xdata = xdb\
                     ['hub_data'][cterm_mod_name] \
@@ -523,5 +539,4 @@ class PlaceModule(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) == 0 and \
-            context.selected_objects[0].mode == 'OBJECT'
+        return len(context.selected_objects) == 0

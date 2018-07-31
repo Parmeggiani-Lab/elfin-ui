@@ -27,6 +27,7 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  * Mirrored delete & clean up
  * Mirror link operator
  * Track symmetric mother hub? Is this necessary? 
+ * Make C/N term extrusion share more code
 
 ### TODO: Must-Haves
  * Enforce hub symmetry through modifier-like behaviour
