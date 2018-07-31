@@ -181,9 +181,6 @@ class ElfinObjectProperties(ElfinProperties):
         link.target_mod = target_mod
         link.target_chain_id = target_chain_id
 
-    def get_occupied_chains(self):
-        return set(self.c_linkage.keys() + self.n_linkage.keys())
-
     def show_links(self):
         print('Links of {}'.format(self.obj_ptr.name))
         print('C links:')

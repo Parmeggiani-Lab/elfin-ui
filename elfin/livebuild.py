@@ -295,8 +295,9 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
         xdb = get_xdb()
         if sel_mod_type == 'hub':
             hub_xdata = xdb['hub_data'][sel_mod_name]
+            occupied_n_termini = sel_mod.elfin.n_linkage.keys()
             for chain_id, chain_xdata in hub_xdata['component_data'].items():
-                if chain_id in sel_mod.elfin.get_occupied_chains():
+                if chain_id in occupied_n_termini:
                     continue
                 for single_name in chain_xdata['n_connections']:
                     enum_tuples.append(
@@ -385,8 +386,9 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
         xdb = get_xdb()
         if sel_mod_type == 'hub':
             hub_xdata = xdb['hub_data'][sel_mod_name]
+            occupied_c_termini = sel_mod.elfin.c_linkage.keys()
             for chain_id, chain_xdata in hub_xdata['component_data'].items():
-                if chain_id in sel_mod.elfin.get_occupied_chains():
+                if chain_id in occupied_c_termini:
                     continue
                 for single_name in chain_xdata['c_connections']:
                     enum_tuples.append(
