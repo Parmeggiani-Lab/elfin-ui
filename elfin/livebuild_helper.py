@@ -37,6 +37,9 @@ class ColorWheel(object):
 
 color_wheel = ColorWheel()
 
+def count_obj():
+    return len(bpy.data.objects)
+
 def get_xdb():
     return bpy.context.scene.elfin.xdb
 
