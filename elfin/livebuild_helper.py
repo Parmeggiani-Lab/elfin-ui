@@ -128,14 +128,11 @@ def create_module_mirrors(
     for m in root_mod.elfin.mirrors:
         if m != root_mod:
             mirror_mod = link_module(link_mod_name)
-            print('New mirror mod: ', mirror_mod)
             to_be_mirrored = extrude_func(m, mirror_mod)
             if to_be_mirrored:
                 new_mirrors.append(to_be_mirrored)
     for m in new_mirrors:
         m.elfin.mirrors = new_mirrors
-
-    print('Created mirrors: ', new_mirrors)
 
 def filter_mirror_selection():
     for s in bpy.context.selected_objects:

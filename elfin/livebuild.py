@@ -130,13 +130,15 @@ class ExtrudeNTerm(bpy.types.Operator):
                             m.elfin.mirrors = mirrors
 
                         return None # Mirrers are taken care of here already
+                    else:
+                        return new_mod
 
                 extrude_hub_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod,
-                        [],
+                        [] if hub_xdata['symmetric'] else [ext_mod],
                         nterm_mod_name,
                         extrude_hub_single)
             elif sel_ext_type_pair == ('hub', 'hub'):
@@ -254,13 +256,15 @@ class ExtrudeCTerm(bpy.types.Operator):
                             m.elfin.mirrors = mirrors
 
                         return None # Mirrers are taken care of here already
+                    else:
+                        return new_mod
 
                 extrude_hub_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod,
-                        [],
+                        [] if hub_xdata['symmetric'] else [ext_mod],
                         cterm_mod_name,
                         extrude_hub_single)
             elif sel_ext_type_pair == ('hub', 'hub'):

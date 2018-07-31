@@ -24,9 +24,15 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
         * This is currently allowed
         * In strctures like `<asy_hub - sym_hub - asy_hub>` should the symetric property propogate and force  each arm of the asy_hub to also be identical?
 
+ 2. Mirrored modules
+ 	* Symmetric hub extrusions are automatically mirrored.
+ 	* Other modules can be mirror-linked by the Link by Mirror operator.
+ 	* When extruding from a module that has "mirrors" to other modules of the same protoype, the newly extruded modules will also be mirror-linked together.
+ 		* Only intra-network auto mirroring is supported.
+ 		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then use the Select Mirror Links operator.
+
 ### TODO: Current Working On:
- * Mirrored delete & clean up (needed?)
- * Mirror link operator
+ * Link by Mirror and Select Mirror Links operator
  * Track symmetric mother hub? Is this necessary? 
  * Make C/N term extrusion share more code
 
