@@ -102,6 +102,8 @@ You don't have to type the full name of the module. For example, "ex n" will bri
 
 Each of the above operators will prompt you with a filtered list of actionable modules. For instance if a single module has already got an N and a C neighbour, then the extrusion operators will not allow extruding unless its neighbours are deleted.
 
+Even though there are just three operators now, they can be quite powerful when combined with mirror-linked modules (very soon upcoming new operator). Also with Blender's default object manipulating functions, interesting designs can already be built.
+
 Useful Blender shortcuts:
  * <kbd>a</kbd> toggle select all/deselect all.
  * <kbd>x</kbd> to delete selection (with confirmation).
