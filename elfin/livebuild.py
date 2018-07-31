@@ -68,13 +68,14 @@ class ExtrudeNTerm(bpy.types.Operator):
                     rel = xdb['double_data'][nterm_mod_name][sel_mod_name]
                     drop_frame(new_mod, rel, fixed_mod=sel_mod)
                     touch_up_new_mod(sel_mod, new_mod)
+                    return new_mod
 
                 extrude_single_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod, 
-                        ext_mod, 
+                        [ext_mod], 
                         nterm_mod_name, 
                         extrude_single_single)
             elif sel_ext_type_pair == ('single', 'hub'):
@@ -91,13 +92,14 @@ class ExtrudeNTerm(bpy.types.Operator):
                         ['double_data'][chain_xdata['single_name']][sel_mod_name]
                     drop_frame(new_mod, rel, fixed_mod=sel_mod)
                     touch_up_new_mod(sel_mod, new_mod)
+                    return new_mod
 
                 extrude_single_hub(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod,
-                        ext_mod,
+                        [ext_mod],
                         nterm_mod_name,
                         extrude_single_hub
                         )
@@ -127,12 +129,14 @@ class ExtrudeNTerm(bpy.types.Operator):
                         for m in mirrors:
                             m.elfin.mirrors = mirrors
 
+                        return None # Mirrers are taken care of here already
+
                 extrude_hub_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod,
-                        ext_mod,
+                        [],
                         nterm_mod_name,
                         extrude_hub_single)
             elif sel_ext_type_pair == ('hub', 'hub'):
@@ -187,13 +191,14 @@ class ExtrudeCTerm(bpy.types.Operator):
                     rel = xdb['double_data'][sel_mod_name][cterm_mod_name]
                     raise_frame(new_mod, rel, fixed_mod=sel_mod)
                     touch_up_new_mod(sel_mod, new_mod)
+                    return new_mod
 
                 extrude_single_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod, 
-                        ext_mod, 
+                        [ext_mod], 
                         cterm_mod_name, 
                         extrude_single_single)
             elif sel_ext_type_pair == ('single', 'hub'):
@@ -204,13 +209,14 @@ class ExtrudeCTerm(bpy.types.Operator):
                     rel = chain_xdata['n_connections'][sel_mod_name]
                     drop_frame(new_mod, rel, fixed_mod=sel_mod)
                     touch_up_new_mod(sel_mod, new_mod)
+                    return new_mod
 
                 extrude_single_hub(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod,
-                        ext_mod,
+                        [ext_mod],
                         cterm_mod_name,
                         extrude_single_hub
                         )
@@ -247,12 +253,14 @@ class ExtrudeCTerm(bpy.types.Operator):
                         for m in mirrors:
                             m.elfin.mirrors = mirrors
 
+                        return None # Mirrers are taken care of here already
+
                 extrude_hub_single(sel_mod, ext_mod)
 
                 if sel_mod.elfin.mirrors:
                     create_module_mirrors(
                         sel_mod,
-                        ext_mod,
+                        [],
                         cterm_mod_name,
                         extrude_hub_single)
             elif sel_ext_type_pair == ('hub', 'hub'):
@@ -312,6 +320,10 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
                                 extrude_into='A',
                                 direction='N'))
                 for hub_name in xdb['hub_data']:
+                    if xdb['hub_data'][hub_name]['symmetric']:
+                        # Logically one can never extrude a symmetric hub
+                        # See README development notes
+                        continue
                     for hub_comp_name in \
                         get_compatible_hub_components(hub_name, 'C', sel_mod_name):
                         enum_tuples.append(
@@ -398,6 +410,10 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
                             extrude_into='A',
                             direction='C'))
                 for hub_name in xdb['hub_data']:
+                    if xdb['hub_data'][hub_name]['symmetric']:
+                        # Logically one can never extrude a symmetric hub
+                        # See README development notes
+                        continue
                     for hub_comp_name in \
                         get_compatible_hub_components(hub_name, 'N', sel_mod_name):
                         enum_tuples.append(

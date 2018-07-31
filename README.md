@@ -25,7 +25,7 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
         * In strctures like `<asy_hub - sym_hub - asy_hub>` should the symetric property propogate and force  each arm of the asy_hub to also be identical?
 
 ### TODO: Current Working On:
- * Mirrored delete & clean up
+ * Mirrored delete & clean up (needed?)
  * Mirror link operator
  * Track symmetric mother hub? Is this necessary? 
  * Make C/N term extrusion share more code
@@ -37,8 +37,9 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ### TODO: Nice-to-Haves
  * Pull-Join: join two module networks by pulling first selected network to the second one.
-	 * First check compatibility
-	 * Then simply do a frame re-shift for all objs in first network based on the selected module
+	 1. Check compatibility
+	 2. Then do a frame re-shift for all objs in first network based on the selected module
+	 * Allow pull-join having one side being symmetric core?
  * Allow user to confirm deletion when collision is detected. Collision detection using single module 3D models are not very accurate (currently each module is shruken to 85% before checking).
 
 ### TODO: Maybe?

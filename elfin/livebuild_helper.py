@@ -2,13 +2,12 @@ import re
 import colorsys
 import random
 import json
-import time
-from collections import OrderedDict
+import collections
+import functools
 
 import bpy
 import bmesh
 import mathutils
-from bpy.app.handlers import persistent
 import mathutils.bvhtree
 from . import addon_paths
 
@@ -18,11 +17,11 @@ from . import addon_paths
 blender_pymol_unit_conversion = 10.0
 color_wheel = ColorWheel()
 
-
 # Classes ----------------------------------------
 
-class ColorWheel(object):
-    hue_diff = 0.3
+random.seed()
+class ColorWheel:
+    hue_diff = 0.14
     lightness_base = 0.3
     lightness_variance = 0.3
     saturation_base = 0.8
@@ -42,16 +41,36 @@ class ColorWheel(object):
             saturation % 1.0
         )
 
+class object_receiver:
+    """Passes object to func by argument if specified, otherwise use the
+    selected object.
+    """
+    def __init__(self, func):
+        self.func = func
+        functools.update_wrapper(self, func)
+
+    def __call__(self, obj=None, *args, **kwargs):
+        if not obj:
+            obj = get_selected()
+            if not obj:
+                print('No object specified nor selected.')
+                return
+
+        return self.func(obj, *args, **kwargs)
 
 # Quick Access Methods ---------------------------
 
-def link_modules(modules=None):
-    mirrors = modules[:] if modules else bpy.context.selected_objects[:]
-    for m in mirrors:
-        m.elfin.mirror = mirrors
+@object_receiver
+def get_mirrors(obj):
+    return obj.elfin.mirrors
 
-def get_elfin():
-    return get_selected().elfin
+@object_receiver
+def get_elfin(obj):
+    return obj.elfin
+
+@object_receiver
+def show_links(obj):
+    obj.elfin.show_links()
 
 def count_obj():
     return len(bpy.data.objects)
@@ -59,37 +78,56 @@ def count_obj():
 def get_xdb():
     return bpy.context.scene.elfin.xdb
 
-def show_links(obj=None):
-    if obj:
-        obj.elfin.show_links()
-    elif bpy.context.selected_objects:
-        bpy.context.selected_objects[0].elfin.show_links()
-
-def get_selected():
+def get_selected(n=1):
     """
-    Return the first selected object, or None if nothing is selected.
+    Return the first n selected object, or None if nothing is selected.
     """
     if len(bpy.context.selected_objects):
-        return bpy.context.selected_objects[0]
+        selection = bpy.context.selected_objects
+        if n == 1:
+            return selection[0]
+        elif n == -1:
+            return selection[:]
+        else:
+            return selection[:n]
     else:
         return None
 
-
 # Helpers ----------------------------------------
+
+def unlink_mirror(modules=None):
+    mods = modules[:] if modules else bpy.context.selected_objects[:]
+    if not mods: return
+    for m in mods: 
+        m.elfin.mirrors = None
+
+def link_by_mirror(modules=None):
+    mirrors = modules[:] if modules else bpy.context.selected_objects[:]
+    if not mirrors: return
+    m0 = mirrors[0]
+    for i in range(1, len(mirrors)):
+        if mirrors[i].elfin.module_name != m0.elfin.module_name:
+            print('Error: selected modules are not of the same prototype')
+            return
+    for m in mirrors:
+        m.elfin.mirrors = mirrors[:]
 
 def create_module_mirrors(
     root_mod, 
-    first_ext_mod, 
+    new_mirrors, 
     link_mod_name,
     extrude_func):
-    new_mirrors = [first_ext_mod]
     for m in root_mod.elfin.mirrors:
         if m != root_mod:
             mirror_mod = link_module(link_mod_name)
-            extrude_func(m, mirror_mod)
-            new_mirrors.append(mirror_mod)
+            print('New mirror mod: ', mirror_mod)
+            to_be_mirrored = extrude_func(m, mirror_mod)
+            if to_be_mirrored:
+                new_mirrors.append(to_be_mirrored)
     for m in new_mirrors:
         m.elfin.mirrors = new_mirrors
+
+    print('Created mirrors: ', new_mirrors)
 
 def filter_mirror_selection():
     for s in bpy.context.selected_objects:
@@ -279,7 +317,7 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
 
 def load_xdb():
     with open(addon_paths.xdb_path, 'r') as file:
-        xdb = OrderedDict(json.load(file))
+        xdb = collections.OrderedDict(json.load(file))
     print('Xdb loaded')
     return xdb
 
