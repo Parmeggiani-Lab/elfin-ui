@@ -89,8 +89,9 @@ In effect, when your mouse is within the viewport, you can hit <kbd>space</kbd> 
 <img src="resources/images/ui_tutorial_place.png" width="70%">
 </p>
 
-Currently available (and useful) operators:
+### Operators
 
+Currently available (and useful) operators are:
  * <b>Place</b> a module
     * Only available when nothing is selected in the scene
  * <b>Extrude N</b> (add a module to the nterm)
@@ -100,11 +101,15 @@ Currently available (and useful) operators:
 
 You don't have to type the full name of the module. For example, "ex n" will bring up the <b>Extrude N</b> operator.
 
-Each of the above operators will prompt you with a filtered list of actionable modules. For instance if a single module has already got an N and a C neighbour, then the extrusion operators will not allow extruding unless its neighbours are deleted.
+Each of the above operators will prompt you with a filtered list of actionable modules - let's call them <em>filtered prototype selection</em>. There might be many modules in a scene, but modules with the same module name (not Blender name) are the same prototype (like what classes are to objects). 
 
-Even though there are just three operators now, they can be quite powerful when combined with mirror-linked modules (very soon upcoming new operator). Also with Blender's default object manipulating functions, interesting designs can already be built.
+The prototype filtering works such that if for instance a single module has already got an N and a C neighbour, then the extrusion operators will not allow extruding unless one of its neighbours gets deleted.
 
-Useful Blender shortcuts:
+Even though there are just three operators as of now, they can be quite powerful when combined with mirror-linked modules (very soon upcoming new operator). Also with Blender's default object manipulating functions, interesting designs can already be built.
+
+The colour of each newly added module is set randomly. If you wish to set them manually, you can open the left-hand-side panel (via <kbd>t</kbd>) to adjust the color when the operator is <em>active</em> (when you've selected it after typing it). It's highly recommended that you change the color while the prototype selection is set to `-Change Color-`. This is because with each color change Blender removes the object it added and re-adds it with a different color. That can cause considerable lag if you drag the colour pointer around in the palette.
+
+### Useful Blender shortcuts:
  * <kbd>a</kbd> toggle select all/deselect all.
  * <kbd>x</kbd> to delete selection (with confirmation).
  * <kbd>r</kbd> to rotate selection.
@@ -117,11 +122,11 @@ Useful Blender shortcuts:
 <img src="resources/images/ui_tutorial_names.png" width="70%">
 </p>
 
-In the module list, you will see that the name of a module is bounded by two period marks. These marks are sentinels so that it's easy for you to search exactly which module to place. Try just typing "D4" in the <b>Place</b> operator, and see what happens when you type ".D4" or "D4." or ".D4.".
+In the filtered prototype list, you will see that the name of a module is bounded by two period marks. These marks are sentinels so that it's easy for you to search exactly which module to place. Try typing just `D4` in the <b>Place</b> operator, and see what happens when you type `.D4` or `D4.` or `.D4.`.
 
 The first letter, if there is one, denotes the <b>C Terminus</b> chain ID of the extrusion. This is needed because hub modules have more than one chain to extrude to and from.
 
-The last letter is therefore the <b><N Terminus/b> chain ID in the to-be-extruded module.
+The last letter is therefore the <b><N Terminus</b> chain ID in the to-be-extruded module.
 
 <b>WARNING</b>: any design created as of now will most likely not be able to be properly exported to elfin's internal data format when the export function is available. This is because Blender objects created using an old version of the addon will not get new properties even if the addon is updated. The design will need to be re-created.
 
