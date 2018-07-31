@@ -26,6 +26,7 @@ import importlib
 import re
 import os
 
+
 # Dyanmic import and reload ----------------------
 
 print('--------------------- Elfin UI Addon import/reload')
@@ -53,6 +54,7 @@ import bpy
 from bpy.app.handlers import persistent
 
 from .elfin_properties import ElfinProperties
+
 
 # Master PropertyGroup ---------------------------
 
@@ -159,6 +161,7 @@ class ElfinObjectProperties(ElfinProperties):
     def mirrors(self, value):
         self['_mirrors'] = value
 
+
 # Panels -----------------------------------------
 
 class ExportPanel(bpy.types.Panel):
@@ -173,6 +176,7 @@ class ExportPanel(bpy.types.Panel):
         row = layout.row(align=True)
         col = row.column()
         col.operator('elfin.export', text='Export design')
+
 
 # Operators --------------------------------------
 
@@ -209,8 +213,8 @@ class ResetOperator(bpy.types.Operator):
         context.scene.elfin.reset()
         return {'FINISHED'}
 
-# Handlers --------------------------------------
 
+# Handlers --------------------------------------
 
 def remove_handler(handler_list, handler):
     handler_list[:] = [h for h in handler_list if h is not handler]
@@ -237,7 +241,7 @@ def add_watcher(scene):
     mlw_handler_list.append(mod_life_watcher)
 
 
-# Registrations ---------------------------------
+# Registration ----------------------------------
 
 def register():
     """Registers properties, and handlers"""

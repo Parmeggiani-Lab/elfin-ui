@@ -20,10 +20,11 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  1. Symmetric hubs
  	* There are only two symmetric hubs in the database right now. 
  	* All "arms" of a symmetric hub must be identical and because of this, logically any network can only have zero or one symmetric hub "core".
-    * Should a symmetric hub network be allowed to have asymmetric hubs in its arms? In strctures like `<asy_hub - sym_hub - asy_hub>` would the asy_hubs also have "arms" that need to be symmetric because of the mother sym_hub?
+    * Should a symmetric hub network be allowed to have asymmetric hubs in its arms? 
+        * This is currently allowed
+        * In strctures like `<asy_hub - sym_hub - asy_hub>` should the symetric property propogate and force  each arm of the asy_hub to also be identical?
 
 ### TODO: Current Working On:
- * Mirrored single-hub extrude for networks with a symmetric hub core
  * Mirrored delete & clean up
  * Mirror link operator
  * Track symmetric mother hub? Is this necessary? 

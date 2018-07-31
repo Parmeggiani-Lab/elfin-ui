@@ -12,7 +12,14 @@ from bpy.app.handlers import persistent
 import mathutils.bvhtree
 from . import addon_paths
 
+
+# Global (Const) Variables -----------------------
+
 blender_pymol_unit_conversion = 10.0
+color_wheel = ColorWheel()
+
+
+# Classes ----------------------------------------
 
 class ColorWheel(object):
     hue_diff = 0.3
@@ -35,7 +42,13 @@ class ColorWheel(object):
             saturation % 1.0
         )
 
-color_wheel = ColorWheel()
+
+# Quick Access Methods ---------------------------
+
+def link_modules(modules=None):
+    mirrors = modules[:] if modules else bpy.context.selected_objects[:]
+    for m in mirrors:
+        m.elfin.mirror = mirrors
 
 def get_elfin():
     return get_selected().elfin
@@ -45,6 +58,45 @@ def count_obj():
 
 def get_xdb():
     return bpy.context.scene.elfin.xdb
+
+def show_links(obj=None):
+    if obj:
+        obj.elfin.show_links()
+    elif bpy.context.selected_objects:
+        bpy.context.selected_objects[0].elfin.show_links()
+
+def get_selected():
+    """
+    Return the first selected object, or None if nothing is selected.
+    """
+    if len(bpy.context.selected_objects):
+        return bpy.context.selected_objects[0]
+    else:
+        return None
+
+
+# Helpers ----------------------------------------
+
+def create_module_mirrors(
+    root_mod, 
+    first_ext_mod, 
+    link_mod_name,
+    extrude_func):
+    new_mirrors = [first_ext_mod]
+    for m in root_mod.elfin.mirrors:
+        if m != root_mod:
+            mirror_mod = link_module(link_mod_name)
+            extrude_func(m, mirror_mod)
+            new_mirrors.append(mirror_mod)
+    for m in new_mirrors:
+        m.elfin.mirrors = new_mirrors
+
+def filter_mirror_selection():
+    for s in bpy.context.selected_objects:
+        if s.select and s.elfin.mirrors:
+            for m in s.elfin.mirrors:
+                # Note that m could be the next s!
+                if m and m != s: m.select = False
 
 def suitable_for_extrusion(context):
     n_objs = len(context.selected_objects)
@@ -68,21 +120,6 @@ def give_module_new_color(mod, new_color=None):
     mat.diffuse_color = new_color if new_color else color_wheel.next_color()
     mod.data.materials.append(mat)
     mod.active_material = mat
-
-def show_links(obj=None):
-    if obj:
-        obj.elfin.show_links()
-    elif bpy.context.selected_objects:
-        bpy.context.selected_objects[0].elfin.show_links()
-
-def get_selected():
-    """
-    Return the first selected object, or None if nothing is selected.
-    """
-    if len(bpy.context.selected_objects):
-        return bpy.context.selected_objects[0]
-    else:
-        return None
 
 def delete_if_overlap(mod_obj, obj_list=None):
     """
