@@ -37,6 +37,9 @@ class ColorWheel(object):
 
 color_wheel = ColorWheel()
 
+def get_xdb():
+    return bpy.context.scene.elfin.xdb
+
 def suitable_for_extrusion(context):
     n_objs = len(context.selected_objects)
     if n_objs == 0:
@@ -256,12 +259,10 @@ def link_module(module_name):
         single_xdata = xdb['single_data'].get(module_name, None)
         if single_xdata:
             linked_module.elfin.module_type = 'single'
-            linked_module.elfin.xdata = single_xdata
         else:
             hub_xdata = xdb['hub_data'].get(module_name, None)
             if hub_xdata:
                 linked_module.elfin.module_type = 'hub'
-                linked_module.elfin.xdata = hub_xdata
             else:
                 print('Warning: user is trying to link a module that is neither single or hub type')
                 single_a_name, single_b_name = module_name.split['-']
@@ -270,7 +271,6 @@ def link_module(module_name):
                     single_b_name, None)
                 if double_xdata:
                     linked_module.elfin.module_type = 'double'
-                    linked_module.elfin.xdata = double_xdata
                 else:
                     raise ValueError('Module name not found in xdb: ', mod_name)
 

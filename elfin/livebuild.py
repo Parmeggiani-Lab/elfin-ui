@@ -31,7 +31,7 @@ class ExtrudeNTerm(bpy.types.Operator):
     def execute(self, context):
         ext_mod = None
         try:
-            xdb = context.scene.elfin.xdb
+            xdb = get_xdb()
 
             sel_mod = context.scene.objects[self.target_name]
             sel_mod_name = sel_mod.elfin.module_name
@@ -74,8 +74,6 @@ class ExtrudeNTerm(bpy.types.Operator):
                     for m in mirrors:
                         m.elfin.mirrors = mirrors
             elif sel_ext_type_pair == ('single', 'hub'):
-                # Repeat for all N terms if hub is symmetric
-
                 # First drop to hub component frame
                 chain_xdata = xdb \
                     ['hub_data'][nterm_mod_name]\
@@ -90,18 +88,20 @@ class ExtrudeNTerm(bpy.types.Operator):
 
                 touch_up_new_mod(sel_mod, ext_mod)
             elif sel_ext_type_pair == ('hub', 'single'):
+                hub_xdata = xdb['hub_data']
+                comp_xdata = hub_xdata[sel_mod_name] \
+                        ['component_data']
                 def extrude_hub_single(new_mod, src_chain_id):
-                    chain_xdata = sel_mod.elfin.xdata \
-                        ['component_data'][src_chain_id]
+                    chain_xdata = comp_xdata[src_chain_id]
                     rel = chain_xdata['n_connections'][nterm_mod_name]
                     raise_frame(new_mod, rel, fixed_mod=sel_mod)
                     touch_up_new_mod(sel_mod, new_mod, src_chain_id)
                 
                 extrude_hub_single(ext_mod, extrude_from)
 
-                if sel_mod.elfin.xdata['symmetric']:
+                if hub_xdata['symmetric']:
                     hub_n_free_chains = \
-                        set(sel_mod.elfin.xdata['component_data'].keys()) - \
+                        set(hub_xdata['component_data'].keys()) - \
                         set(sel_mod.elfin.n_linkage.keys())
                     mirrors = [ext_mod]
                     
@@ -139,7 +139,7 @@ class ExtrudeCTerm(bpy.types.Operator):
     def execute(self, context):
         ext_mod = None
         try:
-            xdb = context.scene.elfin.xdb
+            xdb = get_xdb()
 
             sel_mod = context.scene.objects[self.target_name]
             sel_mod_name = sel_mod.elfin.module_name
@@ -187,9 +187,10 @@ class ExtrudeCTerm(bpy.types.Operator):
             
                 touch_up_new_mod(sel_mod, ext_mod)
             elif sel_ext_type_pair == ('hub', 'single'):
+                hub_xdata = xdb['hub_data'][sel_mod_name]
+                comp_xdata = hub_xdata['component_data']
                 def extrude_hub_single(new_mod, src_chain_id):
-                    chain_xdata = sel_mod.elfin.xdata \
-                        ['component_data'][src_chain_id]
+                    chain_xdata = comp_xdata[src_chain_id]
 
                     # First raise to double B frame
                     rel = xdb \
@@ -203,9 +204,9 @@ class ExtrudeCTerm(bpy.types.Operator):
                 
                 extrude_hub_single(ext_mod, extrude_from)
 
-                if sel_mod.elfin.xdata['symmetric']:
+                if hub_xdata['symmetric']:
                     hub_c_free_chains = \
-                        set(sel_mod.elfin.xdata['component_data'].keys()) - \
+                        set(hub_xdata['component_data'].keys()) - \
                         set(sel_mod.elfin.c_linkage.keys())
                     mirrors = []
 
@@ -252,8 +253,9 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
         sel_mod_name = sel_mod.elfin.module_name
         sel_mod_type = sel_mod.elfin.module_type
 
+        xdb = get_xdb()
         if sel_mod_type == 'hub':
-            hub_xdata = sel_mod.elfin.xdata
+            hub_xdata = xdb['hub_data'][sel_mod_name]
             for chain_id, chain_xdata in hub_xdata['component_data'].items():
                 if chain_id in sel_mod.elfin.get_occupied_chains():
                     continue
@@ -270,15 +272,15 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
                     break
         elif sel_mod_type == 'single':
             if len(sel_mod.elfin.n_linkage) == 0:
-                for single_a_name in context.scene.elfin.xdb['single_data']:
-                    if get_double_module_xdata(single_a_name, sel_mod_name):
+                for single_a_name in xdb['single_data']:
+                    if sel_mod_name in xdb['single_data'][single_a_name]:
                         enum_tuples.append(
                             module_enum_tuple(
                                 single_a_name,
                                 extrude_from='A',
                                 extrude_into='A',
                                 direction='N'))
-                for hub_name in context.scene.elfin.xdb['hub_data']:
+                for hub_name in xdb['hub_data']:
                     for hub_comp_name in \
                         get_compatible_hub_components(hub_name, 'C', sel_mod_name):
                         enum_tuples.append(
@@ -337,8 +339,9 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
         sel_mod_name = sel_mod.elfin.module_name
         sel_mod_type = sel_mod.elfin.module_type
 
+        xdb = get_xdb()
         if sel_mod_type == 'hub':
-            hub_xdata = sel_mod.elfin.xdata
+            hub_xdata = xdb['hub_data'][sel_mod_name]
             for chain_id, chain_xdata in hub_xdata['component_data'].items():
                 if chain_id in sel_mod.elfin.get_occupied_chains():
                     continue
@@ -355,7 +358,7 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
                     break
         elif sel_mod_type == 'single':
             if len(sel_mod.elfin.c_linkage) == 0:
-                sel_mod_xdata = context.scene.elfin.xdb['double_data'][sel_mod_name]
+                sel_mod_xdata = xdb['double_data'][sel_mod_name]
                 for single_b_name in sel_mod_xdata:
                     enum_tuples.append(
                         module_enum_tuple(
@@ -363,7 +366,7 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
                             extrude_from='A',
                             extrude_into='A',
                             direction='C'))
-                for hub_name in context.scene.elfin.xdb['hub_data']:
+                for hub_name in xdb['hub_data']:
                     for hub_comp_name in \
                         get_compatible_hub_components(hub_name, 'N', sel_mod_name):
                         enum_tuples.append(
@@ -413,8 +416,9 @@ class LoadXdb(bpy.types.Operator):
     bl_label = '(Re)load xdb'
 
     def execute(self, context):
-        context.scene.elfin.xdb.clear()
-        context.scene.elfin.xdb.update(load_xdb())
+        xdb = get_xdb()
+        xdb.clear()
+        xdb.update(load_xdb())
         return {'FINISHED'}
 
 class LoadModuleLibrary(bpy.types.Operator):
@@ -486,9 +490,9 @@ class PlaceModule(bpy.types.Operator):
 
     def modlib_enum_cb(self, context):
         res = [color_change_placeholder_enum_tuple]
-        for mod in context.scene.elfin.library:
-            if not get_double_module_xdata(double_name=mod):
-                res.append(module_enum_tuple(mod))
+        for mod_name in context.scene.elfin.library:
+            if '-' not in mod_name: # This is a check for "not double module"
+                res.append(module_enum_tuple(mod_name))
         return res
 
     selected_module = bpy.props.EnumProperty(items=modlib_enum_cb)
@@ -519,5 +523,5 @@ class PlaceModule(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) == 0 or \
+        return len(context.selected_objects) == 0 and \
             context.selected_objects[0].mode == 'OBJECT'

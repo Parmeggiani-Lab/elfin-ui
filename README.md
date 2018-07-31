@@ -12,8 +12,14 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ## Goals
 
- * Enable full assembly design through manual specification.
- * Enable partially automated ([elfin-solver](https://github.com/joy13975/elfin-solver)) design through path guides.
+ * Enable full assembly design through manual manipulation.
+ * Enable partially automated (with [elfin-solver](https://github.com/joy13975/elfin-solver)) design through path guides.
+
+### TODO: Current Working On:
+ * Mirrored single-hub extrude (no symmetric hubs here)
+ * Mirrored delete & clean up
+ * Mirror link operator
+ * Track symmetric mother hub? Is this necessary? 
 
 ### TODO: Must-Haves
  * Enforce hub symmetry through modifier-like behaviour

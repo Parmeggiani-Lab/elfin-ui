@@ -152,14 +152,6 @@ class ElfinObjectProperties(ElfinProperties):
         for nl in self.n_linkage: nl.sever()
 
     @property
-    def xdata(self):
-        return self.get('_xdata', None)
-
-    @xdata.setter
-    def xdata(self, value):
-        self['_xdata'] = value
-
-    @property
     def mirrors(self):
         return self.get('_mirrors', None)
 
