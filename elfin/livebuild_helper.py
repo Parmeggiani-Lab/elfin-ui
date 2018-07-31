@@ -15,31 +15,39 @@ from . import addon_paths
 # Global (Const) Variables -----------------------
 
 blender_pymol_unit_conversion = 10.0
-color_wheel = ColorWheel()
+
 
 # Classes ----------------------------------------
 
 random.seed()
 class ColorWheel:
-    hue_diff = 0.14
-    lightness_base = 0.3
-    lightness_variance = 0.3
-    saturation_base = 0.8
-    saturation_variance = .2
+    class __ColorWheel:
+        hue_diff = 0.14
+        lightness_base = 0.3
+        lightness_variance = 0.3
+        saturation_base = 0.8
+        saturation_variance = .2
+        def __init__(self):
+            self.hue = random.random()
+        
+        def next_color(self, ):
+            self.hue += (self.hue_diff / 2) + random.random() * (1 - self.hue_diff)
+            lightness = self.lightness_base + \
+                random.random() * self.lightness_variance
+            saturation = self.saturation_base + \
+                random.random() * self.saturation_variance
+            return colorsys.hls_to_rgb(
+                self.hue % 1.0, 
+                lightness % 1.0, 
+                saturation % 1.0
+            )
+    instance = None
     def __init__(self):
-        self.hue = random.random()
-    
-    def next_color(self, ):
-        self.hue += (self.hue_diff / 2) + random.random() * (1 - self.hue_diff)
-        lightness = self.lightness_base + \
-            random.random() * self.lightness_variance
-        saturation = self.saturation_base + \
-            random.random() * self.saturation_variance
-        return colorsys.hls_to_rgb(
-            self.hue % 1.0, 
-            lightness % 1.0, 
-            saturation % 1.0
-        )
+        if not ColorWheel.instance:
+            ColorWheel.instance = ColorWheel.__ColorWheel()
+
+    def __getattr__(self, name):
+        return getattr(ColorWheel.instance, name)
 
 class object_receiver:
     """Passes object to func by argument if specified, otherwise use the
@@ -155,7 +163,7 @@ def suitable_for_extrusion(context):
 
 def give_module_new_color(mod, new_color=None):
     mat = bpy.data.materials.new(name='mat_' + mod.name)
-    mat.diffuse_color = new_color if new_color else color_wheel.next_color()
+    mat.diffuse_color = new_color if new_color else ColorWheel().next_color()
     mod.data.materials.append(mat)
     mod.active_material = mat
 
@@ -171,29 +179,9 @@ def delete_if_overlap(mod_obj, obj_list=None):
     if not bpy.context.scene.elfin.disable_collision_check:
         bpy.context.scene.update()
         if check_module_overlap(mod_obj, obj_list=obj_list):
-            delete_object(mod_obj)
+            mod_obj.elfin.destroy()
             return True
     return False
-
-def delete_object(obj):
-    """Delete an object using default delete operator while preserving
-    selection before deletion.
-    """
-    # Cache selection
-    selection = bpy.context.selected_objects[:]
-    object_name = obj.name
-
-    obj.elfin.sever_links()
-
-    bpy.ops.object.select_all(action='DESELECT')
-    obj.hide = False
-    obj.select = True
-    bpy.ops.object.delete(use_global=False)
-    
-    # Restore selection
-    for ob in selection:
-        if ob != obj:
-            ob.select = True
 
 def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
     """
@@ -356,10 +344,9 @@ def link_module(module_name):
                     raise ValueError('Module name not found in xdb: ', mod_name)
 
         linked_module.elfin.is_module = True
-        linked_module.elfin.self_object = linked_module
+        linked_module.elfin.obj_ptr = linked_module
 
         return linked_module
     except Exception as e:
-        if linked_module:
-            delete_object(linked_module)
+        if linked_module: linked_module.elfin.destroy()
         raise e

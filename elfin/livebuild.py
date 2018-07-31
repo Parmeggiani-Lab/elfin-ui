@@ -148,7 +148,7 @@ class ExtrudeNTerm(bpy.types.Operator):
             return {'FINISHED'}
         except Exception as e:
             if ext_mod:
-                delete_object(ext_mod)
+                ext_mod.elfin.destroy()
             sel_mod.select = True # Restore selection
             raise e
         return {'FINISHED'}
@@ -272,7 +272,7 @@ class ExtrudeCTerm(bpy.types.Operator):
             return {'FINISHED'}
         except Exception as e:
             if ext_mod:
-                delete_object(ext_mod)
+                ext_mod.elfin.destroy()
             sel_mod.select = True # Restore selection
             raise e
         return {'FINISHED'}
@@ -359,7 +359,7 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        self.color = color_wheel.next_color()
+        self.color = ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}
 
@@ -450,7 +450,7 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        self.color = color_wheel.next_color()
+        self.color = ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}
 
@@ -563,7 +563,7 @@ class PlaceModule(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        self.color = color_wheel.next_color()
+        self.color = ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
 
         return {'FINISHED'}

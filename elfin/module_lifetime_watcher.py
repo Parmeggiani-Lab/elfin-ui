@@ -11,10 +11,8 @@ class ModuleLifetimeWatcher(object):
         self.prev_object_names = set()
         self.initialized = False
 
-        # A non positive interval will cause update-call infinite loop and
-        # crash Blender. Reason is that __call__ possibly causes another scene
-        # update, which then calls __call__ again.
-        assert self.check_interval > 0
+        # A interval too small can cause lags.
+        assert self.check_interval > 50
 
     def __call__(self, scene):
         """Makes an instance callable by bpy.app.handlers
@@ -66,16 +64,7 @@ class ModuleLifetimeWatcher(object):
 
     def on_module_exit(self, object_name):
         """Severe linkages"""
-        try:
-            ob = bpy.data.objects[object_name]
-            # A dirty exit is when an object is deleted from the scene but
-            # remains in bpy.data.objects due to some left over reference.
-            # A KeyError would be generated if the object exited cleanly.
-            if ob.elfin.is_module:
-                print('Module dirty exit: {}'.format(ob))
-                ob.elfin.sever_links()
-                bpy.data.objects.remove(ob)
-        except KeyError:
-            pass
-        except Exception as e:
-            raise e
+        if object_name in bpy.data.objects:
+            bpy.data.objects[object_name].elfin.destroy()
+        else:
+            print('{} exited cleanly'.format(object_name))

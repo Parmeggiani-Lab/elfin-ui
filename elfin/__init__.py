@@ -104,7 +104,7 @@ class LinkageProperty(bpy.types.PropertyGroup):
             target_nl = self.target_mod.elfin.n_linkage \
                 if self.terminus == 'c' else \
                 self.target_mod.elfin.c_linkage
-            print('{} severing'.format(repr(self)))
+            print('Severing: ', repr(self))
 
             # Remove back reference
             target_nl[self.target_chain_id].target_mod = None
@@ -118,12 +118,54 @@ class ElfinObjectProperties(ElfinProperties):
     is_module = bpy.props.BoolProperty(default=False)
     module_name = bpy.props.StringProperty()
     module_type = bpy.props.StringProperty()
-    self_object = bpy.props.PointerProperty(type=bpy.types.Object)
+    obj_ptr = bpy.props.PointerProperty(type=bpy.types.Object)
 
     c_linkage = \
         bpy.props.CollectionProperty(type=LinkageProperty)
     n_linkage = \
         bpy.props.CollectionProperty(type=LinkageProperty)
+
+    def destroy(self):
+        """Delete an object using default delete operator while preserving
+        selection before deletion.
+        """
+        if not self.obj_ptr or not self.is_module: return
+
+        obj = self.obj_ptr
+        obj_name = obj.name
+
+        # Cache user selection
+        selection = [o for o in bpy.context.selected_objects if o != obj]
+
+        bpy.ops.object.select_all(action='DESELECT')
+
+        self.sever_links()
+
+        # Destory mirrors
+        if self.mirrors:
+            for m in self.mirrors:
+                if m != obj:
+                    m.elfin.mirrors = []
+                    m.elfin.destroy()
+
+        # Delete using default operator
+        obj.hide = False
+        obj.select = True
+        bpy.ops.object.delete(use_global=False)
+
+        if obj.name in bpy.data.objects:
+            print('Module dirty exit: ', obj_name)
+            # Remove it from bpy.data.objects because sometimes leftover
+            # refereneces can cause the object to remain.
+            bpy.data.objects.remove(obj)
+    
+        # Restore selection
+        for ob in selection: ob.select = True
+
+        # Remove reference
+        self.obj_ptr = obj = None
+
+        print('{} destroyed.'.format(obj_name))
 
     def new_c_link(self, source_chain_id, target_mod, target_chain_id):
         link = self.c_linkage.add()
@@ -143,7 +185,7 @@ class ElfinObjectProperties(ElfinProperties):
         return set(self.c_linkage.keys() + self.n_linkage.keys())
 
     def show_links(self):
-        print('Links of {}'.format(self.self_object.name))
+        print('Links of {}'.format(self.obj_ptr.name))
         print('C links:')
         for cl in self.c_linkage: print(repr(cl))
         print('N links:')
