@@ -77,8 +77,55 @@ Beware that Blender v2.8 (now beta) will probably introduce significant changes 
 
 For pure Windows (non-WSL), either copy the `elfin` folder to your Blender's addon directory or create a symlink via `mklink` or [Shell Link Extension](http://schinagl.priv.at/nt/hardlinkshellext/linkshellextension.html)
 
+After installing, open Blender and go to `File > User Preferences > Add-ons` and search for `Elfin`. If the installation was successful there should be a `Elfin: Elfin UI`. Tick the box and make sure to `Save User Settings` (bottom-left).
+
+## Using the Addon
+
+You will access functionalities of the Elfin UI addon via what Blender calls "operators".
+
+In effect, when your mouse is within the viewport, you can hit <kbd>space</kbd> to bring up a search menu that lets you type in the name of the operator.
+
+<p align="center">
+<img src="resources/images/ui_tutorial_place.png" width="70%">
+</p>
+
+Currently available (and useful) operators:
+
+ * <b>Place</b> a module
+    * Only available when nothing is selected in the scene
+ * <b>Extrude N</b> (add a module to the nterm)
+ 	* Only available if one ore more modules are selected in the scene
+ * <b>Extrude C</b> (add a module to the cterm)
+ 	* Only available if one ore more modules are selected in the scene
+
+You don't have to type the full name of the module. For example, "ex n" will bring up the <b>Extrude N</b> operator.
+
+Each of the above operators will prompt you with a filtered list of actionable modules. For instance if a single module has already got an N and a C neighbour, then the extrusion operators will not allow extruding unless its neighbours are deleted.
+
+Useful Blender shortcuts:
+ * <kbd>a</kbd> toggle select all/deselect all.
+ * <kbd>x</kbd> to delete selection (with confirmation).
+ * <kbd>r</kbd> to rotate selection.
+ * <kbd>g</kbd> to translate selection.
+ * <kbd>s</kbd> to scale selection. <b>BUT! in Elfin UI scaling should never be done on modules.</b>
+ * <kbd>t</kbd> to toggle left-hand-side panel (which has the operator options).
+ * <kbd>n</kbd> to toggle right-hand-side panel (which has object properties like location, rotation, etc)
+
+<p align="center">
+<img src="resources/images/ui_tutorial_names.png" width="70%">
+</p>
+
+In the module list, you will see that the name of a module is bounded by two period marks. These marks are sentinels so that it's easy for you to search exactly which module to place. Try just typing "D4" in the <b>Place</b> operator, and see what happens when you type ".D4" or "D4." or ".D4.".
+
+The first letter, if there is one, denotes the <b>C Terminus</b> chain ID of the extrusion. This is needed because hub modules have more than one chain to extrude to and from.
+
+The last letter is therefore the <b><N Terminus/b> chain ID in the to-be-extruded module.
+
+<b>WARNING</b>: any design created as of now will most likely not be able to be properly exported to elfin's internal data format when the export function is available. This is because Blender objects created using an old version of the addon will not get new properties even if the addon is updated. The design will need to be re-created.
+
 ## Updating the Module Library
 
 If in any case the module library was lost, modified, or became outdated, do:
 
 `./fetch_library`
+
