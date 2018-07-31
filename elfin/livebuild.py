@@ -273,7 +273,7 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
         elif sel_mod_type == 'single':
             if len(sel_mod.elfin.n_linkage) == 0:
                 for single_a_name in xdb['single_data']:
-                    if sel_mod_name in xdb['single_data'][single_a_name]:
+                    if sel_mod_name in xdb['double_data'][single_a_name]:
                         enum_tuples.append(
                             module_enum_tuple(
                                 single_a_name,
