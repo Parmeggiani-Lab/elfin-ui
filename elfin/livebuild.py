@@ -38,7 +38,7 @@ class ListMirrors(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(get_selected(-1)) == 1 and  \
+        return get_selection_len() == 1 and  \
             get_selected().elfin.is_module
 
 class UnlinkMirrors(bpy.types.Operator):
@@ -73,6 +73,10 @@ class UnlinkMirrors(bpy.types.Operator):
             message='Yes')
 
         return {'FINISHED'}
+
+    @classmethod
+    def poll(self, context):
+        return get_selection_len() > 0
 
 class LinkByMirror(bpy.types.Operator):
     bl_idname = 'elfin.link_by_mirror'
@@ -733,4 +737,4 @@ class PlaceModule(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(get_selected(-1)) == 0
+        return get_selection_len() == 0

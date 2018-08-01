@@ -86,11 +86,14 @@ def count_obj():
 def get_xdb():
     return bpy.context.scene.elfin.xdb
 
+def get_selection_len():
+    return len(bpy.context.selected_objects)
+
 def get_selected(n=1):
     """
     Return the first n selected object, or None if nothing is selected.
     """
-    if len(bpy.context.selected_objects):
+    if get_selection_len():
         selection = bpy.context.selected_objects
         if n == 1:
             return selection[0]
