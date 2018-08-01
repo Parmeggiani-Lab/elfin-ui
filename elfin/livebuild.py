@@ -19,11 +19,72 @@ color_change_placeholder_enum_tuple = \
 
 # Operators --------------------------------------
 
+
+class LinkByMirror(bpy.types.Operator):
+    bl_idname = 'elfin.link_by_mirror'
+    bl_label = 'Link multiple modules of the same prototype by mirror.'
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    @classmethod
+    def can_link(cls):
+        """Only show operator if selected objects are of the same prototype
+        """
+        selection = bpy.context.selected_objects
+        if selection:
+            mod_name = selection[0].elfin.module_name
+            for o in selection:
+                if not o.elfin.is_module or o.elfin.module_name != mod_name:
+                    return False
+            return True
+
+    def link_by_mirror(self, mirrors):
+        for m in mirrors:
+            m.elfin.mirrors = mirrors
+        bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
+            title='Link by Mirror',
+            message='Success',
+            icon='INFO')
+
+    def execute(self, context):
+        if not LinkByMirror.can_link():
+            self.report(
+                {'ERROR'}, 
+                ('Selection is not homogenous i.e. some selected modules '
+                    ' have a different prototype'))
+            return {'CANCELLED'}
+
+        mirrors = context.selected_objects[:]
+
+        # Check for existing mirrors and warn user about it
+        existing = False
+        for m in mirrors:
+            if m.elfin.mirrors:
+                existing = True
+                break
+
+        if existing:
+            YesNoPrmopt.callback = self.link_by_mirror
+            YesNoPrmopt.callback_args = [mirrors]
+            bpy.ops.elfin.yes_no_prompt('INVOKE_DEFAULT',
+                option=False,
+                option_gohead=True,
+                title='{} already has mirrors. Replace?'.format(m.name),
+                message='Yes, replace.')
+        else:
+            self.link_by_mirror(mirrors)
+
+        print('Link By Mirror finished: ', mirrors)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        return cls.can_link()
+
 class JoinNetworks(bpy.types.Operator):
     bl_idname = 'elfin.join_networks'
     bl_label = 'Join two compatible networks'
     bl_options = {'REGISTER', 'UNDO'}
-    ...
+
     def execute(self, context):
         raise NotImplementedError
 
@@ -483,9 +544,9 @@ class LoadModuleLibrary(bpy.types.Operator):
         context.scene.elfin.library.extend(load_module_library())
         return {'FINISHED'}
 
-class PromptMessage(bpy.types.Operator):
+class MessagePrompt(bpy.types.Operator):
     """Elfin Module Collision Message"""
-    bl_idname = 'elfin.prompt_message'
+    bl_idname = 'elfin.message_prompt'
     bl_label = 'Prompts a message with an OK button.'
     bl_options = {'REGISTER', 'INTERNAL'}
 
@@ -504,12 +565,44 @@ class PromptMessage(bpy.types.Operator):
         row = self.layout.column()
         row.label(self.message, icon=self.icon)
 
+# Credits to
+# https://blender.stackexchange.com/questions/73286/how-to-call-a-confirmation-dialog-box
+class YesNoPrmopt(bpy.types.Operator):
+    bl_idname = 'elfin.yes_no_prompt'
+    bl_label = 'Confirm option'
+    bl_options = {'REGISTER', 'INTERNAL'}
+    
+    title = bpy.props.StringProperty(default='Confirm?')
+    icon = bpy.props.StringProperty(default='QUESTION')
+
+    message = bpy.props.StringProperty(default='No')
+    option = bpy.props.BoolProperty(default=True)
+    option_gohead = bpy.props.BoolProperty(default=True)
+
+    callback = None
+    callback_args = []
+    callback_kwargs = []
+
+    def execute(self, context):
+        if self.option == self.option_gohead:
+            self.callback(*self.callback_args, *self.callback_kwargs)
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        row = self.layout
+        row.label(self.title, icon=self.icon)
+        row.prop(self, 'option', text=self.message)
+
 class CheckCollisionAndDelete(bpy.types.Operator):
     bl_idname = 'elfin.check_collision_and_delete'
     bl_label = 'Check collision and delete if positive'
 
     # Allow keyword specification
-    object_name = bpy.props.StringProperty(default='')
+    object_name = bpy.props.StringProperty(default='__unset__')
 
     def execute(self, context):
         found_overlap = False
@@ -528,7 +621,7 @@ class CheckCollisionAndDelete(bpy.types.Operator):
         if found_overlap:
             msg = 'Collision was detected and modules were deleted.'
             print(msg)
-            bpy.ops.elfin.prompt_message('INVOKE_DEFAULT', \
+            bpy.ops.elfin.message_prompt('INVOKE_DEFAULT', \
                 message=msg)
         return {'FINISHED'}
 
