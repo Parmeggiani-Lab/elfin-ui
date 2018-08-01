@@ -142,19 +142,24 @@ def filter_mirror_selection():
                 if m and m != s: m.select = False
 
 def suitable_for_extrusion(context):
-    n_objs = len(context.selected_objects)
+    """Checks selection is not none and is homogenous.
+    """
+    selection = context.selected_objects
+    n_objs = len(selection)
     if n_objs == 0:
         return False
 
-    if context.selected_objects[0].mode != 'OBJECT':
+    # In object mode?
+    if selection[0].mode != 'OBJECT':
         return False
 
+    # Homogenous?
     if n_objs == 1:
         return True
-    elif n_objs > 1:
-        first_mod_name = context.selected_objects[0].elfin.module_name
-        for i in range(1, n_objs):
-            if context.selected_objects[i].elfin.module_name != first_mod_name:
+    else:
+        first_mod_name = selection[0].elfin.module_name
+        for o in selection:
+            if not o.elfin.is_module or o.elfin.module_name != first_mod_name:
                 return False
         return True
 

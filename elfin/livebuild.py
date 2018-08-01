@@ -19,6 +19,60 @@ color_change_placeholder_enum_tuple = \
 
 # Operators --------------------------------------
 
+class ListMirrors(bpy.types.Operator):
+    bl_idname = 'elfin.list_mirrors'
+    bl_label = 'List mirror links of one selected module'
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        mirrors = get_selected().elfin.mirrors
+        mirror_strs = []
+        for i in range(len(mirrors)):
+            mirror_strs.append('[{}] {}'.format(i, mirrors[i].name))
+        print('Mirror String: ', mirror_strs)
+        MessagePrompt.message_lines=mirror_strs
+        bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
+            title='List Mirror Result',
+            icon='INFO')
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        return len(get_selected(-1)) == 1 and  \
+            get_selected().elfin.is_module
+
+class UnlinkMirrors(bpy.types.Operator):
+    bl_idname = 'elfin.unlink_mirrors'
+    bl_label = 'Unlink mirrors from all selected modules.'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def unlink_mirrors(self, mirrors, recursive):
+        if recursive:
+            for o in get_selected(-1):
+                for m in o.elfin.mirrors:
+                    if m != o: m.elfin.mirrors = []
+                o.elfin.mirrors = []
+        else:
+            for o in get_selected(-1):
+                o.elfin.mirrors = []
+
+        MessagePrompt.message_lines=['Operation successful']
+        bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
+            title='Unlink Mirrors',
+            icon='INFO')
+
+    def execute(self, context):
+        mirrors = get_selected(-1) 
+        YesNoPrmopt.callback_true = \
+            YesNoPrmopt.Callback(self.unlink_mirrors, [mirrors, True])
+        YesNoPrmopt.callback_false = \
+            YesNoPrmopt.Callback(self.unlink_mirrors, [mirrors, False])
+        bpy.ops.elfin.yes_no_prompt('INVOKE_DEFAULT',
+            option=True,
+            title='Unlink recursively?',
+            message='Yes')
+
+        return {'FINISHED'}
 
 class LinkByMirror(bpy.types.Operator):
     bl_idname = 'elfin.link_by_mirror'
@@ -29,7 +83,7 @@ class LinkByMirror(bpy.types.Operator):
     def can_link(cls):
         """Only show operator if selected objects are of the same prototype
         """
-        selection = bpy.context.selected_objects
+        selection = get_selected(-1)
         if selection:
             mod_name = selection[0].elfin.module_name
             for o in selection:
@@ -40,9 +94,9 @@ class LinkByMirror(bpy.types.Operator):
     def link_by_mirror(self, mirrors):
         for m in mirrors:
             m.elfin.mirrors = mirrors
+        MessagePrompt.message_lines=['Operation successful']
         bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
             title='Link by Mirror',
-            message='Success',
             icon='INFO')
 
     def execute(self, context):
@@ -53,7 +107,7 @@ class LinkByMirror(bpy.types.Operator):
                     ' have a different prototype'))
             return {'CANCELLED'}
 
-        mirrors = context.selected_objects[:]
+        mirrors = get_selected(-1)
 
         # Check for existing mirrors and warn user about it
         existing = False
@@ -63,17 +117,15 @@ class LinkByMirror(bpy.types.Operator):
                 break
 
         if existing:
-            YesNoPrmopt.callback = self.link_by_mirror
-            YesNoPrmopt.callback_args = [mirrors]
+            YesNoPrmopt.callback_true = \
+                YesNoPrmopt.Callback(self.link_by_mirror, [mirrors])
             bpy.ops.elfin.yes_no_prompt('INVOKE_DEFAULT',
                 option=False,
-                option_gohead=True,
                 title='{} already has mirrors. Replace?'.format(m.name),
                 message='Yes, replace.')
         else:
             self.link_by_mirror(mirrors)
 
-        print('Link By Mirror finished: ', mirrors)
         return {'FINISHED'}
 
     @classmethod
@@ -350,10 +402,9 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
 
     def modlib_filter_enum_cb(self, context):
         enum_tuples = [color_change_placeholder_enum_tuple]
-        if len(context.selected_objects) == 0:
-            return enum_tuples
 
-        sel_mod = context.selected_objects[0]
+        # Selection length is guranteed by poll()
+        sel_mod = get_selected()
         sel_mod_name = sel_mod.elfin.module_name
         sel_mod_type = sel_mod.elfin.module_type
 
@@ -416,7 +467,7 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
             # Cache the selector because due to UI oddities the self attribute
             # could change in the following loop.
             selector = self.nterm_ext_module_selector
-            for s in context.selected_objects:
+            for s in get_selected(-1):
                 bpy.ops.elfin.extrude_nterm_internal(
                     target_name=s.name, 
                     nterm_ext_module_selector=selector,
@@ -441,10 +492,9 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
 
     def modlib_filter_enum_cb(self, context):
         enum_tuples = [color_change_placeholder_enum_tuple]
-        if len(context.selected_objects) == 0:
-            return enum_tuples
 
-        sel_mod = context.selected_objects[0]
+        # Selection length is guranteed by poll()
+        sel_mod = get_selected()
         sel_mod_name = sel_mod.elfin.module_name
         sel_mod_type = sel_mod.elfin.module_type
 
@@ -508,7 +558,7 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
             filter_mirror_selection()
             # See comment in ModuleExtrudeNTerm
             selector = self.cterm_ext_module_selector
-            for s in context.selected_objects:
+            for s in get_selected(-1):
                 bpy.ops.elfin.extrude_cterm_internal(
                     target_name=s.name, 
                     cterm_ext_module_selector=selector,
@@ -551,19 +601,22 @@ class MessagePrompt(bpy.types.Operator):
     bl_options = {'REGISTER', 'INTERNAL'}
 
     title = bpy.props.StringProperty(default='Elfin Message')
-    message = bpy.props.StringProperty()
     icon = bpy.props.StringProperty(default='ERROR')
+    message_lines = []
 
     def execute(self, context):
+        # Manually reset values
+        self.message_lines = []
         return {'FINISHED'}
 
     def invoke(self, context, event):
         return context.window_manager.invoke_popup(self)
  
     def draw(self, context):
-        self.layout.label(self.title)
+        self.layout.label(self.title, icon=self.icon)
         row = self.layout.column()
-        row.label(self.message, icon=self.icon)
+        for l in self.message_lines:
+            row.label(l)
 
 # Credits to
 # https://blender.stackexchange.com/questions/73286/how-to-call-a-confirmation-dialog-box
@@ -577,16 +630,29 @@ class YesNoPrmopt(bpy.types.Operator):
 
     message = bpy.props.StringProperty(default='No')
     option = bpy.props.BoolProperty(default=True)
-    option_gohead = bpy.props.BoolProperty(default=True)
 
-    callback = None
-    callback_args = []
-    callback_kwargs = []
+    class Callback:
+        def __init__(self, func=None, args=[], kwargs=[]):
+            self.func = func
+            self.args = args
+            self.kwargs = kwargs
+
+    callback_true = Callback()
+    callback_false = Callback()
 
     def execute(self, context):
-        if self.option == self.option_gohead:
-            self.callback(*self.callback_args, *self.callback_kwargs)
+        if self.option and self.callback_true.func:
+            self.callback_true.func(
+                *self.callback_true.args, 
+                *self.callback_true.kwargs)
+        elif self.callback_false.func:
+            self.callback_false.func(
+                *self.callback_false.args, 
+                *self.callback_false.kwargs)
 
+        # Manually reset values
+        self.callback_true = self.Callback()
+        self.callback_false = self.Callback()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -612,17 +678,15 @@ class CheckCollisionAndDelete(bpy.types.Operator):
             found_overlap |= delete_if_overlap(ob)
         except KeyError:
             # No valid object_name specified - use selection
-            for ob in context.selected_objects:
+            for ob in get_selected(-1):
                 if ob.elfin.is_module:
                     found_overlap |= delete_if_overlap(ob)
                 else:
                     print('No overlap: {}'.format(ob.name))
 
         if found_overlap:
-            msg = 'Collision was detected and modules were deleted.'
-            print(msg)
-            bpy.ops.elfin.message_prompt('INVOKE_DEFAULT', \
-                message=msg)
+            MessagePrompt.message_lines=['Collision was detected and modules were deleted.']
+            bpy.ops.elfin.message_prompt('INVOKE_DEFAULT')
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -669,4 +733,4 @@ class PlaceModule(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) == 0
+        return len(get_selected(-1)) == 0
