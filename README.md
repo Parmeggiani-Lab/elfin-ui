@@ -74,24 +74,24 @@ Beware that Blender v2.8 (now beta) will probably introduce significant changes 
 
 `./install`
 
-For pure Windows (non-WSL), either copy the `elfin` folder to your Blender's addon directory or create a symlink via `mklink` or [Shell Link Extension](http://schinagl.priv.at/nt/hardlinkshellext/linkshellextension.html)
+For "pure" Windows (non-WSL), either copy the `elfin` folder to your Blender's addon directory or create a symlink via `mklink` or [Shell Link Extension](http://schinagl.priv.at/nt/hardlinkshellext/linkshellextension.html)
 
 After installing, open Blender and go to `File > User Preferences > Add-ons` and search for `Elfin`. If the installation was successful there should be a `Elfin: Elfin UI`. Tick the box and make sure to `Save User Settings` (bottom-left).
 
 ## Updating the Module Library
-
-If in any case the module library was lost, modified, or became outdated, do:
+The module library files are automatically fetched by `./install` but if in any case the module library was lost, modified, or became outdated, do:
 
 `./fetch_library`
 
 ## Warnings Before Use
 Any design created as of now will most likely not be exportable to elfin's internal data format when the export function is available. This is because Blender objects created using an old version of the addon will not get new properties even if the addon is updated. The protein design will need to be re-created.
 
+We could possibly make future changes backword compatible by implementing a remove-all, re-add all function but right now this does not exist yet so be warned nonetheless.
 
 ## Using the Addon
-You will access functionalities of the Elfin UI addon via what Blender calls "operators".
+All functionalities of the Elfin UI addon are accessed via what Blender calls "operators".
 
-In effect, when your mouse is within the viewport, you can hit <kbd>space</kbd> to bring up a search menu that lets you type in the name of the operator.
+Effectively, when your mouse is within the viewport, you can hit <kbd>space</kbd> to bring up a search menu that lets you type in the name of the operator.
 
 <p align="center">
 <img src="resources/images/ui_tutorial_place.png" width="70%">
