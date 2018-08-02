@@ -16,6 +16,15 @@ from . import addon_paths
 
 blender_pymol_unit_conversion = 10.0
 
+# Color Change Placeholder
+#   Insert a placeholder as the first option for Place/Extrude operator enums
+#   so that user can change the color before choosing a module. This makes
+#   changing display color fast because once a module is selected via the
+#   enum, changing the displace color causes constant re-linking and that
+#   causes lag.
+color_change_placeholder = '-Change Color-'
+color_change_placeholder_enum_tuple = \
+    (color_change_placeholder, color_change_placeholder, '')
 
 # Classes ----------------------------------------
 
@@ -105,6 +114,90 @@ def get_selected(n=1):
         return None
 
 # Helpers ----------------------------------------
+
+def modlib_filter(which_term, enum_tuples):
+    assert which_term in {'n', 'c'}
+
+    # Selection length is guranteed by poll()
+    sel_mod = get_selected()
+    sel_mod_name = sel_mod.elfin.module_name
+    sel_mod_type = sel_mod.elfin.module_type
+
+    xdb = get_xdb()
+    if sel_mod_type == 'hub':
+        hub_xdata = xdb['hub_data'][sel_mod_name]
+        if which_term == 'n':
+            occupied_termini = sel_mod.elfin.n_linkage.keys()
+            conn_name = 'n_connections'
+        else:
+            occupied_termini = sel_mod.elfin.c_linkage.keys()
+            conn_name = 'c_connections'
+
+        for chain_id, chain_xdata in hub_xdata['component_data'].items():
+            if chain_id in occupied_termini: continue
+
+            for single_name in chain_xdata[conn_name]:
+                enum_tuples.append(
+                    module_enum_tuple(
+                        single_name, 
+                        extrude_from=chain_id, 
+                        extrude_into='A',
+                        direction=which_term))
+
+            # Only allow one chain to be extruded because other
+            # "mirrors" will be generated automatically
+            if hub_xdata['symmetric']: break
+    elif sel_mod_type == 'single':
+        # Checks for occupancy by counting n/c termini links
+        if which_term == 'n':
+            link_len = len(sel_mod.elfin.n_linkage)
+        else:
+            link_len = len(sel_mod.elfin.c_linkage)
+
+        if link_len == 0:
+            if which_term == 'n':
+                name_gen = (single_a_name \
+                    for single_a_name in xdb['single_data'] \
+                    if sel_mod_name in xdb['double_data'][single_a_name])
+            else:
+                name_gen = (single_b_name \
+                    for single_b_name in xdb['double_data'][sel_mod_name])
+
+            for single_name in name_gen:
+                    enum_tuples.append(
+                        module_enum_tuple(
+                            single_name,
+                            extrude_from='A',
+                            extrude_into='A',
+                            direction=which_term))
+
+            for hub_name in xdb['hub_data']:
+                # Logically one can never extrude a symmetric hub
+                # See README development notes
+                if xdb['hub_data'][hub_name]['symmetric']: continue
+
+                compatible_hub_comps = \
+                    get_compatible_hub_components(
+                        hub_name, 
+                        'c' if which_term == 'n' else 'n', 
+                        sel_mod_name)
+                for hub_comp_name in compatible_hub_comps:
+                    enum_tuples.append(
+                        module_enum_tuple(
+                            hub_name, 
+                            extrude_from='A',
+                            extrude_into=hub_comp_name,
+                            direction=which_term))
+    else:
+        raise ValueError('Unknown module type: ', sel_mod_type)
+
+def execute_extrusion(selector, extrusion_func):
+    """Executes extrusion respecting mirror links and filers mirror selections
+    """
+    if selector != color_change_placeholder:
+        filter_mirror_selection()
+        for s in get_selected(-1):
+            extrusion_func(s)
 
 def unlink_mirror(modules=None):
     mods = modules[:] if modules else bpy.context.selected_objects[:]
@@ -273,9 +366,8 @@ def transform_object(
     obj.rotation_euler = \
         (rot_mat * obj.rotation_euler.to_matrix()).to_euler()
 
-def get_compatible_hub_components(hub_name, terminus, single_name):
-    terminus = terminus.lower()
-    assert(terminus in {'c', 'n'})
+def get_compatible_hub_components(hub_name, which_term, single_name):
+    assert which_term in {'n', 'c'}
 
     comp_data = bpy.context.scene.elfin.xdb \
                 ['hub_data'][hub_name]['component_data']
@@ -283,7 +375,7 @@ def get_compatible_hub_components(hub_name, terminus, single_name):
     component_names = []
     for comp_name in comp_data:
         if single_name in comp_data \
-            [comp_name][terminus+'_connections'].keys():
+            [comp_name][which_term+'_connections'].keys():
             component_names.append(comp_name)
     return component_names
 
@@ -293,7 +385,6 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
     extruded.
     """
     if direction is not None:
-        direction = direction.lower()
         assert(direction in {'n', 'c'})
         assert(extrude_from is not None)
         if extrude_into is None:

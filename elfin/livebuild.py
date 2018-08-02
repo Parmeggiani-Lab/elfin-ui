@@ -4,19 +4,6 @@ from . import addon_paths
 from .livebuild_helper import *
 
 
-# Global (Const) Variables -----------------------
-
-# Color Change Placeholder
-#   Insert a placeholder as the first option for Place/Extrude operator enums
-#   so that user can change the color before choosing a module. This makes
-#   changing display color fast because once a module is selected via the
-#   enum, changing the displace color causes constant re-linking and that
-#   causes lag.
-color_change_placeholder = '-Change Color-'
-color_change_placeholder_enum_tuple = \
-    (color_change_placeholder, color_change_placeholder, '')
-
-
 # Operators --------------------------------------
 
 class ListMirrors(bpy.types.Operator):
@@ -406,54 +393,8 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
     def modlib_filter_enum_cb(self, context):
         enum_tuples = [color_change_placeholder_enum_tuple]
 
-        # Selection length is guranteed by poll()
-        sel_mod = get_selected()
-        sel_mod_name = sel_mod.elfin.module_name
-        sel_mod_type = sel_mod.elfin.module_type
+        modlib_filter('n', enum_tuples)
 
-        xdb = get_xdb()
-        if sel_mod_type == 'hub':
-            hub_xdata = xdb['hub_data'][sel_mod_name]
-            occupied_n_termini = sel_mod.elfin.n_linkage.keys()
-            for chain_id, chain_xdata in hub_xdata['component_data'].items():
-                if chain_id in occupied_n_termini:
-                    continue
-                for single_name in chain_xdata['n_connections']:
-                    enum_tuples.append(
-                        module_enum_tuple(
-                            single_name, 
-                            extrude_from=chain_id, 
-                            extrude_into='A',
-                            direction='N'))
-                if hub_xdata['symmetric']:
-                    # Only allow one chain to be extruded because other
-                    # "mirrors" will be generated automatically
-                    break
-        elif sel_mod_type == 'single':
-            if len(sel_mod.elfin.n_linkage) == 0:
-                for single_a_name in xdb['single_data']:
-                    if sel_mod_name in xdb['double_data'][single_a_name]:
-                        enum_tuples.append(
-                            module_enum_tuple(
-                                single_a_name,
-                                extrude_from='A',
-                                extrude_into='A',
-                                direction='N'))
-                for hub_name in xdb['hub_data']:
-                    if xdb['hub_data'][hub_name]['symmetric']:
-                        # Logically one can never extrude a symmetric hub
-                        # See README development notes
-                        continue
-                    for hub_comp_name in \
-                        get_compatible_hub_components(hub_name, 'C', sel_mod_name):
-                        enum_tuples.append(
-                            module_enum_tuple(
-                                hub_name, 
-                                extrude_from='A',
-                                extrude_into=hub_comp_name,
-                                direction='N'))
-        else:
-            raise ValueError('Unknown module type: ', sel_mod_type)
         if len(enum_tuples) == 1:
             # Remove color change placeholder if nothing can be extruded
             enum_tuples = []
@@ -465,17 +406,14 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
                                         default=[0,0,0])
 
     def execute(self, context):
-        if self.nterm_ext_module_selector != color_change_placeholder:
-            filter_mirror_selection()
-            # Cache the selector because due to UI oddities the self attribute
-            # could change in the following loop.
-            selector = self.nterm_ext_module_selector
-            for s in get_selected(-1):
-                bpy.ops.elfin.extrude_nterm_internal(
-                    target_name=s.name, 
-                    nterm_ext_module_selector=selector,
-                    color=self.color
-                )
+        selector = self.nterm_ext_module_selector
+        execute_extrusion(
+            selector,
+            lambda s: bpy.ops.elfin.extrude_nterm_internal(
+                target_name=s.name, 
+                nterm_ext_module_selector=selector,
+                color=self.color))
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -496,54 +434,7 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
     def modlib_filter_enum_cb(self, context):
         enum_tuples = [color_change_placeholder_enum_tuple]
 
-        # Selection length is guranteed by poll()
-        sel_mod = get_selected()
-        sel_mod_name = sel_mod.elfin.module_name
-        sel_mod_type = sel_mod.elfin.module_type
-
-        xdb = get_xdb()
-        if sel_mod_type == 'hub':
-            hub_xdata = xdb['hub_data'][sel_mod_name]
-            occupied_c_termini = sel_mod.elfin.c_linkage.keys()
-            for chain_id, chain_xdata in hub_xdata['component_data'].items():
-                if chain_id in occupied_c_termini:
-                    continue
-                for single_name in chain_xdata['c_connections']:
-                    enum_tuples.append(
-                        module_enum_tuple(
-                            single_name, 
-                            extrude_from=chain_id, 
-                            extrude_into='A',
-                            direction='C')) 
-                if hub_xdata['symmetric']:
-                    # Only allow one chain to be extruded because other
-                    # "mirrors" will be generated automatically
-                    break
-        elif sel_mod_type == 'single':
-            if len(sel_mod.elfin.c_linkage) == 0:
-                sel_mod_xdata = xdb['double_data'][sel_mod_name]
-                for single_b_name in sel_mod_xdata:
-                    enum_tuples.append(
-                        module_enum_tuple(
-                            single_b_name,
-                            extrude_from='A',
-                            extrude_into='A',
-                            direction='C'))
-                for hub_name in xdb['hub_data']:
-                    if xdb['hub_data'][hub_name]['symmetric']:
-                        # Logically one can never extrude a symmetric hub
-                        # See README development notes
-                        continue
-                    for hub_comp_name in \
-                        get_compatible_hub_components(hub_name, 'N', sel_mod_name):
-                        enum_tuples.append(
-                            module_enum_tuple(
-                                hub_name, 
-                                extrude_from='A',
-                                extrude_into=hub_comp_name,
-                                direction='C'))
-        else:
-            raise ValueError('Unknown module type: ', sel_mod_type)
+        modlib_filter('c', enum_tuples)
 
         if len(enum_tuples) == 1:
             # Remove color change placeholder if nothing can be extruded
@@ -556,16 +447,13 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
                                         default=[0,0,0])
 
     def execute(self, context):
-        if self.cterm_ext_module_selector != color_change_placeholder:
-            filter_mirror_selection()
-            # See comment in ModuleExtrudeNTerm
-            selector = self.cterm_ext_module_selector
-            for s in get_selected(-1):
-                bpy.ops.elfin.extrude_cterm_internal(
-                    target_name=s.name, 
-                    cterm_ext_module_selector=selector,
-                    color=self.color
-                )
+        selector = self.cterm_ext_module_selector
+        execute_extrusion(
+            selector,
+            lambda s: bpy.ops.elfin.extrude_cterm_internal(
+                target_name=s.name, 
+                cterm_ext_module_selector=selector,
+                color=self.color))
         return {'FINISHED'}
 
     def invoke(self, context, event):

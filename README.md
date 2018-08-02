@@ -31,12 +31,11 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  		* Only intra-network auto mirroring is supported.
  		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then use the Select Mirror Links operator.
 
-### TODO: Current Working On:
- * Track symmetric mother hub? Is this necessary? 
+### TODO: Currently Working On:
  * Make C/N term extrusion share more code
+ * Select Network operator
 
 ### TODO: Must-Haves
- * Enforce hub symmetry through modifier-like behaviour
  * Define auto-design "work sites" by drawing path guides
  * Export to Elfin Core format
 
