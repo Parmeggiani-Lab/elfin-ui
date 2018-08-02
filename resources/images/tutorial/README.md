@@ -103,6 +103,12 @@ If the linking was successful a message should be shown. If the selected modules
 <img src="5_link_mirror_result.png" width="85%">
 </p>
 
+You can list the mirrors of a module with the List Mirror opereator:
+
+<p align="center">
+<img src="5_list_mirror.png" width="85%">
+</p>
+
 Test Extrusion at N-Term:
 
 <p align="center">
