@@ -70,6 +70,8 @@ This addon was developed for and tested on Blender v2.79.
 
 Beware that Blender v2.8 (now beta) will probably introduce significant changes so it's best to stay away for now.
 
+[Tutorial With Screenshots](resources/images/tutorial/README.md)
+
 ## Installing (Linux/MacOS/WSL)
 
 `./install`
