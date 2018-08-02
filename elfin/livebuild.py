@@ -29,7 +29,6 @@ class ListMirrors(bpy.types.Operator):
         mirror_strs = []
         for i in range(len(mirrors)):
             mirror_strs.append('[{}] {}'.format(i, mirrors[i].name))
-        print('Mirror String: ', mirror_strs)
         MessagePrompt.message_lines=mirror_strs
         bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
             title='List Mirror Result',
