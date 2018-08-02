@@ -56,21 +56,30 @@ from bpy.app.handlers import persistent
 from .elfin_properties import ElfinProperties
 
 
+# Elfin Global State -----------------------------
+
 # Master PropertyGroup ---------------------------
 
 class ElfinSceneProperties(ElfinProperties):
     """Elfin's Scene property catcher class"""
+
+    class ElfinState:
+        xdb = None
+        library = None
+
     @property
     def xdb(self):
-        if '_xdb' not in self.keys():
-            self['_xdb'] = livebuild_helper.load_xdb()
-        return self['_xdb']
+        if not self.ElfinState.xdb:
+            self.ElfinState.xdb = \
+                livebuild_helper.load_xdb()
+        return self.ElfinState.xdb
 
     @property
     def library(self):
-        if '_library' not in self.keys():
-            self['_library'] = livebuild_helper.load_module_library()
-        return self['_library']
+        if not self.ElfinState.library:
+            self.ElfinState.library = \
+                livebuild_helper.load_module_library()
+        return self.ElfinState.library
 
     pp_src_dir = bpy.props.StringProperty(
         subtype='DIR_PATH', 
@@ -82,6 +91,7 @@ class ElfinSceneProperties(ElfinProperties):
     disable_collision_check = bpy.props.BoolProperty(default=False)
 
     def reset(self):
+        print('{} reset'.format(self.__class__.__name__))
         self['_xdb'] = livebuild_helper.load_xdb()
         self['_library'] = livebuild_helper.load_module_library()
         self.property_unset('pp_src_dir')
