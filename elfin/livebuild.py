@@ -79,7 +79,7 @@ class UnlinkMirrors(bpy.types.Operator):
 
 class LinkByMirror(bpy.types.Operator):
     bl_idname = 'elfin.link_by_mirror'
-    bl_label = 'Link multiple modules of the same prototype by mirror.'
+    bl_label = 'Link multiple modules of the same prototype by mirror'
     bl_options = {'REGISTER', 'UNDO'}
     
     @classmethod
@@ -599,7 +599,7 @@ class LoadModuleLibrary(bpy.types.Operator):
 class MessagePrompt(bpy.types.Operator):
     """Elfin Module Collision Message"""
     bl_idname = 'elfin.message_prompt'
-    bl_label = 'Prompts a message with an OK button.'
+    bl_label = 'Prompts a message with an OK button'
     bl_options = {'REGISTER', 'INTERNAL'}
 
     title = bpy.props.StringProperty(default='Elfin Message')

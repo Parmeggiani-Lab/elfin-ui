@@ -146,13 +146,14 @@ Mirror-linking was originally implemented to enforce symmetric execution of extr
 Mirror-linked modules essentially share extrusion and deletion operations. That means if you select just one of a mirror-linked group of modules and do extrusion on it, all other mirror-linked modules will also receive the same operation
 
 ### Useful Blender shortcuts:
- * <kbd>a</kbd> toggle select all/deselect all.
- * <kbd>x</kbd> delete selection (with confirmation).
- * <kbd>r</kbd> rotate selection.
- * <kbd>g</kbd> translate selection.
- * <kbd>s</kbd> scale selection. <b>BUT! in Elfin UI scaling should never be done on modules.</b>
- * <kbd>t</kbd> toggle left-hand-side panel (which has the operator options).
- * <kbd>n</kbd> toggle right-hand-side panel (which has object properties like location, rotation, etc)
+ * <kbd>a</kbd> toggle select all/deselect all
+ * <kbd>c</kbd> brush-select
+ * <kbd>x</kbd> delete selection (with confirmation)
+ * <kbd>r</kbd> rotate selection
+ * <kbd>g</kbd> translate selection
+ * <kbd>s</kbd> scale selection. <b>WARNING: Never scale modules. We need to keep the scale factor!</b>
+ * <kbd>t</kbd> toggle left-hand-side panel (which has the Operator Properties panel)
+ * <kbd>n</kbd> toggle right-hand-side panel (which has properties such as location, rotation and many more)
  * <kbd>cmd</kbd>+<kbd>z</kbd> undo
  * <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>z</kbd> redo
 
