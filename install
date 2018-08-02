@@ -3,10 +3,6 @@
 echo
 echo "Installing the Elfin Blender addon."
 echo
-echo " * If this script fails to guess your Blender directory,"
-echo "   you may set it manually using the BL_DIR environment "
-echo "   variable."
-echo
 
 # Fetch library files if not already fetched
 elfin_dir="elfin"
@@ -19,7 +15,6 @@ OS=${OS:-$(uname -s)}
 if [[ $OS == "Darwin" ]]; then
     echo "OS: MacOS"
     BL_DIR=${BL_DIR:-"$HOME/Library/Application Support/Blender/"}  
-    echo "Guessing Blender directory: $BL_DIR"
 elif [[ $OS == "Linux" ]]; then
     if [[ "$(cat /proc/version)" =~ "Microsoft" ]]; then 
         echo "OS: Linux (WSL)"
@@ -30,7 +25,6 @@ elif [[ $OS == "Linux" ]]; then
         echo "OS: Linux"
         BL_DIR=$HOME/.config/blender/
     fi
-    echo "Guessing Blender directory: $BL_DIR"
 else
     echo "OS: $OS"
     if [[ -z $BL_DIR ]]; then
@@ -40,19 +34,46 @@ else
     fi
 fi
 
-eval BL_DIR=\"$BL_DIR/\"
 BL_DIR="${BL_DIR//\'/}"
+
+print_fail_guide(){
+    echo
+    echo "If you really have Blender installed, do the following:"
+    echo "  1. Open Blender"
+    echo "  2. Go to \"File\" > \"User Preferences\""
+    echo "  3. Hit \"Save User Preferences\"."
+    echo 
+    echo "This should create a user profile directory where elfin-ui can be installed to."
+    echo 
+}
+
+if [[ ! -d $BL_DIR ]]; then
+    echo 
+    echo "Unable to install! Reason: "
+    echo "  Blender directory \"$BL_DIR\" does not exist."
+    print_fail_guide
+    exit 1
+fi
 
 # Prevent path spaces from breaking ls output into separate elements
 IFS='
 '
-if [[ ! -d $BL_DIR ]]; then
-    echo "Blender directory $BL_DIR does not exist."
+bl_vers=()
+for folder in "$BL_DIR"*/; do
+    # Regex match num dot num as version string
+    if [[ $(basename $folder) =~ ^[0-9]+\.[0-9]+$ ]]; then
+        bl_vers+=($folder)
+    fi
+done
+n_vers=${#bl_vers[@]}
+
+if [[ $n_vers -eq 0 ]]; then
+    echo 
+    echo "Unable to install! Reason: "
+    echo "  No Blender versions could be found."
+    print_fail_guide
     exit 1
 fi
-
-bl_vers=($(ls -d "$BL_DIR"*/))
-n_vers=${#bl_vers[@]}
 
 for i in `seq 1 $n_vers`; do
     echo "[${i}] " $(basename ${bl_vers[$(expr ${i} - 1)]})
