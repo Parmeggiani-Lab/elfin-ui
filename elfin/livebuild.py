@@ -554,8 +554,7 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
     cterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
-                                        default=[0,0,0],
-                                        options={'LIBRARY_EDITABLE'})
+                                        default=[0,0,0])
 
     def execute(self, context):
         if self.cterm_ext_module_selector != color_change_placeholder:
@@ -734,7 +733,3 @@ class PlaceModule(bpy.types.Operator):
         context.window_manager.invoke_search_popup(self)
 
         return {'FINISHED'}
-
-    @classmethod
-    def poll(cls, context):
-        return get_selection_len() == 0
