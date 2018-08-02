@@ -147,12 +147,16 @@ Mirror-linked modules essentially share extrusion and deletion operations. That 
 
 ### Useful Blender shortcuts:
  * <kbd>a</kbd> toggle select all/deselect all.
- * <kbd>x</kbd> to delete selection (with confirmation).
- * <kbd>r</kbd> to rotate selection.
- * <kbd>g</kbd> to translate selection.
- * <kbd>s</kbd> to scale selection. <b>BUT! in Elfin UI scaling should never be done on modules.</b>
- * <kbd>t</kbd> to toggle left-hand-side panel (which has the operator options).
- * <kbd>n</kbd> to toggle right-hand-side panel (which has object properties like location, rotation, etc)
+ * <kbd>x</kbd> delete selection (with confirmation).
+ * <kbd>r</kbd> rotate selection.
+ * <kbd>g</kbd> translate selection.
+ * <kbd>s</kbd> scale selection. <b>BUT! in Elfin UI scaling should never be done on modules.</b>
+ * <kbd>t</kbd> toggle left-hand-side panel (which has the operator options).
+ * <kbd>n</kbd> toggle right-hand-side panel (which has object properties like location, rotation, etc)
+ * <kbd>cmd</kbd>+<kbd>z</kbd> undo
+ * <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>z</kbd> redo
+
+Where <kbd>cmd</kbd> is involved, it's <kbd>ctrl</kbd> for Windows and Linux
 
 ### Collision Detection
 By default collision detection is done on extrusion and placement of modules. The calculation is not perfect because we're using single module 3D models instead of their true atomic representation. If for any reason you need to disable this, you can find the tickbox in the left-hand-side panel (toggle by <kbd>t</kbd>).
