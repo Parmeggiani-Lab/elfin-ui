@@ -136,17 +136,10 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
     bl_property = "nterm_ext_module_selector"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def modlib_filter_enum_cb(self, context):
-        enum_tuples = [color_change_placeholder_enum_tuple]
+    def get_prototype_list(self, context):
+        return get_extrusion_prototype_list('n')
 
-        modlib_filter('n', enum_tuples)
-
-        if len(enum_tuples) == 1:
-            # Remove color change placeholder if nothing can be extruded
-            enum_tuples = []
-        return enum_tuples
-
-    nterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
+    nterm_ext_module_selector = bpy.props.EnumProperty(items=get_prototype_list)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])
@@ -289,17 +282,10 @@ class ModuleExtrudeCTerm(bpy.types.Operator):
     bl_property = "cterm_ext_module_selector"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def modlib_filter_enum_cb(self, context):
-        enum_tuples = [color_change_placeholder_enum_tuple]
+    def get_prototype_list(self, context):
+        return get_extrusion_prototype_list('c')
 
-        modlib_filter('c', enum_tuples)
-
-        if len(enum_tuples) == 1:
-            # Remove color change placeholder if nothing can be extruded
-            enum_tuples = []
-        return enum_tuples
-
-    cterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
+    cterm_ext_module_selector = bpy.props.EnumProperty(items=get_prototype_list)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])

@@ -17,14 +17,20 @@ from . import addon_paths
 blender_pymol_unit_conversion = 10.0
 
 # Color Change Placeholder
-#   Insert a placeholder as the first option for Place/Extrude operator enums
-#   so that user can change the color before choosing a module. This makes
-#   changing display color fast because once a module is selected via the
-#   enum, changing the displace color causes constant re-linking and that
-#   causes lag.
+#
+#   An option for Place/Extrude operator enums so that user can change the
+#   color before choosing a module. This makes changing display color fast
+#   because once a module is selected via the enum list, changing the display
+#   color causes constant re-linking and that causes lag.
 color_change_placeholder = '-Change Color-'
 color_change_placeholder_enum_tuple = \
     (color_change_placeholder, color_change_placeholder, '')
+
+# Prototype List Empty Placeholder
+#  An option to inform the user that the prototype list is empty
+empty_list_placeholder = '-List Empty-'
+empty_list_placeholder_enum_tuple = \
+    (empty_list_placeholder, empty_list_placeholder, '')
 
 # Classes ----------------------------------------
 
@@ -115,8 +121,22 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
-def modlib_filter(which_term, enum_tuples):
+def execute_extrusion(selector, extrusion_func):
+    """Executes extrusion respecting mirror links and filers mirror selections
+    """
+    if selector == color_change_placeholder or \
+        selector == empty_list_placeholder:
+        return
+    filter_mirror_selection()
+    for sel_mod in get_selected(-1): 
+        extrusion_func(selector, sel_mod)
+
+def get_extrusion_prototype_list(which_term):
+    """Generates a prototype list appropriately filtered for extrusion.
+    """
     assert which_term in {'n', 'c'}
+
+    enum_tuples = [color_change_placeholder_enum_tuple]
 
     # Selection length is guranteed by poll()
     sel_mod = get_selected()
@@ -191,13 +211,8 @@ def modlib_filter(which_term, enum_tuples):
     else:
         raise ValueError('Unknown module type: ', sel_mod_type)
 
-def execute_extrusion(selector, extrusion_func):
-    """Executes extrusion respecting mirror links and filers mirror selections
-    """
-    if selector != color_change_placeholder:
-        filter_mirror_selection()
-        for sel_mod in get_selected(-1): 
-            extrusion_func(selector, sel_mod)
+    # Remove color change placeholder if nothing can be extruded
+    return enum_tuples if len(enum_tuples) > 1 else [empty_list_placeholder_enum_tuple]
 
 def unlink_mirror(modules=None):
     mods = modules[:] if modules else bpy.context.selected_objects[:]
