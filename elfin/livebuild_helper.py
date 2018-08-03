@@ -196,8 +196,8 @@ def execute_extrusion(selector, extrusion_func):
     """
     if selector != color_change_placeholder:
         filter_mirror_selection()
-        for s in get_selected(-1):
-            extrusion_func(s)
+        for sel_mod in get_selected(-1): 
+            extrusion_func(selector, sel_mod)
 
 def unlink_mirror(modules=None):
     mods = modules[:] if modules else bpy.context.selected_objects[:]

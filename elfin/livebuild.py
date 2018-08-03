@@ -130,30 +130,40 @@ class JoinNetworks(bpy.types.Operator):
     def execute(self, context):
         raise NotImplementedError
 
-class ExtrudeNTerm(bpy.types.Operator):
-    bl_idname = 'elfin.extrude_nterm_internal'
-    bl_label = 'Internal N Terminal extrusion operator'
-    bl_options = {'REGISTER', 'INTERNAL'}
+class ModuleExtrudeNTerm(bpy.types.Operator):
+    bl_idname = 'elfin.module_extrude_nterm'
+    bl_label = 'Extrude N (add a module to the nterm)'
+    bl_property = "nterm_ext_module_selector"
+    bl_options = {'REGISTER', 'UNDO'}
 
-    target_name = bpy.props.StringProperty()
-    nterm_ext_module_selector = bpy.props.StringProperty()
-    color = bpy.props.FloatVectorProperty()
+    def modlib_filter_enum_cb(self, context):
+        enum_tuples = [color_change_placeholder_enum_tuple]
 
-    def execute(self, context):
+        modlib_filter('n', enum_tuples)
+
+        if len(enum_tuples) == 1:
+            # Remove color change placeholder if nothing can be extruded
+            enum_tuples = []
+        return enum_tuples
+
+    nterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
+    color = bpy.props.FloatVectorProperty(name="Display Color", 
+                                        subtype='COLOR', 
+                                        default=[0,0,0])
+    def extrude_n_term(self, selector, sel_mod):
         ext_mod = None
         try:
             xdb = get_xdb()
 
-            sel_mod = context.scene.objects[self.target_name]
             sel_mod_name = sel_mod.elfin.module_name
             sel_mod.select = False
 
             # Enum selector format: extrude_into:module_name:extrude_from.
             extrude_into, nterm_mod_name, extrude_from = \
-                self.nterm_ext_module_selector.split('.')
+                selector.split('.')
             ext_mod = link_module(nterm_mod_name)
             print('Extruding module {} (chain {}) from {}\'s N-Term (chain {})'.format(
-                self.nterm_ext_module_selector, 
+                selector, 
                 extrude_into, 
                 sel_mod_name, 
                 extrude_from))
@@ -258,30 +268,55 @@ class ExtrudeNTerm(bpy.types.Operator):
             raise e
         return {'FINISHED'}
 
-class ExtrudeCTerm(bpy.types.Operator):
-    bl_idname = 'elfin.extrude_cterm_internal'
-    bl_label = 'Internal C Terminal extrusion operator'
-    bl_options = {'REGISTER', 'INTERNAL'}
-
-    target_name = bpy.props.StringProperty()
-    cterm_ext_module_selector = bpy.props.StringProperty()
-    color = bpy.props.FloatVectorProperty()
-
     def execute(self, context):
+        execute_extrusion(
+            self.nterm_ext_module_selector, 
+            lambda selector, sel_mod: self.extrude_n_term(selector, sel_mod))
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        self.color = ColorWheel().next_color()
+        context.window_manager.invoke_search_popup(self)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        return suitable_for_extrusion(context)
+
+class ModuleExtrudeCTerm(bpy.types.Operator):
+    bl_idname = 'elfin.module_extrude_cterm'
+    bl_label = 'Extrude C (add a module to the cterm)'
+    bl_property = "cterm_ext_module_selector"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def modlib_filter_enum_cb(self, context):
+        enum_tuples = [color_change_placeholder_enum_tuple]
+
+        modlib_filter('c', enum_tuples)
+
+        if len(enum_tuples) == 1:
+            # Remove color change placeholder if nothing can be extruded
+            enum_tuples = []
+        return enum_tuples
+
+    cterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
+    color = bpy.props.FloatVectorProperty(name="Display Color", 
+                                        subtype='COLOR', 
+                                        default=[0,0,0])
+    def extrude_c_term(self, selector, sel_mod):
         ext_mod = None
         try:
             xdb = get_xdb()
 
-            sel_mod = context.scene.objects[self.target_name]
             sel_mod_name = sel_mod.elfin.module_name
             sel_mod.select = False
 
             # Enum selector format: extrude_from:module_name:extrude_into.
             extrude_from, cterm_mod_name, extrude_into = \
-                self.cterm_ext_module_selector.split('.')
+                selector.split('.')
             ext_mod = link_module(cterm_mod_name)
             print('Extruding module {} (chain {}) from {}\'s C-Term (chain {})'.format(
-                self.cterm_ext_module_selector, extrude_into, sel_mod_name, extrude_from))
+                selector, extrude_into, sel_mod_name, extrude_from))
 
             def touch_up_new_mod(sel_mod, new_mod, sel_mod_chain_id=extrude_from):
                 give_module_new_color(new_mod, self.color)
@@ -384,76 +419,10 @@ class ExtrudeCTerm(bpy.types.Operator):
             raise e
         return {'FINISHED'}
 
-class ModuleExtrudeNTerm(bpy.types.Operator):
-    bl_idname = 'elfin.module_extrude_nterm'
-    bl_label = 'Extrude N (add a module to the nterm)'
-    bl_property = "nterm_ext_module_selector"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def modlib_filter_enum_cb(self, context):
-        enum_tuples = [color_change_placeholder_enum_tuple]
-
-        modlib_filter('n', enum_tuples)
-
-        if len(enum_tuples) == 1:
-            # Remove color change placeholder if nothing can be extruded
-            enum_tuples = []
-        return enum_tuples
-
-    nterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
-    color = bpy.props.FloatVectorProperty(name="Display Color", 
-                                        subtype='COLOR', 
-                                        default=[0,0,0])
-
     def execute(self, context):
-        selector = self.nterm_ext_module_selector
         execute_extrusion(
-            selector,
-            lambda s: bpy.ops.elfin.extrude_nterm_internal(
-                target_name=s.name, 
-                nterm_ext_module_selector=selector,
-                color=self.color))
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        self.color = ColorWheel().next_color()
-        context.window_manager.invoke_search_popup(self)
-        return {'FINISHED'}
-
-    @classmethod
-    def poll(cls, context):
-        return suitable_for_extrusion(context)
-
-class ModuleExtrudeCTerm(bpy.types.Operator):
-    bl_idname = 'elfin.module_extrude_cterm'
-    bl_label = 'Extrude C (add a module to the cterm)'
-    bl_property = "cterm_ext_module_selector"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def modlib_filter_enum_cb(self, context):
-        enum_tuples = [color_change_placeholder_enum_tuple]
-
-        modlib_filter('c', enum_tuples)
-
-        if len(enum_tuples) == 1:
-            # Remove color change placeholder if nothing can be extruded
-            enum_tuples = []
-        return enum_tuples
-
-    cterm_ext_module_selector = bpy.props.EnumProperty(items=modlib_filter_enum_cb)
-    color = bpy.props.FloatVectorProperty(name="Display Color", 
-                                        subtype='COLOR', 
-                                        default=[0,0,0])
-
-    def execute(self, context):
-        selector = self.cterm_ext_module_selector
-        execute_extrusion(
-            selector,
-            lambda s: bpy.ops.elfin.extrude_cterm_internal(
-                target_name=s.name, 
-                cterm_ext_module_selector=selector,
-                color=self.color))
+            self.cterm_ext_module_selector, 
+            lambda selector, sel_mod: self.extrude_c_term(selector, sel_mod))
         return {'FINISHED'}
 
     def invoke(self, context, event):
