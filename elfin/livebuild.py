@@ -130,142 +130,38 @@ class JoinNetworks(bpy.types.Operator):
     def execute(self, context):
         raise NotImplementedError
 
-class ModuleExtrudeNTerm(bpy.types.Operator):
-    bl_idname = 'elfin.module_extrude_nterm'
-    bl_label = 'Extrude N (add a module to the nterm)'
-    bl_property = "nterm_ext_module_selector"
-    bl_options = {'REGISTER', 'UNDO'}
+class ExtrudeModule(bpy.types.Operator):
+    bl_idname = 'elfin.extrude_module'
+    bl_label = 'Extrude module'
+    bl_property = "terminus_selector"
+    bl_options = {'REGISTER'}
 
-    def get_prototype_list(self, context):
-        return get_extrusion_prototype_list('n')
+    def get_available_termini(self, context):
+        available_termini = []
 
-    nterm_ext_module_selector = bpy.props.EnumProperty(items=get_prototype_list)
-    color = bpy.props.FloatVectorProperty(name="Display Color", 
-                                        subtype='COLOR', 
-                                        default=[0,0,0])
-    def extrude_n_term(self, selector, sel_mod):
-        ext_mod = None
-        try:
-            xdb = get_xdb()
+        # Save state into singleton
+        ES = ExtrudeState()
+        ES.update()
 
-            sel_mod_name = sel_mod.elfin.module_name
-            sel_mod.select = False
+        if len(ES.n_extrudables) > 0:
+            available_termini.append(('N', 'N', ''))
+        if len(ES.c_extrudables) > 0:
+            available_termini.append(('C', 'C', ''))
 
-            # Enum selector format: extrude_into:module_name:extrude_from.
-            extrude_into, nterm_mod_name, extrude_from = \
-                selector.split('.')
-            ext_mod = link_module(nterm_mod_name)
-            print('Extruding module {} (chain {}) from {}\'s N-Term (chain {})'.format(
-                selector, 
-                extrude_into, 
-                sel_mod_name, 
-                extrude_from))
+        return available_termini if len(available_termini) > 0 else [('-NA-', '-NA-', '')]
 
-            def touch_up_new_mod(sel_mod, new_mod, sel_mod_chain_id=extrude_from):
-                give_module_new_color(new_mod, self.color)
-                new_mod.hide = False # Unhide (default is hidden)
-                sel_mod.elfin.new_n_link(sel_mod_chain_id, new_mod, extrude_into)
-                new_mod.elfin.new_c_link(extrude_into, sel_mod, sel_mod_chain_id)
-                new_mod.select = True
-
-            sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
-            if sel_ext_type_pair == ('single', 'single'):
-                def extrude_single_single(sel_mod, new_mod):
-                    rel = xdb['double_data'][nterm_mod_name][sel_mod_name]
-                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
-                    touch_up_new_mod(sel_mod, new_mod)
-                    return new_mod
-
-                extrude_single_single(sel_mod, ext_mod)
-
-                if sel_mod.elfin.mirrors:
-                    create_module_mirrors(
-                        sel_mod, 
-                        [ext_mod], 
-                        nterm_mod_name, 
-                        extrude_single_single)
-            elif sel_ext_type_pair == ('single', 'hub'):
-                def extrude_single_hub(sel_mod, new_mod):
-                    # First drop to hub component frame
-                    chain_xdata = xdb \
-                        ['hub_data'][nterm_mod_name]\
-                        ['component_data'][extrude_into]
-                    rel = chain_xdata['c_connections'][sel_mod_name]
-                    drop_frame(new_mod, rel)
-
-                    # Second drop to double B frame
-                    rel = xdb \
-                        ['double_data'][chain_xdata['single_name']][sel_mod_name]
-                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
-                    touch_up_new_mod(sel_mod, new_mod)
-                    return new_mod
-
-                extrude_single_hub(sel_mod, ext_mod)
-
-                if sel_mod.elfin.mirrors:
-                    create_module_mirrors(
-                        sel_mod,
-                        [ext_mod],
-                        nterm_mod_name,
-                        extrude_single_hub
-                        )
-            elif sel_ext_type_pair == ('hub', 'single'):
-                hub_xdata = xdb['hub_data'][sel_mod_name]
-                comp_xdata = hub_xdata['component_data']
-                def extrude_single_at_chain(sel_mod, new_mod, src_chain_id):
-                    chain_xdata = comp_xdata[src_chain_id]
-                    rel = chain_xdata['n_connections'][nterm_mod_name]
-                    raise_frame(new_mod, rel, fixed_mod=sel_mod)
-                    touch_up_new_mod(sel_mod, new_mod, src_chain_id)
-
-                def extrude_hub_single(sel_mod, new_mod):
-                    extrude_single_at_chain(sel_mod, new_mod, extrude_from)
-
-                    if hub_xdata['symmetric']:
-                        hub_n_free_chains = \
-                            set(hub_xdata['component_data'].keys()) - \
-                            set(sel_mod.elfin.n_linkage.keys())
-                        mirrors = [new_mod]
-                        
-                        for src_chain_id in hub_n_free_chains:
-                            mirror_mod = link_module(nterm_mod_name)
-                            extrude_single_at_chain(sel_mod, mirror_mod, src_chain_id)
-                            mirrors.append(mirror_mod)
-
-                        for m in mirrors:
-                            m.elfin.mirrors = mirrors
-
-                        return None # Mirrers are taken care of here already
-                    else:
-                        return new_mod
-
-                extrude_hub_single(sel_mod, ext_mod)
-
-                if sel_mod.elfin.mirrors:
-                    create_module_mirrors(
-                        sel_mod,
-                        [] if hub_xdata['symmetric'] else [ext_mod],
-                        nterm_mod_name,
-                        extrude_hub_single)
-            elif sel_ext_type_pair == ('hub', 'hub'):
-                self.report({'ERROR'}, 'Unimplemented')
-                return {'CANCELLED'}
-            else:
-                raise ValueError('Invalid sel_ext_type_pair: {}'.format(sel_ext_type_pair))
-
-            return {'FINISHED'}
-        except Exception as e:
-            if ext_mod:
-                ext_mod.elfin.destroy()
-            sel_mod.select = True # Restore selection
-            raise e
-        return {'FINISHED'}
+    terminus_selector = bpy.props.EnumProperty(items=get_available_termini)
 
     def execute(self, context):
-        execute_extrusion(
-            self.nterm_ext_module_selector, 
-            lambda selector, sel_mod: self.extrude_n_term(selector, sel_mod))
-        return {'FINISHED'}
+        if self.terminus_selector.lower() == 'n':
+            return bpy.ops.elfin.extrude_nterm(
+                'INVOKE_DEFAULT')
+        elif self.terminus_selector.lower() == 'c':
+            return bpy.ops.elfin.extrude_cterm(
+                'INVOKE_DEFAULT')
+        else:
+            raise ValueError('Unknown terminus selector')
+            return {'CANCELLED'}
 
     def invoke(self, context, event):
         self.color = ColorWheel().next_color()
@@ -276,139 +172,55 @@ class ModuleExtrudeNTerm(bpy.types.Operator):
     def poll(cls, context):
         return suitable_for_extrusion(context)
 
-class ModuleExtrudeCTerm(bpy.types.Operator):
-    bl_idname = 'elfin.module_extrude_cterm'
+class ExtrudeNTerm(bpy.types.Operator):
+    bl_idname = 'elfin.extrude_nterm'
+    bl_label = 'Extrude N (add a module to the nterm)'
+    bl_property = "nterm_ext_module_selector"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    nterm_ext_module_selector = bpy.props.EnumProperty(
+        items=lambda self, context: ExtrudeState().n_extrudables)
+    color = bpy.props.FloatVectorProperty(name="Display Color", 
+                                        subtype='COLOR', 
+                                        default=[0,0,0])
+
+    def execute(self, context):
+        execute_extrusion(
+            which_term='n',
+            selector=self.nterm_ext_module_selector, 
+            color=self.color)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        ExtrudeState().update()
+        self.color = ColorWheel().next_color()
+        context.window_manager.invoke_search_popup(self)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        return suitable_for_extrusion(context)
+
+class ExtrudeCTerm(bpy.types.Operator):
+    bl_idname = 'elfin.extrude_cterm'
     bl_label = 'Extrude C (add a module to the cterm)'
     bl_property = "cterm_ext_module_selector"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     def get_prototype_list(self, context):
         return get_extrusion_prototype_list('c')
 
-    cterm_ext_module_selector = bpy.props.EnumProperty(items=get_prototype_list)
+    cterm_ext_module_selector = bpy.props.EnumProperty(
+        items=lambda self, context: ExtrudeState().c_extrudables)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])
-    def extrude_c_term(self, selector, sel_mod):
-        ext_mod = None
-        try:
-            xdb = get_xdb()
-
-            sel_mod_name = sel_mod.elfin.module_name
-            sel_mod.select = False
-
-            # Enum selector format: extrude_from:module_name:extrude_into.
-            extrude_from, cterm_mod_name, extrude_into = \
-                selector.split('.')
-            ext_mod = link_module(cterm_mod_name)
-            print('Extruding module {} (chain {}) from {}\'s C-Term (chain {})'.format(
-                selector, extrude_into, sel_mod_name, extrude_from))
-
-            def touch_up_new_mod(sel_mod, new_mod, sel_mod_chain_id=extrude_from):
-                give_module_new_color(new_mod, self.color)
-                new_mod.hide = False # Unhide (default is hidden)
-                sel_mod.elfin.new_c_link(sel_mod_chain_id, new_mod, extrude_into)
-                new_mod.elfin.new_n_link(extrude_into, sel_mod, sel_mod_chain_id)
-                new_mod.select = True
-
-            sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
-            if sel_ext_type_pair == ('single', 'single'):
-                def extrude_single_single(sel_mod, new_mod):
-                    rel = xdb['double_data'][sel_mod_name][cterm_mod_name]
-                    raise_frame(new_mod, rel, fixed_mod=sel_mod)
-                    touch_up_new_mod(sel_mod, new_mod)
-                    return new_mod
-
-                extrude_single_single(sel_mod, ext_mod)
-
-                if sel_mod.elfin.mirrors:
-                    create_module_mirrors(
-                        sel_mod, 
-                        [ext_mod], 
-                        cterm_mod_name, 
-                        extrude_single_single)
-            elif sel_ext_type_pair == ('single', 'hub'):
-                def extrude_single_hub(sel_mod, new_mod):
-                    chain_xdata = xdb\
-                        ['hub_data'][cterm_mod_name] \
-                        ['component_data'][extrude_into]
-                    rel = chain_xdata['n_connections'][sel_mod_name]
-                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
-                    touch_up_new_mod(sel_mod, new_mod)
-                    return new_mod
-
-                extrude_single_hub(sel_mod, ext_mod)
-
-                if sel_mod.elfin.mirrors:
-                    create_module_mirrors(
-                        sel_mod,
-                        [ext_mod],
-                        cterm_mod_name,
-                        extrude_single_hub
-                        )
-            elif sel_ext_type_pair == ('hub', 'single'):
-                hub_xdata = xdb['hub_data'][sel_mod_name]
-                comp_xdata = hub_xdata['component_data']
-                def extrude_single_at_chain(sel_mod, new_mod, src_chain_id):
-                    chain_xdata = comp_xdata[src_chain_id]
-
-                    # First raise to double B frame
-                    rel = xdb['double_data'] \
-                        [chain_xdata['single_name']][cterm_mod_name]
-                    raise_frame(new_mod, rel)
-
-                    # Second raise to hub component frame
-                    rel = chain_xdata['c_connections'][cterm_mod_name]
-                    raise_frame(new_mod, rel, fixed_mod=sel_mod)
-                    touch_up_new_mod(sel_mod, new_mod, src_chain_id)
-                    
-                def extrude_hub_single(sel_mod, new_mod):
-                    extrude_single_at_chain(sel_mod, new_mod, extrude_from)
-
-                    if hub_xdata['symmetric']:
-                        hub_c_free_chains = \
-                            set(hub_xdata['component_data'].keys()) - \
-                            set(sel_mod.elfin.c_linkage.keys())
-                        mirrors = [new_mod]
-
-                        for src_chain_id in hub_c_free_chains:
-                            mirror_mod = link_module(cterm_mod_name)
-                            extrude_single_at_chain(mirror_mod, src_chain_id)
-                            mirrors.append(mirror_mod)
-
-                        for m in mirrors:
-                            m.elfin.mirrors = mirrors
-
-                        return None # Mirrers are taken care of here already
-                    else:
-                        return new_mod
-
-                extrude_hub_single(sel_mod, ext_mod)
-
-                if sel_mod.elfin.mirrors:
-                    create_module_mirrors(
-                        sel_mod,
-                        [] if hub_xdata['symmetric'] else [ext_mod],
-                        cterm_mod_name,
-                        extrude_hub_single)
-            elif sel_ext_type_pair == ('hub', 'hub'):
-                self.report({'ERROR'}, 'Unimplemented')
-                return {'CANCELLED'}
-            else:
-                raise ValueError('Invalid sel_ext_type_pair: {}'.format(sel_ext_type_pair))
-
-            return {'FINISHED'}
-        except Exception as e:
-            if ext_mod:
-                ext_mod.elfin.destroy()
-            sel_mod.select = True # Restore selection
-            raise e
-        return {'FINISHED'}
 
     def execute(self, context):
         execute_extrusion(
-            self.cterm_ext_module_selector, 
-            lambda selector, sel_mod: self.extrude_c_term(selector, sel_mod))
+            which_term='c',
+            selector=self.cterm_ext_module_selector, 
+            color=self.color)
         return {'FINISHED'}
 
     def invoke(self, context, event):

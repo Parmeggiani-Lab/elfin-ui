@@ -34,36 +34,47 @@ empty_list_placeholder_enum_tuple = \
 
 # Classes ----------------------------------------
 
-random.seed()
-class ColorWheel:
-    class __ColorWheel:
-        hue_diff = 0.14
-        lightness_base = 0.3
-        lightness_variance = 0.3
-        saturation_base = 0.8
-        saturation_variance = .2
-        def __init__(self):
-            self.hue = random.random()
-        
-        def next_color(self, ):
-            self.hue += (self.hue_diff / 2) + random.random() * (1 - self.hue_diff)
-            lightness = self.lightness_base + \
-                random.random() * self.lightness_variance
-            saturation = self.saturation_base + \
-                random.random() * self.saturation_variance
-            return colorsys.hls_to_rgb(
-                self.hue % 1.0, 
-                lightness % 1.0, 
-                saturation % 1.0
-            )
-    instance = None
+# Singleton Metaclass
+# Credits to https://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
+class Singleton(type):
+    _instances = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+class ExtrudeState(metaclass=Singleton):
     def __init__(self):
-        if not ColorWheel.instance:
-            ColorWheel.instance = ColorWheel.__ColorWheel()
+        self.n_extrudables = [empty_list_placeholder_enum_tuple]
+        self.c_extrudables = [empty_list_placeholder_enum_tuple]
 
-    def __getattr__(self, name):
-        return getattr(ColorWheel.instance, name)
+    def update(self):
+        self.n_extrudables = get_extrusion_prototype_list('n')
+        self.c_extrudables = get_extrusion_prototype_list('c')
 
+random.seed()
+class ColorWheel(metaclass=Singleton):
+    hue_diff = 0.14
+    lightness_base = 0.3
+    lightness_variance = 0.3
+    saturation_base = 0.8
+    saturation_variance = .2
+    def __init__(self):
+        self.hue = random.random()
+    
+    def next_color(self, ):
+        self.hue += (self.hue_diff / 2) + random.random() * (1 - self.hue_diff)
+        lightness = self.lightness_base + \
+            random.random() * self.lightness_variance
+        saturation = self.saturation_base + \
+            random.random() * self.saturation_variance
+        return colorsys.hls_to_rgb(
+            self.hue % 1.0, 
+            lightness % 1.0, 
+            saturation % 1.0
+        )
+
+# Decorator for functions that receive a Blender object
 class object_receiver:
     """Passes object to func by argument if specified, otherwise use the
     selected object.
@@ -121,15 +132,170 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
-def execute_extrusion(selector, extrusion_func):
+def extrude_terminus(which_term, selector, sel_mod, color):
+    """Extrudes selector module at the which_term of sel_mod"""
+    assert which_term in {'n', 'c'}
+
+    ext_mod = None
+    try:
+        sel_mod_name = sel_mod.elfin.module_name
+        sel_mod.select = False
+
+        # Extract chain IDs and module name
+        c_chain, ext_mod_name, n_chain = \
+            selector.split('.')
+        ext_mod = link_module(ext_mod_name)
+        extrude_from = n_chain if which_term == 'n' else c_chain
+        extrude_into = c_chain if which_term == 'n' else n_chain
+
+        print(('Extruding module {to_mod} (chain {to_chain})'
+            ' from {from_mod}\'s {terminus}-Term (chain {from_chain})').format(
+            to_mod=selector, 
+            to_chain=extrude_into,
+            from_mod=sel_mod_name,
+            terminus=which_term.upper(),
+            from_chain=extrude_from))
+
+        def touch_up_new_mod(sel_mod, new_mod, sel_mod_chain_id=extrude_from):
+            give_module_new_color(new_mod, color)
+            new_mod.hide = False # Unhide (default is hidden)
+            if which_term == 'n':
+                sel_mod.elfin.new_n_link(sel_mod_chain_id, new_mod, extrude_into)
+                new_mod.elfin.new_c_link(extrude_into, sel_mod, sel_mod_chain_id)
+            else:
+                sel_mod.elfin.new_c_link(sel_mod_chain_id, new_mod, extrude_into)
+                new_mod.elfin.new_n_link(extrude_into, sel_mod, sel_mod_chain_id)
+            new_mod.select = True
+
+        xdb = get_xdb()
+        sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
+        if sel_ext_type_pair == ('single', 'single'):
+            def extrude_single_single(sel_mod, new_mod):
+                if which_term == 'n':
+                    single_a_name, single_b_name = ext_mod_name, sel_mod_name
+                    transform_func = drop_frame
+                else:
+                    single_a_name, single_b_name = sel_mod_name, ext_mod_name
+                    transform_func = raise_frame
+
+                rel = xdb['double_data'][single_a_name][single_b_name]
+                transform_func(new_mod, rel, fixed_mod=sel_mod)
+                touch_up_new_mod(sel_mod, new_mod)
+                return new_mod
+
+            extrude_single_single(sel_mod, ext_mod)
+
+            if sel_mod.elfin.mirrors:
+                create_module_mirrors(
+                    sel_mod, 
+                    [ext_mod], 
+                    ext_mod_name, 
+                    extrude_single_single)
+        elif sel_ext_type_pair == ('single', 'hub'):
+            def extrude_single_hub(sel_mod, new_mod):
+                chain_xdata = xdb \
+                    ['hub_data'][ext_mod_name]\
+                    ['component_data'][extrude_into]
+                if which_term == 'n':
+                    rel = chain_xdata['c_connections'][sel_mod_name]
+                    # First drop to hub component frame
+                    drop_frame(new_mod, rel)
+                    rel = xdb['double_data'] \
+                        [chain_xdata['single_name']][sel_mod_name]
+                    # Second drop to double B frame
+                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
+                else:
+                    rel = chain_xdata['n_connections'][sel_mod_name]
+                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
+
+                touch_up_new_mod(sel_mod, new_mod)
+                return new_mod
+
+            extrude_single_hub(sel_mod, ext_mod)
+
+            if sel_mod.elfin.mirrors:
+                create_module_mirrors(
+                    sel_mod,
+                    [ext_mod],
+                    ext_mod_name,
+                    extrude_single_hub
+                    )
+        elif sel_ext_type_pair == ('hub', 'single'):
+            hub_xdata = xdb['hub_data'][sel_mod_name]
+            comp_xdata = hub_xdata['component_data']
+            def extrude_single_at_chain(sel_mod, new_mod, src_chain_id):
+                chain_xdata = comp_xdata[src_chain_id]
+                if which_term == 'n':
+                    rel = chain_xdata['n_connections'][ext_mod_name]
+                    raise_frame(new_mod, rel, fixed_mod=sel_mod)
+                else:
+                    # First raise to double B frame
+                    rel = xdb['double_data'] \
+                        [chain_xdata['single_name']][ext_mod_name]
+                    raise_frame(new_mod, rel)
+
+                    # Second raise to hub component frame
+                    rel = chain_xdata['c_connections'][ext_mod_name]
+                    raise_frame(new_mod, rel, fixed_mod=sel_mod)
+
+                touch_up_new_mod(sel_mod, new_mod, src_chain_id)
+
+            def extrude_hub_single(sel_mod, new_mod):
+                extrude_single_at_chain(sel_mod, new_mod, extrude_from)
+
+                if hub_xdata['symmetric']:
+                    # Calculate non-occupied chain IDs
+                    hub_all_chains = set(hub_xdata['component_data'].keys())
+                    if which_term == 'n':
+                        hub_busy_chains = set(sel_mod.elfin.n_linkage.keys()) 
+                    else:
+                        hub_busy_chains = set(sel_mod.elfin.c_linkage.keys())
+                    hub_free_chains = hub_all_chains - hub_busy_chains
+                       
+                    mirrors = [new_mod]
+                    for src_chain_id in hub_free_chains:
+                        mirror_mod = link_module(ext_mod_name)
+                        extrude_single_at_chain(sel_mod, mirror_mod, src_chain_id)
+                        mirrors.append(mirror_mod)
+
+                    for m in mirrors:
+                        m.elfin.mirrors = mirrors
+
+                    return None # Mirrers are taken care of here already
+                else:
+                    return new_mod
+
+            extrude_hub_single(sel_mod, ext_mod)
+
+            if sel_mod.elfin.mirrors:
+                create_module_mirrors(
+                    sel_mod,
+                    [] if hub_xdata['symmetric'] else [ext_mod],
+                    ext_mod_name,
+                    extrude_hub_single)
+        elif sel_ext_type_pair == ('hub', 'hub'):
+            raise NotImplementedError
+        else:
+            raise ValueError('Invalid sel_ext_type_pair: {}'.format(sel_ext_type_pair))
+
+        return {'FINISHED'}
+    except Exception as e:
+        if ext_mod:
+            ext_mod.elfin.destroy()
+        sel_mod.select = True # Restore selection
+        raise e
+    return {'FINISHED'}
+
+def execute_extrusion(which_term, selector, color):
     """Executes extrusion respecting mirror links and filers mirror selections
     """
     if selector == color_change_placeholder or \
         selector == empty_list_placeholder:
         return
+
     filter_mirror_selection()
     for sel_mod in get_selected(-1): 
-        extrusion_func(selector, sel_mod)
+        extrude_terminus(which_term, selector, sel_mod, color)
 
 def get_extrusion_prototype_list(which_term):
     """Generates a prototype list appropriately filtered for extrusion.
@@ -212,7 +378,7 @@ def get_extrusion_prototype_list(which_term):
         raise ValueError('Unknown module type: ', sel_mod_type)
 
     # Remove color change placeholder if nothing can be extruded
-    return enum_tuples if len(enum_tuples) > 1 else [empty_list_placeholder_enum_tuple]
+    return enum_tuples if len(enum_tuples) > 1 else []
 
 def unlink_mirror(modules=None):
     mods = modules[:] if modules else bpy.context.selected_objects[:]
@@ -398,13 +564,26 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
     """Creates an enum tuple storing the single module selector, prefixed or
     suffixed by the terminus of a hub from/to which the single module is
     extruded.
+
+    Enum selector format: C-Chain ID, Module, N-Chain ID
+
+    Example context:    
+        Let module A receive an extrusion opereation which attempts to add B
+        to A's n-terminus. 
+    args:
+     - mod_name: module B's name.
+     - extrude_from: module A's chain ID that is receiving extrusion.
+     - extrude_into: module B's chain ID that is complementing the extrusion.
+     - direction: is B being added to A's c-terminus or n-terminus.
+
     """
     if direction is not None:
-        assert(direction in {'n', 'c'})
-        assert(extrude_from is not None)
+        assert direction in {'n', 'c'}
+        assert extrude_from is not None
         if extrude_into is None:
             extrude_into = ''
 
+    # Keep the selector format: n_chain, mod, c_chain
     if direction == 'c':
         mod_sel = '.'.join([extrude_from, mod_name, extrude_into])
     elif direction == 'n':
