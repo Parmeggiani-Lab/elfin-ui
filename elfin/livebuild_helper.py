@@ -170,6 +170,9 @@ def extrude_terminus(which_term, selector, sel_mod, color):
         xdb = get_xdb()
         sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
         if sel_ext_type_pair == ('single', 'single'):
+            #
+            # Extrude from single to single.
+            #
             def extrude_single_single(sel_mod, new_mod):
                 if which_term == 'n':
                     single_a_name, single_b_name = ext_mod_name, sel_mod_name
@@ -192,6 +195,9 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                     ext_mod_name, 
                     extrude_single_single)
         elif sel_ext_type_pair == ('single', 'hub'):
+            #
+            # Extrude from single to hub.
+            #
             def extrude_single_hub(sel_mod, new_mod):
                 chain_xdata = xdb \
                     ['hub_data'][ext_mod_name]\
@@ -221,6 +227,9 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                     extrude_single_hub
                     )
         elif sel_ext_type_pair == ('hub', 'single'):
+            #
+            # Extrude from hub to single.
+            #
             hub_xdata = xdb['hub_data'][sel_mod_name]
             comp_xdata = hub_xdata['component_data']
             def extrude_single_at_chain(sel_mod, new_mod, src_chain_id):
@@ -274,6 +283,9 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                     ext_mod_name,
                     extrude_hub_single)
         elif sel_ext_type_pair == ('hub', 'hub'):
+            #
+            # Extrude from hub to hub is NOT allowed.
+            #
             raise NotImplementedError
         else:
             raise ValueError('Invalid sel_ext_type_pair: {}'.format(sel_ext_type_pair))

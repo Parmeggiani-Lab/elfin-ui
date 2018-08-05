@@ -192,7 +192,6 @@ class ExtrudeNTerm(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        ExtrudeState().update()
         self.color = ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}

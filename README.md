@@ -32,7 +32,6 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then use the Select Mirror Links operator.
 
 ### TODO: Currently Working On:
- * Make C/N term extrusion share more code
  * Select Network operator
 
 ### TODO: Must-Haves
