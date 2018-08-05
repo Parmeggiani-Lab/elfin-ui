@@ -1,34 +1,18 @@
+# Practical Tutorial for elfin-ui
+Content:
+1. [Installing](#installing)
+2. [Updating](#updating)
+3. [Warnings Before Use](#warnings-before-use)
+4. [Usage](#usage)
+5. [Operator List](#operator-list)
+6. [Prototype Naming Convention](#prototype-naming-convention)
+7. [Coloring](#coloring)
+8. [Mirror-Linking](#mirror-linking)
+9. [Useful Blender Shortcuts](#useful-blender-shortcuts)
+10. [Collision Detection](#collision-detection)
 
-## Installing (Linux/MacOS/WSL)
+# Installing
 
-`./install`
-
-For "pure" Windows (non-WSL), either copy the `elfin` folder to your Blender's addon directory or create a symlink via `mklink` or [Shell Link Extension](http://schinagl.priv.at/nt/hardlinkshellext/linkshellextension.html)
-
-After installing, open Blender and go to `File > User Preferences > Add-ons` and search for `Elfin`. If the installation was successful there should be a `Elfin: Elfin UI`. Tick the box and make sure to `Save User Settings` (bottom-left).
-
-## Updating the Module Library
-The module library files are automatically fetched by `./install` but if in any case the module library was lost, modified, or became outdated, do:
-
-`./fetch_library`
-
-## Warnings Before Use
-Any design created as of now will most likely not be exportable to elfin's internal data format when the export function is available. This is because Blender objects created using an old version of the addon will not get new properties even if the addon is updated. The protein design will need to be re-created.
-
-We could possibly make future changes backword compatible by implementing a remove-all, re-add all function but right now this does not exist yet so be warned nonetheless.
-
-## Using the Addon
-All functionalities of the Elfin UI addon are accessed via what Blender calls "operators".
-
-Effectively, when your mouse is within the viewport, you can hit <kbd>space</kbd> to bring up a search menu that lets you type in the name of the operator.
-
-<p align="center">
-<img src="resources/images/ui_tutorial_place.png" width="70%">
-</p>
-
-# Installing elfin-ui
-
-Download elfin-ui and install it using the following commands:
 
 ```
 git clone git@github.com:joy13975/elfin-ui
@@ -36,81 +20,78 @@ cd elfin-ui
 ./install
 ```
 
-Make sure to select v2.79 when asked by the script.
+This should work for Linux/MacOS/WSL.
+
+For "pure" Windows (non-WSL), either copy the `elfin` folder to your Blender's addon directory or create a symlink via `mklink` or [Shell Link Extension](http://schinagl.priv.at/nt/hardlinkshellext/linkshellextension.html)
+
+After installing, open Blender and go to `File > User Preferences > Add-ons` and search for `Elfin`. If the installation was successful there should be a `Elfin: Elfin UI`. Tick the box and make sure to `Save User Settings` (bottom-left).
 
 <p align="center">
-<img src="1_download_and_install.png" width="85%">
+<img src="download_and_install.png" width="85%">
 </p>
-
-# Enabling elfin-ui
-
-Enable the addon in Blender's user preferences (`File` > `User Preferences` > `Add-ons`). Search for `elfin` and after ticking the box make sure to hit the `Save User Preferences` button.
 
 Before enabling, your Blender probably looks like:
 <p align="center">
-<img src="2_before_blender_prefs.png" width="85%">
+<img src="before_blender_prefs.png" width="85%">
 </p>
 
 After enabling, your Blender should look like:
 <p align="center">
-<img src="2_after_blender_prefs.png" width="85%">
+<img src="after_blender_prefs.png" width="85%">
 </p>
 
 Notice that the left-hand-side panel now has an `elfin` section with some debug buttons. You don't need to touch these buttons as they are for debugging. You might sometimes find a need for disabling collision detection or resetting the properties. There are facilities for processing PyMol-generated .obj module models but for now we don't need to get into that.
 
-# Placing a Module
+
+# Updating
+
+To update to the latest elfin-ui, simply pull (inside elfin-ui root folder):
+
+`git pull`
+
+The module library files are automatically fetched by `./install` but if in any case the module library was lost, modified, or became outdated, do:
+
+`./fetch_library`
+
+# Warnings Before Use
+Any design created as of now may or may not be exportable to elfin's internal data format when the export function gets implemented. This is because Blender objects created using an old version of the addon will not get new properties even if the addon is updated. The protein design will need to be re-created.
+
+We could possibly make future changes backword compatible by implementing a remove-all, re-add all function but right now this does not exist yet so be warned nonetheless.
+
+# Usage
+All functionalities of the Elfin UI addon are accessed via what Blender calls "operators".
+
+Effectively, when your mouse is within the viewport, you can hit <kbd>space</kbd> to bring up a search menu that lets you type in the name of the operator.
+
+The following are some basic examples of creating and manipulating modules.
+
+## Placement
 
 Move the cursor into Blender's viewport and hit <kbd>space</kbd>. Type in `place` and one item should read `Elfin: Place a module`:
 
 <p align="center">
-<img src="3_place_menu.png" width="85%">
+<img src="place.gif" width="85%">
 </p>
 
-Hit <kbd>enter</kbd> and a prototype list should be displayed:
-
-<p align="center">
-<img src="3_place_list.png" width="85%">
-</p>
+Hit <kbd>enter</kbd> and a prototype list should be displayed. You can select the module you want to place, or select `-Change Color-` in order to set the color before loading in the module's model. The selected module should get placed at origin in its default orientation.
 
 <b>Optional: color setting.</b> Now that the Place operator is activated, you can move your cursor away and set the color for the new module before loading the actual model by using the Operator Properties panel at the bottom-left corner. You don't have to do this because elfin-ui sets a new color randomly for each new module. You <em>can</em> still change the color after loading the model, but if you do that through the Operator Properties panel it will cause lag as Blender removes the model it had loaded and re-loads a new one with a different color. If you've already loaded the model and want to change the color, go into the lower half of the right-hand-side panel, find the `Material` tab (with a copper-colored ball icon) and you can change it there without causing lag.
 
-<p align="center">
-<img src="3_place_color.png" width="85%">
-</p>
+<b>Optional: re-select prototype.</b> The Operator Properties panel also lets you "redo" - that is to choose again the module prototype to place (this is the same as viewport's prototype list).
 
-The Operator Properties panel also lets you choose the module prototype to place (this is the same as viewport's prototype list).
+## Extrusion
 
-<p align="center">
-<img src="3_place_panel_list.png" width="85%">
-</p>
+Again, hit <kbd>space</kbd> with the cursor in Blender's viewport. Type in `ext` and one item should read `Elfin: Extrude Module`. After selecting this item, a a list of extrudable termini will be displayed. If a terminus is occupied by an existing module, this list will filter accordingly. When prompted, select which terminus: `N` or `C`, to extrude. Then, choose your desired module.
 
-Select the module prototype you desire. The selected module should get placed at origin in its default orientation:
+In the following GIF I chose to extrude at the C-Terminus, then chose `-Change Color-`.
 
 <p align="center">
-<img src="3_place_result.png" width="85%">
+<img src="extrude_c.gif" width="85%">
 </p>
 
-# Extruding from a Module
+Select the module prototype the same way as with the Place Module operator.
 
-Again, hit <kbd>space</kbd> with the cursor in Blender's viewport. Type in `ex n` and one item should read `Elfin: Extrude N (add a module to the nterm)`:
-
-<p align="center">
-<img src="4_extrude_n_menu.png" width="85%">
-</p>
-
-Select the module prototype the same way as with the Place operator. If the terminus being extruded is already occupied by some other module, then this list <em>will be empty</em>. This is important to keep in mind.
-
-<p align="center">
-<img src="4_extrude_n_list.png" width="85%">
-</p>
-
-Extrusion at the N terminus results in:
-
-<p align="center">
-<img src="4_extrude_n_result.png" width="85%">
-</p>
-
-# Mirror Linking
+## Mirror Linking
 
 Originally designed for enforcing symmetric hubs' arm identiticality, mirror linking cause simultaneous manipulation for two or more separate modules that are not necessarily spatially related.
 
@@ -119,42 +100,22 @@ When modules are <em>mirror-linked</em> (or <em>linked-by-mirror</em>), they are
 To link modules by mirror, search for `link by`. One item should read `Elfin: Link multiple modules of the same prototype by mirror`:
 
 <p align="center">
-<img src="5_link_mirror_menu.png" width="85%">
+<img src="mirror_linking.gif" width="85%">
 </p>
 
-As stated, selected modules must be of the same prototype. 
+Selected modules must be of the same prototype. 
 
 If the linking was successful a message should be shown. If the selected modules already have mirrors linked, you will get a warning and a choice as to whether or not to replace existing links with new ones.
 
-<p align="center">
-<img src="5_link_mirror_result.png" width="85%">
-</p>
-
-You can list the mirrors of a module with the List Mirror opereator:
-
-<p align="center">
-<img src="5_list_mirror.png" width="85%">
-</p>
-
-Test Extrusion at N-Term:
-
-<p align="center">
-<img src="5_link_mirror_extrude_n.png" width="85%">
-</p>
-
-Test Extrusion at C-Term:
-
-<p align="center">
-<img src="5_link_mirror_extrude_c.png" width="85%">
-</p>
+You can also list the mirrors of a module with the List Mirror opereator. You can select all mirrors of the currently selected module with the Select Mirrors operator.
 
 Try deleting one of the extruded modules and see what happens. Revert using <kbd>cmd</kbd>+<kbd>z</kbd> (<kbd>ctrl</kbd> for Windows and Linux).
 
 Mirrors can have any location and rotation - they do not need to be identical. You can even move them (as long as you move the connected modules together) and they will stay linked.
 
-Extruding from symmetric hubs are automatically mirror-linked. 
+<b>Helpful to know</b>: extruding from symmetric hubs are automatically mirror-linked. 
 
-### Operators
+# Operator List
 
 Currently implemented operators:
  * <b>Place Module</b>
@@ -179,10 +140,10 @@ Currently implemented operators:
 
 You don't have to type the full name of the module. For example, "ext" will bring up the <b>Extrude Module</b> operator.
 
-### Prototype Lists and Naming Convention
+# Prototype Naming Convention
 
 <p align="center">
-<img src="resources/images/ui_tutorial_names.png" width="70%">
+<img src="ui_tutorial_names.png" width="70%">
 </p>
 
 Place and Extrude operators will prompt you with a filtered list of actionable modules - let's call them <em>filtered prototypes</em>. There could be many modules in a scene, but modules with the same module name (not Blender name) are of the same prototype (like what classes are to objects). For extrusion, prototypes are filtered by compatibility and also terminus occupancy (i.e. is the N and/or C terminus already occupied?).
@@ -193,15 +154,15 @@ The first letter, if there is one, denotes the <b>C Terminus</b> chain ID of the
 
 The last letter is therefore the <b>N Terminus</b> chain ID in the to-be-extruded module.
 
-### Coloring
+# Coloring
 The colour of each newly added module is set randomly. If you wish to set them manually, you can open the left-hand-side panel (via <kbd>t</kbd>) to adjust the color when the operator is <em>active</em> (when you've selected it after typing it). It's highly recommended that you change the color while the prototype selection is set to the `-Change Color-` placeholder. This is because with each color change Blender removes the object it added and re-adds it with a different color. That can cause considerable lag if you drag the colour sampler around the palette. You can also go into the material of the module object on the right-most side panel when the operator options are gone.
 
-### Mirror-Linking
+# Mirror-Linking
 Mirror-linking was originally implemented to enforce symmetric execution of extrusion or deletion on the arms of a symmetric hub. I thought this could be potentially useful for manual design so I've made this available to the user via operators.
 
 Mirror-linked modules essentially share extrusion and deletion operations. That means if you select just one of a mirror-linked group of modules and do extrusion on it, all other mirror-linked modules will also receive the same operation
 
-### Useful Blender shortcuts:
+# Useful Blender shortcuts:
  * <kbd>a</kbd> toggle select all/deselect all
  * <kbd>c</kbd> brush-select
  * <kbd>x</kbd> delete selection (with confirmation)
@@ -215,5 +176,5 @@ Mirror-linked modules essentially share extrusion and deletion operations. That 
 
 Where <kbd>cmd</kbd> is involved, it's <kbd>ctrl</kbd> for Windows and Linux
 
-### Collision Detection
+# Collision Detection
 By default collision detection is done on extrusion and placement of modules. The calculation is not perfect because we're using single module 3D models instead of their true atomic representation. If for any reason you need to disable this, you can find the tickbox in the left-hand-side panel (toggle by <kbd>t</kbd>).
