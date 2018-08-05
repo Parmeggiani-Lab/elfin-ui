@@ -91,7 +91,7 @@ In the following GIF I chose to extrude at the C-Terminus, then chose `-Change C
 
 Select the module prototype the same way as with the Place Module operator.
 
-## Mirror Linking
+## Mirror Link Operator
 
 Originally designed for enforcing symmetric hubs' arm identiticality, mirror linking cause simultaneous manipulation for two or more separate modules that are not necessarily spatially related.
 
