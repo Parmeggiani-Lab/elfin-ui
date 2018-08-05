@@ -55,7 +55,7 @@ class ExtrudeState(metaclass=Singleton):
 random.seed()
 class ColorWheel(metaclass=Singleton):
     hue_diff = 0.14
-    lightness_base = 0.3
+    lightness_base = 0.4
     lightness_variance = 0.3
     saturation_base = 0.8
     saturation_variance = .2

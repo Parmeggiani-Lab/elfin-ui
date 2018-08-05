@@ -24,6 +24,6 @@ class DebugPanel(bpy.types.Panel):
         col.operator('elfin.process_obj', text='Process obj file (selection)')
         col.operator('elfin.process_all', text='Process all obj files')
         col.operator('elfin.place_module', text='Place a module into scene')
-        col.operator('elfin.module_extrude_cterm', text='Extrude c-term')
-        col.operator('elfin.module_extrude_nterm', text='Extrude n-term')
+        col.operator('elfin.extrude_cterm', text='Extrude c-term')
+        col.operator('elfin.extrude_nterm', text='Extrude n-term')
         col.prop(context.scene.elfin, 'disable_collision_check', text='Disable Collision Check')
