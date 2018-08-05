@@ -132,6 +132,29 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
+def walk_network(module_obj, entering_chain=None, entering_side=None):
+    """A generator that traverses the module network depth-first and yields each object on the
+    way.
+    """
+
+    yield module_obj
+
+    # Walk n-terminus first
+    for n_obj in module_obj.elfin.n_linkage:
+        if not (entering_side == 'c' and entering_chain == n_obj.source_chain_id):
+            yield from walk_network(
+                module_obj=n_obj.target_mod, 
+                entering_chain=n_obj.target_chain_id,
+                entering_side='n')
+
+    # Then c-terminus
+    for c_obj in module_obj.elfin.c_linkage:
+        if not (entering_side == 'n' and entering_chain == c_obj.source_chain_id):
+            yield from walk_network(
+                module_obj=c_obj.target_mod, 
+                entering_chain=c_obj.target_chain_id,
+                entering_side='c')
+
 def extrude_terminus(which_term, selector, sel_mod, color):
     """Extrudes selector module at the which_term of sel_mod"""
     assert which_term in {'n', 'c'}

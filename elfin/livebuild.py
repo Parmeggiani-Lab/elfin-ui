@@ -6,6 +6,28 @@ from .livebuild_helper import *
 
 # Operators --------------------------------------
 
+class SelectMirrors(bpy.types.Operator):
+    bl_idname = 'elfin.select_mirrors'
+    bl_label = 'Select mirrors (all mirror-linked modules)'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        if get_selection_len() > 0:
+            for m in get_selected().elfin.mirrors:
+                m.select = True
+        return {'FINISHED'}
+
+class SelectNetwork(bpy.types.Operator):
+    bl_idname = 'elfin.select_network'
+    bl_label = 'Select network (all connected modules)'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        if get_selection_len() > 0:
+            for o in walk_network(get_selected()):
+                o.select = True
+        return {'FINISHED'}
+
 class ListMirrors(bpy.types.Operator):
     bl_idname = 'elfin.list_mirrors'
     bl_label = 'List mirror links of one selected module'
