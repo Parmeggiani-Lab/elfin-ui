@@ -35,6 +35,7 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  * Select Network operator
 
 ### TODO: Must-Haves
+ * Add a network ID to quickly determine whether two modules are of the same network.
  * Define auto-design "work sites" by drawing path guides
  * Export to Elfin Core format
 
@@ -103,11 +104,8 @@ Currently implemented operators:
  * <b>Place Module</b>
   	* Adds a new module to the scene at origin.
     * Only available <b>when nothing is selected</b> in the scene
- * <b>Extrude N</b> 
- 	* Add a module to the N-Terminus of the selected module.
- 	* Only available when one or more modules are selected
- * <b>Extrude C</b>
- 	* Add a module to the C-Terminus of the selected module.
+ * <b>Extrude Module</b> 
+ 	* Add a module to the N- or C-Terminus of the selected module.
  	* Only available when one or more modules are selected
  * <b>Link by Mirror</b>
  	* Link multiple modules of the same prototype by mirror.
@@ -118,6 +116,8 @@ Currently implemented operators:
  * <b>List Mirrors</b>
  	* List mirror links of one selected module.
  	* Only available when <b>exactly one</b> module is selected.
+ * <b>Select Network</b>
+ 	* Selects all modules connected to the selected module(s).
 
 You don't have to type the full name of the module. For example, "ex n" will bring up the <b>Extrude N</b> operator.
 

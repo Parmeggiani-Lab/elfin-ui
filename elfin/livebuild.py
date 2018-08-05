@@ -13,8 +13,9 @@ class SelectMirrors(bpy.types.Operator):
 
     def execute(self, context):
         if get_selection_len() > 0:
-            for m in get_selected().elfin.mirrors:
-                m.select = True
+            for sm in get_selected(n=-1):
+                for m in sm.elfin.mirrors:
+                    m.select = True
         return {'FINISHED'}
 
 class SelectNetwork(bpy.types.Operator):
@@ -24,8 +25,13 @@ class SelectNetwork(bpy.types.Operator):
 
     def execute(self, context):
         if get_selection_len() > 0:
-            for o in walk_network(get_selected()):
-                o.select = True
+            # TODO:
+            #   This is currently doing repeated work if more than one module
+            # from the same network are selected. We might use network ID to
+            # make this generator only yield each object once.
+            for sm in get_selected(n=-1):
+                for o in walk_network(sm):
+                    o.select = True
         return {'FINISHED'}
 
 class ListMirrors(bpy.types.Operator):
