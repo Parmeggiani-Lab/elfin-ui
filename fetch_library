@@ -7,14 +7,14 @@ echo
 ADDON_DIR='elfin'
 RAW_URL='https://raw.githubusercontent.com/joy13975/elfin-library/master'
 
-DB_FILE=xdb.json
-LIB_TAR=library.tar.bz2
-
-curl "$RAW_URL/$DB_FILE" > "$ADDON_DIR/$DB_FILE"
-curl "$RAW_URL/$LIB_TAR" > "$LIB_TAR"
-tar xjf "$LIB_TAR" -C "$ADDON_DIR"
-rm $LIB_TAR
-
+files=(xdb.json library.blend)
+for file in "${files[@]}"
+do
+	bz2_file=${file}.tar.bz2
+	curl "$RAW_URL/$bz2_file" > "$bz2_file"
+	tar xjf "$bz2_file" -C "$ADDON_DIR"
+	rm -f "$bz2_file"
+done
 
 echo
 echo "Done fetching."
