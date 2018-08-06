@@ -1,5 +1,4 @@
-# Practical Tutorial for elfin-ui
-Content:
+# Tutotial Content
 1. [Installing](#installing)
 2. [Updating](#updating)
 3. [Warnings Before Use](#warnings-before-use)
