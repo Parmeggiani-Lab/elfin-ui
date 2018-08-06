@@ -32,12 +32,9 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then use the Select Mirror Links operator.
 
 ### TODO: Currently Working On:
- * Select Network operator
+ * Define auto-design "work sites" by drawing path guides
 
 ### TODO: Must-Haves
- * Add a network ID to quickly determine whether two modules are of the same network.
-    * This is in order to only yield each object once in walk_network()
- * Define auto-design "work sites" by drawing path guides
  * Export to Elfin Core format
 
 ### TODO: Nice-to-Haves
