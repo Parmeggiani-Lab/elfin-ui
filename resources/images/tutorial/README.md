@@ -14,7 +14,7 @@
 
 
 ```
-git clone git@github.com:joy13975/elfin-ui
+git clone --depth 1 git@github.com:joy13975/elfin-ui
 cd elfin-ui
 ./install
 ```

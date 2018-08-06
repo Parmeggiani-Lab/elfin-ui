@@ -1,4 +1,3 @@
-import re
 import colorsys
 import random
 import json
