@@ -1,4 +1,4 @@
-# Elfin UI
+# elfin-ui
 
 A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s frontend user interface for building large proteins using protein modules.
 

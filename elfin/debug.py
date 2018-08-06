@@ -22,7 +22,7 @@ class DebugPanel(bpy.types.Panel):
         col.operator('elfin.delete_faces', text='Delete faces (selection)')
         col.operator('elfin.load_all_obj_files', text='Load all obj files')
         col.operator('elfin.process_obj', text='Process obj file (selection)')
-        col.operator('elfin.process_all', text='Process all obj files')
+        col.operator('elfin.batch_process', text='Batch process all obj files')
         col.operator('elfin.place_module', text='Place a module into scene')
         col.operator('elfin.extrude_cterm', text='Extrude c-term')
         col.operator('elfin.extrude_nterm', text='Extrude n-term')

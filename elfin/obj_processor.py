@@ -23,7 +23,7 @@ class ProcessPanel(bpy.types.Panel):
         col.prop(context.scene.elfin, 'pp_src_dir', text='Source')
         col.prop(context.scene.elfin, 'pp_dst_dir', text='Destination')
         col.prop(context.scene.elfin, 'pp_decimate_ratio', text='Decimate Ratio')
-        col.operator('elfin.process_all', text='Process all')
+        col.operator('elfin.batch_process', text='Batch process & export')
 
 # Operators --------------------------------------
 
@@ -51,9 +51,9 @@ class LoadAllObjFiles(bpy.types.Operator):
         
         return {'FINISHED'}
 
-class ProcessAllOperator(bpy.types.Operator):
-    bl_idname = 'elfin.process_all'
-    bl_label = 'Process module obj files'
+class BatchProcess(bpy.types.Operator):
+    bl_idname = 'elfin.batch_process'
+    bl_label = 'Batch process all module .obj files and export'
 
     def execute(self, context):
         if len(context.scene.objects) != 0:
@@ -71,7 +71,7 @@ class ProcessAllOperator(bpy.types.Operator):
         
         return {'FINISHED'}
 
-class ProcessObjOperator(bpy.types.Operator):
+class ProcessObj(bpy.types.Operator):
     bl_idname = 'elfin.process_obj'
     bl_label = 'Process module object'
 
