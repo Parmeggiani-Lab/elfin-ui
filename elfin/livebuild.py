@@ -25,10 +25,6 @@ class SelectNetwork(bpy.types.Operator):
 
     def execute(self, context):
         if get_selection_len() > 0:
-            # TODO:
-            #   This is currently doing repeated work if more than one module
-            # from the same network are selected. We might use network ID to
-            # make this generator only yield each object once.
             for sm in get_selected(n=-1):
                 for o in walk_network(sm):
                     o.select = True
