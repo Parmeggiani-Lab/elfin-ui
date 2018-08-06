@@ -38,13 +38,13 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  * Export to Elfin Core format
 
 ### TODO: Nice-to-Haves
- * Pull-Join: join two module networks by pulling first selected network to the second one.
+ * Pull-Join Operator: join two module networks by pulling first selected network to the second one.
 	 1. Check compatibility
 	 2. Then do a frame re-shift for all objs in first network based on the selected module
 	 * Allow pull-join having one side being symmetric core?
  * Allow user to confirm deletion when collision is detected. Collision detection using single module 3D models are not very accurate (currently each module is shruken to 85% before checking).
 
-### TODO: Maybe?
+### TODO: Feasibility N/A
  * Incremental selection
  	 * Don't think Blender has API for this yet but we could add an operator.
  * Select previous module upon module delete (possible ?)

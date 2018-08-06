@@ -57,6 +57,8 @@ Any design created as of now may or may not be exportable to elfin's internal da
 
 We could possibly make future changes backword compatible by implementing a remove-all, re-add all function but right now this does not exist yet so be warned nonetheless.
 
+There does not seem to be a clean way to detect whether a file was created by an older version of elfin-ui, and whether or not the older version is incompatible.
+
 # Usage
 All functionalities of the Elfin UI addon are accessed via what Blender calls "operators".
 
