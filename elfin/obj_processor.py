@@ -79,8 +79,11 @@ class ProcessObjOperator(bpy.types.Operator):
         origin_vec = mathutils.Vector([0, 0, 0])
         identity_euler = mathutils.Matrix.Identity(3).to_euler()
         for obj in context.selected_objects:
-            # Shrink to scale
+            # Shrink to scale and lock scaling
             obj.scale = (.1, .1, .1)
+            for i in range(3):
+                obj.lock_scale[i] = True
+
             # Move object to centre and zero rotation
             obj.location = origin_vec
             obj.rotation_euler = identity_euler
