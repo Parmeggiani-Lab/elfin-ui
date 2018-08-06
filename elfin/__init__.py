@@ -63,7 +63,7 @@ from .elfin_properties import ElfinProperties
 class ElfinSceneProperties(ElfinProperties):
     """Elfin's Scene property catcher class"""
 
-    class ElfinState:
+    class ElfinState(metaclass=livebuild_helper.Singleton):
         xdb = None
         library = None
 
