@@ -164,12 +164,12 @@ class ExtrudeModule(bpy.types.Operator):
         available_termini = []
 
         # Save state into singleton
-        ES = ExtrudeState()
-        ES.update()
+        LS = LivebuildState()
+        LS.update_extrudables()
 
-        if len(ES.n_extrudables) > 0:
+        if len(LS.n_extrudables) > 0:
             available_termini.append(('N', 'N', ''))
-        if len(ES.c_extrudables) > 0:
+        if len(LS.c_extrudables) > 0:
             available_termini.append(('C', 'C', ''))
 
         return available_termini if len(available_termini) > 0 else [('-NA-', '-NA-', '')]
@@ -203,7 +203,7 @@ class ExtrudeNTerm(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     nterm_ext_module_selector = bpy.props.EnumProperty(
-        items=lambda self, context: ExtrudeState().n_extrudables)
+        items=lambda self, context: LivebuildState().n_extrudables)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])
@@ -234,7 +234,7 @@ class ExtrudeCTerm(bpy.types.Operator):
         return get_extrusion_prototype_list('c')
 
     cterm_ext_module_selector = bpy.props.EnumProperty(
-        items=lambda self, context: ExtrudeState().c_extrudables)
+        items=lambda self, context: LivebuildState().c_extrudables)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])
@@ -260,9 +260,7 @@ class LoadXdb(bpy.types.Operator):
     bl_label = '(Re)load xdb'
 
     def execute(self, context):
-        xdb = get_xdb()
-        xdb.clear()
-        xdb.update(load_xdb())
+        LivebuildState().load_xdb()
         return {'FINISHED'}
 
 class LoadModuleLibrary(bpy.types.Operator):
@@ -270,8 +268,7 @@ class LoadModuleLibrary(bpy.types.Operator):
     bl_label = '(Re)load module library'
 
     def execute(self, context):
-        context.scene.elfin.library.clear()
-        context.scene.elfin.library.extend(load_module_library())
+        LivebuildState().load_library()
         return {'FINISHED'}
 
 class MessagePrompt(bpy.types.Operator):
@@ -378,14 +375,12 @@ class PlaceModule(bpy.types.Operator):
     bl_property = 'selected_module'
     bl_options = {'REGISTER', 'UNDO'}
 
-    def modlib_enum_cb(self, context):
-        res = [color_change_placeholder_enum_tuple]
-        for mod_name in context.scene.elfin.library:
-            if '-' not in mod_name: # This is a check for "not double module"
-                res.append(module_enum_tuple(mod_name))
-        return res
+    def placeable_modules(self, context):
+        LS = LivebuildState()
+        LS.update_placeables()
+        return LS.placeables
 
-    selected_module = bpy.props.EnumProperty(items=modlib_enum_cb)
+    selected_module = bpy.props.EnumProperty(items=placeable_modules)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])
@@ -410,3 +405,13 @@ class PlaceModule(bpy.types.Operator):
         context.window_manager.invoke_search_popup(self)
 
         return {'FINISHED'}
+
+# class INFO_MT_mesh_elfin_add(bpy.types.Menu):
+#     bl_idname = 'INFO_MT_mesh_elfin_add'
+#     bl_label = 'elfin'
+#     def draw(self, context):
+#         layout = self.layout
+#         layout.operator(bpy.ops.elfin.place_module, text=)
+#     for name in namelist:
+#         strlist.append("        layout.operator(\"mesh." + str.lower(name) + "\", text=\"" + name + "\")\n")
+#     strlist.append("\n")

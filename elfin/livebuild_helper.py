@@ -42,14 +42,35 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-class ExtrudeState(metaclass=Singleton):
+class LivebuildState(metaclass=Singleton):
     def __init__(self):
         self.n_extrudables = [empty_list_placeholder_enum_tuple]
         self.c_extrudables = [empty_list_placeholder_enum_tuple]
+        self.placeables = [empty_list_placeholder_enum_tuple]
+        self.load_xdb()
+        self.load_library()
 
-    def update(self):
+    def update_extrudables(self):
         self.n_extrudables = get_extrusion_prototype_list('n')
         self.c_extrudables = get_extrusion_prototype_list('c')
+
+    def update_placeables(self):
+        self.placeables = get_placeable_module_tuples()
+
+    def load_xdb(self):
+        with open(addon_paths.xdb_path, 'r') as file:
+            self.xdb = collections.OrderedDict(json.load(file))
+        print('{}: Xdb loaded'.format(__class__.__name__))
+
+    def load_library(self):
+        with bpy.types.BlendDataLibraries.load(addon_paths.modlib_path) as (data_from, data_to):
+            self.library = data_from.objects
+        print('{}: Module library loaded'.format(__class__.__name__))
+
+    def reset(self):
+        self.load_xdb()
+        self.load_library()
+        self.update_placeables()
 
 random.seed()
 class ColorWheel(metaclass=Singleton):
@@ -109,7 +130,7 @@ def count_obj():
     return len(bpy.data.objects)
 
 def get_xdb():
-    return bpy.context.scene.elfin.xdb
+    return LivebuildState().xdb
 
 def get_selection_len():
     return len(bpy.context.selected_objects)
@@ -130,6 +151,21 @@ def get_selected(n=1):
         return None
 
 # Helpers ----------------------------------------
+
+def get_placeable_module_tuples():
+    res = [color_change_placeholder_enum_tuple] + \
+        [module_enum_tuple(mod_name) for mod_name in get_all_module_names()]
+    return res if len(res) > 1 else [empty_list_placeholder_enum_tuple]
+
+def get_all_module_names():
+    xdb = LivebuildState().xdb
+    groups = (xdb['single_data'], xdb['double_data'], xdb['hub_data'])
+    xdb_mod_names = {k for group in groups for k in group.keys()}
+    lib = LivebuildState().library
+    return [mod_name for mod_name in lib if mod_name in xdb_mod_names]
+
+def module_menu(self, context): 
+    self.layout.menu("INFO_MT_mesh_elfin_add", icon="PLUGIN")
 
 def walk_network(module_obj, entering_chain=None, entering_side=None):
     """A generator that traverses the module network depth-first and yields each object on the
@@ -584,7 +620,7 @@ def transform_object(
 def get_compatible_hub_components(hub_name, which_term, single_name):
     assert which_term in {'n', 'c'}
 
-    comp_data = bpy.context.scene.elfin.xdb \
+    comp_data = LivebuildState().xdb \
                 ['hub_data'][hub_name]['component_data']
 
     component_names = []
@@ -627,18 +663,6 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
 
     return (mod_sel, mod_sel, '')
 
-def load_xdb():
-    with open(addon_paths.xdb_path, 'r') as file:
-        xdb = collections.OrderedDict(json.load(file))
-    print('Xdb loaded')
-    return xdb
-
-def load_module_library():
-    with bpy.types.BlendDataLibraries.load(addon_paths.modlib_path) as (data_from, data_to):
-        lib = data_from.objects
-    print('Module library loaded')
-    return lib
-
 def link_module(module_name):
     """Links a module module from library.blend. Supports all module types."""
     try:
@@ -648,7 +672,7 @@ def link_module(module_name):
         linked_module = bpy.context.scene.objects.link(data_to.objects[0]).object
         linked_module.elfin.module_name = module_name
 
-        xdb = bpy.context.scene.elfin.xdb
+        xdb = LivebuildState().xdb
         single_xdata = xdb['single_data'].get(module_name, None)
         if single_xdata:
             linked_module.elfin.module_type = 'single'

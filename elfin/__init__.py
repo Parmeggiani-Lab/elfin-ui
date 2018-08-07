@@ -63,31 +63,10 @@ from bpy.app.handlers import persistent
 
 from .elfin_properties import ElfinProperties
 
-
-# Elfin Global State -----------------------------
-
-# Master PropertyGroup ---------------------------
+# Master PropertyGroups --------------------------
 
 class ElfinSceneProperties(ElfinProperties):
     """Elfin's Scene property catcher class"""
-
-    class ElfinState(metaclass=livebuild_helper.Singleton):
-        xdb = None
-        library = None
-
-    @property
-    def xdb(self):
-        if not self.ElfinState.xdb:
-            self.ElfinState.xdb = \
-                livebuild_helper.load_xdb()
-        return self.ElfinState.xdb
-
-    @property
-    def library(self):
-        if not self.ElfinState.library:
-            self.ElfinState.library = \
-                livebuild_helper.load_module_library()
-        return self.ElfinState.library
 
     pp_src_dir = bpy.props.StringProperty(
         subtype='DIR_PATH', 
@@ -100,12 +79,11 @@ class ElfinSceneProperties(ElfinProperties):
 
     def reset(self):
         print('{} reset'.format(self.__class__.__name__))
-        self['_xdb'] = livebuild_helper.load_xdb()
-        self['_library'] = livebuild_helper.load_module_library()
         self.property_unset('pp_src_dir')
         self.property_unset('pp_dst_dir')
         self.property_unset('pp_decimate_ratio')
         self.property_unset('disable_collision_check')
+        livebuild_helper.LivebuldState().reset()
 
 class LinkageProperty(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
@@ -324,6 +302,8 @@ def register():
     remove_watcher(None)
     add_watcher(None)
 
+    bpy.types.INFO_MT_mesh_add.append(livebuild_helper.module_menu)
+
     print('--------------------- Elfin Front Addon registered')
     
 def unregister():
@@ -345,6 +325,8 @@ def unregister():
         remove_watcher)
     remove_handler(bpy.app.handlers.load_post, \
         add_watcher)
+
+    bpy.types.INFO_MT_mesh_add.remove(livebuild_helper.module_menu)
                 
     print('------------------- Elfin Front Addon unregistered')
 
