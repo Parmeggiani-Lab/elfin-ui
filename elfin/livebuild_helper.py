@@ -31,6 +31,11 @@ empty_list_placeholder = '-List Empty-'
 empty_list_placeholder_enum_tuple = \
     (empty_list_placeholder, empty_list_placeholder, '')
 
+nop_enum_tuples = {
+    color_change_placeholder_enum_tuple,
+    empty_list_placeholder_enum_tuple
+}
+
 # Classes ----------------------------------------
 
 # Singleton Metaclass
@@ -44,27 +49,40 @@ class Singleton(type):
 
 class LivebuildState(metaclass=Singleton):
     def __init__(self):
+        print("!!! Created: ", id(self))
         self.n_extrudables = [empty_list_placeholder_enum_tuple]
         self.c_extrudables = [empty_list_placeholder_enum_tuple]
         self.placeables = [empty_list_placeholder_enum_tuple]
-        self.load_xdb()
-        self.load_library()
+        self.load_xdb(update_placeables_too=False)
+        self.load_library(update_placeables_too=False)
+        self.update_placeables()
 
     def update_extrudables(self):
         self.n_extrudables = get_extrusion_prototype_list('n')
         self.c_extrudables = get_extrusion_prototype_list('c')
 
     def update_placeables(self):
-        self.placeables = get_placeable_module_tuples()
+        res = [color_change_placeholder_enum_tuple] + \
+            [module_enum_tuple(mod_name) for mod_name in self.get_all_module_names()]
+        self.placeables = res if len(res) > 1 else [empty_list_placeholder_enum_tuple]
 
-    def load_xdb(self):
+    def get_all_module_names(self):
+        groups = (self.xdb['single_data'], self.xdb['double_data'], self.xdb['hub_data'])
+        xdb_mod_names = {k for group in groups for k in group.keys()}
+        return [mod_name for mod_name in self.library if mod_name in xdb_mod_names]
+
+    def load_xdb(self, update_placeables_too=True):
         with open(addon_paths.xdb_path, 'r') as file:
             self.xdb = collections.OrderedDict(json.load(file))
+        if update_placeables_too:
+            self.update_placeables()
         print('{}: Xdb loaded'.format(__class__.__name__))
 
-    def load_library(self):
+    def load_library(self, update_placeables_too=True):
         with bpy.types.BlendDataLibraries.load(addon_paths.modlib_path) as (data_from, data_to):
             self.library = data_from.objects
+        if update_placeables_too:
+            self.update_placeables()
         print('{}: Module library loaded'.format(__class__.__name__))
 
     def reset(self):
@@ -151,18 +169,6 @@ def get_selected(n=1):
         return None
 
 # Helpers ----------------------------------------
-
-def get_placeable_module_tuples():
-    res = [color_change_placeholder_enum_tuple] + \
-        [module_enum_tuple(mod_name) for mod_name in get_all_module_names()]
-    return res if len(res) > 1 else [empty_list_placeholder_enum_tuple]
-
-def get_all_module_names():
-    xdb = LivebuildState().xdb
-    groups = (xdb['single_data'], xdb['double_data'], xdb['hub_data'])
-    xdb_mod_names = {k for group in groups for k in group.keys()}
-    lib = LivebuildState().library
-    return [mod_name for mod_name in lib if mod_name in xdb_mod_names]
 
 def module_menu(self, context): 
     self.layout.menu("INFO_MT_mesh_elfin_add", icon="PLUGIN")
@@ -359,9 +365,7 @@ def extrude_terminus(which_term, selector, sel_mod, color):
 def execute_extrusion(which_term, selector, color):
     """Executes extrusion respecting mirror links and filers mirror selections
     """
-    if selector == color_change_placeholder or \
-        selector == empty_list_placeholder:
-        return
+    if selector in nop_enum_tuples: return
 
     filter_mirror_selection()
     for sel_mod in get_selected(-1): 

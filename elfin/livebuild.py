@@ -372,26 +372,21 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 class PlaceModule(bpy.types.Operator):
     bl_idname = 'elfin.place_module'
     bl_label = 'Place a module'
-    bl_property = 'selected_module'
+    bl_property = 'module_to_place'
     bl_options = {'REGISTER', 'UNDO'}
 
-    def placeable_modules(self, context):
-        LS = LivebuildState()
-        LS.update_placeables()
-        return LS.placeables
-
-    selected_module = bpy.props.EnumProperty(items=placeable_modules)
+    module_to_place = bpy.props.EnumProperty(items=LivebuildState().placeables)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])
 
     def execute(self, context):
-        if self.selected_module == color_change_placeholder:
+        if self.module_to_place in nop_enum_tuples:
             return {'FINISHED'}
 
-        print('Placing module {}'.format(self.selected_module))
+        print('Placing module {}'.format(self.module_to_place))
         
-        sel_mod_name = self.selected_module.split('.')[1]
+        sel_mod_name = self.module_to_place.split('.')[1]
         lmod = link_module(sel_mod_name)
 
         give_module_new_color(lmod, self.color)
@@ -406,12 +401,12 @@ class PlaceModule(bpy.types.Operator):
 
         return {'FINISHED'}
 
-# class INFO_MT_mesh_elfin_add(bpy.types.Menu):
-#     bl_idname = 'INFO_MT_mesh_elfin_add'
-#     bl_label = 'elfin'
-#     def draw(self, context):
-#         layout = self.layout
-#         layout.operator(bpy.ops.elfin.place_module, text=)
-#     for name in namelist:
-#         strlist.append("        layout.operator(\"mesh." + str.lower(name) + "\", text=\"" + name + "\")\n")
-#     strlist.append("\n")
+class INFO_MT_mesh_elfin_add(bpy.types.Menu):
+    bl_idname = 'INFO_MT_mesh_elfin_add'
+    bl_label = 'elfin'
+    def draw(self, context):
+        layout = self.layout
+
+        op = bpy.ops.elfin.place_module
+        for mod_name in LivebuildState().placeables:
+            layout.operator(lambda self, context: op(module_to_place=mod_name), text=mod_name)
