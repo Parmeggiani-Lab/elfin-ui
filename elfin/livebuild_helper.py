@@ -67,7 +67,7 @@ class LivebuildState(metaclass=Singleton):
         self.placeables = res if len(res) > 1 else [empty_list_placeholder_enum_tuple]
 
     def get_all_module_names(self):
-        groups = (self.xdb['single_data'], self.xdb['double_data'], self.xdb['hub_data'])
+        groups = (self.xdb['single_data'], self.xdb['hub_data'])
         xdb_mod_names = {k for group in groups for k in group.keys()}
         return [mod_name for mod_name in self.library if mod_name in xdb_mod_names]
 
