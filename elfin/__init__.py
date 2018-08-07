@@ -83,7 +83,7 @@ class ElfinSceneProperties(ElfinProperties):
         self.property_unset('pp_dst_dir')
         self.property_unset('pp_decimate_ratio')
         self.property_unset('disable_collision_check')
-        livebuild_helper.LivebuldState().reset()
+        livebuild_helper.LivebuildState().reset()
 
 class LinkageProperty(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
