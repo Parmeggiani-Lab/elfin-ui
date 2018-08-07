@@ -375,12 +375,14 @@ class PlaceModule(bpy.types.Operator):
     bl_property = 'module_to_place'
     bl_options = {'REGISTER', 'UNDO'}
 
+    ask_prototype = bpy.props.BoolProperty(default=True, options={'HIDDEN'})
     module_to_place = bpy.props.EnumProperty(items=LivebuildState().placeables)
     color = bpy.props.FloatVectorProperty(name="Display Color", 
                                         subtype='COLOR', 
                                         default=[0,0,0])
 
     def execute(self, context):
+        print('Execute: ', self.module_to_place)
         if self.module_to_place in nop_enum_tuples:
             return {'FINISHED'}
 
@@ -393,20 +395,27 @@ class PlaceModule(bpy.types.Operator):
         lmod.hide = False # By default the obj is hidden
         lmod.select = True
 
+        self.ask_prototype = True
         return {'FINISHED'}
 
     def invoke(self, context, event):
         self.color = ColorWheel().next_color()
-        context.window_manager.invoke_search_popup(self)
 
-        return {'FINISHED'}
+        if self.ask_prototype:
+            return context.window_manager.invoke_search_popup(self)
+        else:
+            return self.execute(context)
 
 class INFO_MT_mesh_elfin_add(bpy.types.Menu):
-    bl_idname = 'INFO_MT_mesh_elfin_add'
+    bl_idname = 'INFO_MT_elfin_add'
     bl_label = 'elfin'
     def draw(self, context):
         layout = self.layout
 
-        op = bpy.ops.elfin.place_module
-        for mod_name in LivebuildState().placeables:
-            layout.operator(lambda self, context: op(module_to_place=mod_name), text=mod_name)
+        for mod_tuple in LivebuildState().placeables:
+            if mod_tuple in nop_enum_tuples:
+                continue
+            mod_name = mod_tuple[0]
+            props = layout.operator('elfin.place_module', text=mod_name)
+            props.module_to_place = mod_name
+            props.ask_prototype = False

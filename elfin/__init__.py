@@ -302,7 +302,7 @@ def register():
     remove_watcher(None)
     add_watcher(None)
 
-    bpy.types.INFO_MT_mesh_add.append(livebuild_helper.module_menu)
+    bpy.types.INFO_MT_add.append(livebuild_helper.module_menu)
 
     print('--------------------- Elfin Front Addon registered')
     
@@ -326,7 +326,7 @@ def unregister():
     remove_handler(bpy.app.handlers.load_post, \
         add_watcher)
 
-    bpy.types.INFO_MT_mesh_add.remove(livebuild_helper.module_menu)
+    bpy.types.INFO_MT_add.remove(livebuild_helper.module_menu)
                 
     print('------------------- Elfin Front Addon unregistered')
 

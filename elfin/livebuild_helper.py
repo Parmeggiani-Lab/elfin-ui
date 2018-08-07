@@ -171,7 +171,7 @@ def get_selected(n=1):
 # Helpers ----------------------------------------
 
 def module_menu(self, context): 
-    self.layout.menu("INFO_MT_mesh_elfin_add", icon="PLUGIN")
+    self.layout.menu("INFO_MT_elfin_add", icon="PLUGIN")
 
 def walk_network(module_obj, entering_chain=None, entering_side=None):
     """A generator that traverses the module network depth-first and yields each object on the
