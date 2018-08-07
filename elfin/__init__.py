@@ -19,7 +19,15 @@
 #           * Use links so none of the models can be edited
 #
 
-bl_info = {'name': 'Elfin UI', 'category': 'Elfin'}
+bl_info = {
+    'name': 'Elfin UI', 
+    'category': 'Elfin',
+    'author': 'Joy Yeh',
+    'version': (0, 1, 0),
+    'blender': (2, 79, 0),
+    'description': 'Addon for assembling proteins',
+    'wiki_url': 'https://github.com/joy13975/elfin-ui'
+}
 
 import sys
 import importlib
