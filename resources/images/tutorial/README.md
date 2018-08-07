@@ -60,13 +60,15 @@ We could possibly make future changes backword compatible by implementing a remo
 There does not seem to be a clean way to detect whether a file was created by an older version of elfin-ui, and whether or not the older version is incompatible.
 
 # Usage
-All functionalities of the Elfin UI addon are accessed via what Blender calls "operators".
+The design paradigm of elfin-ui revolves around module assembly. This means the user is expected to creat modules, extrude from modules, move/rotate networks around, and draw path guides (upcoming feature which calls into elfin-solver for automatic segment creation).
 
-Effectively, when your mouse is within the viewport, you can hit <kbd>space</kbd> to bring up a search menu that lets you type in the name of the operator.
+All functionalities of the Elfin UI addon are accessed via what Blender calls "operators". Basically, when your mouse is within the viewport you can hit <kbd>space</kbd> to bring up a search menu that lets you type in the name of the operator.
 
 The following are some basic examples of creating and manipulating modules.
 
 ## Placement
+
+There are two ways to spawn a single/hub module into the scene: through the `Place Module` operator or through Blender's primitives menu (<kbd>shift</kbd>+<kbd>a</kbd>). The former is more flexible because you can search the prototype list by typing the name instead of scrolling around. Below is a demonstration.
 
 Move the cursor into Blender's viewport and hit <kbd>space</kbd>. Type in `place` and one item should read `Elfin: Place a module`:
 
@@ -75,6 +77,8 @@ Move the cursor into Blender's viewport and hit <kbd>space</kbd>. Type in `place
 </p>
 
 Hit <kbd>enter</kbd> and a prototype list should be displayed. You can select the module you want to place, or select `-Change Color-` in order to set the color before loading in the module's model. The selected module should get placed at origin in its default orientation.
+
+<b>Note: </b> double modules are deliberately disabled, because they do not serve a purpose in elfin-ui's design paradigm.
 
 <b>Optional: color setting.</b> Now that the Place operator is activated, you can move your cursor away and set the color for the new module before loading the actual model by using the Operator Properties panel at the bottom-left corner. You don't have to do this because elfin-ui sets a new color randomly for each new module. You <em>can</em> still change the color after loading the model, but if you do that through the Operator Properties panel it will cause lag as Blender removes the model it had loaded and re-loads a new one with a different color. If you've already loaded the model and want to change the color, go into the lower half of the right-hand-side panel, find the `Material` tab (with a copper-colored ball icon) and you can change it there without causing lag.
 
