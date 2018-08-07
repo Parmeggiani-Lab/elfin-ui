@@ -6,6 +6,28 @@ from .livebuild_helper import *
 
 # Operators --------------------------------------
 
+# Path Guide notes:
+
+
+"""
+path_guide_test.blend
+
+Initially: only one PG node called A
+
+When adding a new PG nodea "bone" and another node B is brought in.
+Imagine: B--- A
+
+1. activate node B, select bone, then
+bpy.ops.object.constraint_add_with_targets(type='COPY_LOCATION')
+bpy.ops.object.constraint_add_with_targets(type='COPY_ROTATION')
+
+2. activate bone,, select node B, then
+bpy.ops.object.constraint_add_with_targets(type='STRETCH_TO')
+
+3. in case of attaching to a module, make sure location and rotation are copied
+
+"""
+
 class SelectMirrors(bpy.types.Operator):
     bl_idname = 'elfin.select_mirrors'
     bl_label = 'Select mirrors (all mirror-linked modules)'
