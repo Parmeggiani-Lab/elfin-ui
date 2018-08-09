@@ -111,7 +111,7 @@ class LinkageProperty(bpy.types.PropertyGroup):
 
 class ElfinObjectProperties(ElfinProperties):
     """Elfin's Object property catcher class"""
-    is_module = bpy.props.BoolProperty(default=False)
+    obj_type = bpy.props.IntProperty(default=livebuild_helper.ElfinObjType.NONE.value)
     module_name = bpy.props.StringProperty()
     module_type = bpy.props.StringProperty()
     obj_ptr = bpy.props.PointerProperty(type=bpy.types.Object)
@@ -121,11 +121,14 @@ class ElfinObjectProperties(ElfinProperties):
     n_linkage = \
         bpy.props.CollectionProperty(type=LinkageProperty)
 
+    def is_module(self):
+        return self.obj_type == livebuild_helper.ElfinObjType.NONE.value
+
     def destroy(self):
         """Delete an object using default delete operator while preserving
         selection before deletion.
         """
-        if not self.obj_ptr or not self.is_module: return
+        if not self.obj_ptr or not self.is_module(): return
 
         obj = self.obj_ptr
         obj_name = obj.name

@@ -6,27 +6,59 @@ from .livebuild_helper import *
 
 # Operators --------------------------------------
 
-# Path Guide notes:
+class ExtrudeJoint(bpy.types.Operator):
+    bl_idname = 'elfin.extrude_joint'
+    bl_label = 'Extrude a path guide joint'
+    bl_options = {'REGISTER', 'UNDO'}
 
+    def execute(self, context):
+        for joint_a in get_selected(-1):
+            loc = [0, 0, 0]
+            if get_selection_len() > 0:
+                loc = get_selected().location
+            
+            bridge = link_pguide(pg_type='bridge')
+            bridge.location = loc[:]
+            
+            joint_b = link_pguide(pg_type='joint')
+            joint_b.location = loc[:] 
+            joint_b.location[1] += 5.0 # This is the y-dimension of bridge
 
-"""
-path_guide_test.blend
+            loc_cons = bridge.constraints.new(type='COPY_LOCATION')
+            loc_cons.target = joint_a
+            rot_cons = bridge.constraints.new(type='COPY_ROTATION')
+            rot_cons.target = joint_a
 
-Initially: only one PG node called A
+            stretch_cons = bridge.constraints.new(type='STRETCH_TO')
+            stretch_cons.target = joint_b
+            stretch_cons.bulge = 0.0
 
-When adding a new PG nodea "bone" and another node B is brought in.
-Imagine: B--- A
+        return {'FINISHED'}
 
-1. activate node B, select bone, then
-bpy.ops.object.constraint_add_with_targets(type='COPY_LOCATION')
-bpy.ops.object.constraint_add_with_targets(type='COPY_ROTATION')
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() > 0:
+            for s in get_selected(-1):
+                if s.elfin.module_type != 'joint':
+                    return False
+            else:
+                return True
+        return False
 
-2. activate bone,, select node B, then
-bpy.ops.object.constraint_add_with_targets(type='STRETCH_TO')
+class AddJoint(bpy.types.Operator):
+    bl_idname = 'elfin.add_joint'
+    bl_label = 'Add a path guide joint'
+    bl_options = {'REGISTER', 'UNDO'}
 
-3. in case of attaching to a module, make sure location and rotation are copied
+    def execute(self, context):
+        loc = [0, 0, 0]
+        if get_selection_len() > 0:
+            loc = get_selected().location
+        
+        joint = link_pguide(pg_type='joint')
+        joint.location = loc
 
-"""
+        return {'FINISHED'}
 
 class SelectMirrors(bpy.types.Operator):
     bl_idname = 'elfin.select_mirrors'
@@ -71,7 +103,7 @@ class ListMirrors(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return get_selection_len() == 1 and  \
-            get_selected().elfin.is_module
+            get_selected().elfin.is_module()
 
 class UnlinkMirrors(bpy.types.Operator):
     bl_idname = 'elfin.unlink_mirrors'
@@ -123,7 +155,7 @@ class LinkByMirror(bpy.types.Operator):
         if selection:
             mod_name = selection[0].elfin.module_name
             for o in selection:
-                if not o.elfin.is_module or o.elfin.module_name != mod_name:
+                if not o.elfin.is_module() or o.elfin.module_name != mod_name:
                     return False
             return True
 
@@ -378,7 +410,7 @@ class CheckCollisionAndDelete(bpy.types.Operator):
         except KeyError:
             # No valid object_name specified - use selection
             for ob in get_selected(-1):
-                if ob.elfin.is_module:
+                if ob.elfin.is_module():
                     found_overlap |= delete_if_overlap(ob)
                 else:
                     print('No overlap: {}'.format(ob.name))

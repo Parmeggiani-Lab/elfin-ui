@@ -3,6 +3,7 @@ import random
 import json
 import collections
 import functools
+import enum
 
 import bpy
 import bmesh
@@ -36,6 +37,8 @@ nop_enum_tuples = {
     empty_list_placeholder_enum_tuple
 }
 
+ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE PGUIDE')
+
 # Classes ----------------------------------------
 
 # Singleton Metaclass
@@ -49,12 +52,12 @@ class Singleton(type):
 
 class LivebuildState(metaclass=Singleton):
     def __init__(self):
-        print("!!! Created: ", id(self))
         self.n_extrudables = [empty_list_placeholder_enum_tuple]
         self.c_extrudables = [empty_list_placeholder_enum_tuple]
         self.placeables = [empty_list_placeholder_enum_tuple]
         self.load_xdb(update_placeables_too=False)
         self.load_library(update_placeables_too=False)
+        self.load_path_guide()
         self.update_placeables()
 
     def update_extrudables(self):
@@ -85,9 +88,15 @@ class LivebuildState(metaclass=Singleton):
             self.update_placeables()
         print('{}: Module library loaded'.format(__class__.__name__))
 
+    def load_path_guide(self):
+        with bpy.types.BlendDataLibraries.load(addon_paths.pguide_path) as (data_from, data_to):
+            self.pguide = data_from.objects
+        print('{}: Path guide library loaded'.format(__class__.__name__))
+
     def reset(self):
         self.load_xdb()
         self.load_library()
+        self.load_path_guide()
         self.update_placeables()
 
 random.seed()
@@ -169,6 +178,25 @@ def get_selected(n=1):
         return None
 
 # Helpers ----------------------------------------
+
+def link_pguide(pg_type):
+    """Links a joint or bridge object from pguide.blend."""
+    pguide = None
+    pg_type = pg_type.lower()
+    assert pg_type in {'joint', 'bridge'}
+    try:
+        with bpy.data.libraries.load(addon_paths.pguide_path) as (data_from, data_to):
+            data_to.objects = [pg_type]
+
+        pguide = bpy.context.scene.objects.link(data_to.objects[0]).object
+        pguide.elfin.obj_type = ElfinObjType.PGUIDE.value
+        pguide.elfin.module_type = pg_type
+        pguide.elfin.obj_ptr = pguide
+
+        return pguide
+    except Exception as e:
+        if pguide: pguide.elfin.destroy()
+        raise e
 
 def module_menu(self, context): 
     self.layout.menu("INFO_MT_elfin_add", icon="PLUGIN")
@@ -510,7 +538,7 @@ def suitable_for_extrusion(context):
     else:
         first_mod_name = selection[0].elfin.module_name
         for o in selection:
-            if not o.elfin.is_module or o.elfin.module_name != first_mod_name:
+            if not o.elfin.is_module() or o.elfin.module_name != first_mod_name:
                 return False
         return True
 
@@ -520,9 +548,9 @@ def give_module_new_color(mod, new_color=None):
     mod.data.materials.append(mat)
     mod.active_material = mat
 
-def delete_if_overlap(mod_obj, obj_list=None):
+def delete_if_overlap(obj, obj_list=None):
     """
-    Delete a mod_obj if it overlaps with any object in obj_list.
+    Delete obj if it is a module and it overlaps with any object in obj_list.
 
     This function is conditioned on the disable_collision_check toggle.
     """
@@ -531,8 +559,8 @@ def delete_if_overlap(mod_obj, obj_list=None):
     # transform the object.
     if not bpy.context.scene.elfin.disable_collision_check:
         bpy.context.scene.update()
-        if check_module_overlap(mod_obj, obj_list=obj_list):
-            mod_obj.elfin.destroy()
+        if obj.elfin.is_module() and check_module_overlap(obj, obj_list=obj_list):
+            obj.elfin.destroy()
             return True
     return False
 
@@ -668,7 +696,8 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
     return (mod_sel, mod_sel, '')
 
 def link_module(module_name):
-    """Links a module module from library.blend. Supports all module types."""
+    """Links a module object from library.blend. Supports all module types."""
+    linked_module = None
     try:
         with bpy.data.libraries.load(addon_paths.modlib_path) as (data_from, data_to):
             data_to.objects = [module_name]
@@ -695,7 +724,7 @@ def link_module(module_name):
                 else:
                     raise ValueError('Module name not found in xdb: ', mod_name)
 
-        linked_module.elfin.is_module = True
+        linked_module.elfin.obj_type = ElfinObjType.MODULE
         linked_module.elfin.obj_ptr = linked_module
 
         return linked_module
