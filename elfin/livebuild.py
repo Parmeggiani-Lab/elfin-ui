@@ -456,9 +456,11 @@ class PlaceModule(bpy.types.Operator):
         self.color = ColorWheel().next_color()
 
         if self.ask_prototype:
-            return context.window_manager.invoke_search_popup(self)
+            context.window_manager.invoke_search_popup(self)
         else:
             return self.execute(context)
+
+        return {'FINISHED'}
 
 class INFO_MT_mesh_elfin_add(bpy.types.Menu):
     bl_idname = 'INFO_MT_elfin_add'

@@ -122,7 +122,7 @@ class ElfinObjectProperties(ElfinProperties):
         bpy.props.CollectionProperty(type=LinkageProperty)
 
     def is_module(self):
-        return self.obj_type == livebuild_helper.ElfinObjType.NONE.value
+        return self.obj_type == livebuild_helper.ElfinObjType.MODULE.value
 
     def destroy(self):
         """Delete an object using default delete operator while preserving

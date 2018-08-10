@@ -724,7 +724,7 @@ def link_module(module_name):
                 else:
                     raise ValueError('Module name not found in xdb: ', mod_name)
 
-        linked_module.elfin.obj_type = ElfinObjType.MODULE
+        linked_module.elfin.obj_type = ElfinObjType.MODULE.value
         linked_module.elfin.obj_ptr = linked_module
 
         return linked_module
