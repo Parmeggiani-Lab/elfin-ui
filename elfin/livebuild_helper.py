@@ -32,9 +32,9 @@ empty_list_placeholder = '-List Empty-'
 empty_list_placeholder_enum_tuple = \
     (empty_list_placeholder, empty_list_placeholder, '')
 
-nop_enum_tuples = {
-    color_change_placeholder_enum_tuple,
-    empty_list_placeholder_enum_tuple
+nop_enum_selectors = {
+    color_change_placeholder,
+    empty_list_placeholder
 }
 
 ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE PGUIDE')
@@ -393,7 +393,7 @@ def extrude_terminus(which_term, selector, sel_mod, color):
 def execute_extrusion(which_term, selector, color):
     """Executes extrusion respecting mirror links and filers mirror selections
     """
-    if selector in nop_enum_tuples: return
+    if selector in nop_enum_selectors: return
 
     filter_mirror_selection()
     for sel_mod in get_selected(-1): 

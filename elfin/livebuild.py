@@ -232,11 +232,9 @@ class ExtrudeModule(bpy.types.Operator):
 
     def execute(self, context):
         if self.terminus_selector.lower() == 'n':
-            return bpy.ops.elfin.extrude_nterm(
-                'INVOKE_DEFAULT')
+            return bpy.ops.elfin.extrude_nterm('INVOKE_DEFAULT')
         elif self.terminus_selector.lower() == 'c':
-            return bpy.ops.elfin.extrude_cterm(
-                'INVOKE_DEFAULT')
+            return bpy.ops.elfin.extrude_cterm('INVOKE_DEFAULT')
         else:
             raise ValueError('Unknown terminus selector')
             return {'CANCELLED'}
@@ -436,8 +434,7 @@ class PlaceModule(bpy.types.Operator):
                                         default=[0,0,0])
 
     def execute(self, context):
-        print('Execute: ', self.module_to_place)
-        if self.module_to_place in nop_enum_tuples:
+        if self.module_to_place in nop_enum_selectors:
             return {'FINISHED'}
 
         print('Placing module {}'.format(self.module_to_place))
@@ -469,7 +466,7 @@ class INFO_MT_mesh_elfin_add(bpy.types.Menu):
         layout = self.layout
 
         for mod_tuple in LivebuildState().placeables:
-            if mod_tuple in nop_enum_tuples:
+            if mod_tuple in nop_enum_selectors:
                 continue
             mod_name = mod_tuple[0]
             props = layout.operator('elfin.place_module', text=mod_name)
