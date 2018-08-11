@@ -226,11 +226,13 @@ class ExtrudeModule(bpy.types.Operator):
         if len(LS.c_extrudables) > 0:
             available_termini.append(('C', 'C', ''))
 
-        return available_termini if len(available_termini) > 0 else [('-NA-', '-NA-', '')]
+        return available_termini if len(available_termini) > 0 else [empty_list_placeholder_enum_tuple]
 
     terminus_selector = bpy.props.EnumProperty(items=get_available_termini)
 
     def execute(self, context):
+        if self.terminus_selector in nop_enum_selectors:
+            return {'FINISHED'}
         if self.terminus_selector.lower() == 'n':
             return bpy.ops.elfin.extrude_nterm('INVOKE_DEFAULT')
         elif self.terminus_selector.lower() == 'c':
