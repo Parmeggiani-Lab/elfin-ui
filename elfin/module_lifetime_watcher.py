@@ -58,7 +58,7 @@ class ModuleLifetimeWatcher(object):
         ob = bpy.data.objects[object_name]
         # New objects should never generate a KeyError, as opposed to
         # deleted objects.
-        if ob.elfin.is_module:
+        if ob.elfin.is_module():
             print('Module enter: {}'.format(ob))
             bpy.ops.elfin.check_collision_and_delete(object_name=ob.name)
 
