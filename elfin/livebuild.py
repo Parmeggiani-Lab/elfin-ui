@@ -1,4 +1,6 @@
 import bpy
+import mathutils
+from bpy_extras import view3d_utils
 
 from . import addon_paths
 from .livebuild_helper import *
@@ -11,7 +13,8 @@ class ExtrudeJoint(bpy.types.Operator):
     bl_label = 'Extrude a path guide joint'
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    def extrude(self):
+        self.joints = []
         for joint_a in get_selected(-1):
             loc = [0, 0, 0]
             if get_selection_len() > 0:
@@ -33,7 +36,47 @@ class ExtrudeJoint(bpy.types.Operator):
             stretch_cons.target = joint_b
             stretch_cons.bulge = 0.0
 
+            self.joints.append((joint_b, joint_b.location[:]))
+
+    def execute(self, context):
+        #Contextual active object, 2D and 3D regions
+        region = bpy.context.region
+        region3D = bpy.context.space_data.region_3d
+
+        mouse_offset = self.mouse 
+        # (self.mouse[0] - self.mouse_origin[1], \
+        #     self.mouse[1] - self.mouse_origin[1])
+
+        #The direction indicated by the mouse position from the current view
+        view_vector = view3d_utils.region_2d_to_vector_3d(region, region3D, mouse_offset)
+        #The 3D location in this direction
+        offset = view3d_utils.region_2d_to_location_3d(region, region3D, mouse_offset, view_vector)
+        
+        for j, loc in self.joints:
+            j.location = mathutils.Vector(loc) + offset
+
         return {'FINISHED'}
+
+    def modal(self, context, event):
+        if event.type == 'MOUSEMOVE':
+            self.mouse = (event.mouse_region_x, event.mouse_region_y)
+            self.execute(context)
+        elif event.type == 'LEFTMOUSE':
+            return {'FINISHED'}
+        elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            for j, loc in self.joints:
+                j.location = mathutils.Vector(loc)
+            return {'FINISHED'} 
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        self.extrude()
+        print('Event: ', dir(event))
+        self.mouse = self.mouse_origin = (event.mouse_region_x, event.mouse_region_y)
+        self.execute(context)
+
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
     @classmethod
     def poll(cls, context):

@@ -533,14 +533,11 @@ def suitable_for_extrusion(context):
         return False
 
     # Homogenous?
-    if n_objs == 1:
-        return True
-    else:
-        first_mod_name = selection[0].elfin.module_name
-        for o in selection:
-            if not o.elfin.is_module() or o.elfin.module_name != first_mod_name:
-                return False
-        return True
+    first_mod_name = selection[0].elfin.module_name
+    for o in selection:
+        if not o.elfin.is_module() or o.elfin.module_name != first_mod_name:
+            return False
+    return True
 
 def give_module_new_color(mod, new_color=None):
     mat = bpy.data.materials.new(name='mat_' + mod.name)
