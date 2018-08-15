@@ -25,6 +25,8 @@ class ExtrudeJoint(bpy.types.Operator):
             joint_b.location = loc[:] 
             joint_b.location[1] += 5.0 # This is the y-dimension of bridge
 
+            bridge.parent = joint_b
+
             loc_cons = bridge.constraints.new(type='COPY_LOCATION')
             loc_cons.target = joint_a
             rot_cons = bridge.constraints.new(type='COPY_ROTATION')
@@ -33,6 +35,10 @@ class ExtrudeJoint(bpy.types.Operator):
             stretch_cons = bridge.constraints.new(type='STRETCH_TO')
             stretch_cons.target = joint_b
             stretch_cons.bulge = 0.0
+
+            # Register bridge for destruction
+            opw_a = joint_a.elfin.destroy_together.add()
+            opw_a.obj = bridge
 
             self.joints.append(
                 (

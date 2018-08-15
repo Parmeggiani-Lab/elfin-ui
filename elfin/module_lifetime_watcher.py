@@ -63,7 +63,6 @@ class ModuleLifetimeWatcher(object):
             bpy.ops.elfin.check_collision_and_delete(object_name=ob.name)
 
     def on_module_exit(self, object_name):
-        """Severe linkages"""
         if object_name in bpy.data.objects:
             bpy.data.objects[object_name].elfin.destroy()
         else:

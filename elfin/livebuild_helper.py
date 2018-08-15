@@ -37,7 +37,7 @@ nop_enum_selectors = {
     empty_list_placeholder
 }
 
-ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE PGUIDE')
+ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE PG_JOINT PG_BRIDGE')
 
 # Classes ----------------------------------------
 
@@ -189,13 +189,18 @@ def link_pguide(pg_type):
             data_to.objects = [pg_type]
 
         pguide = bpy.context.scene.objects.link(data_to.objects[0]).object
-        pguide.elfin.obj_type = ElfinObjType.PGUIDE.value
+        pguide.elfin.obj_type = \
+            ElfinObjType.PG_JOINT.value if pg_type == 'joint' else \
+            ElfinObjType.PG_BRIDGE.value
         pguide.elfin.module_type = pg_type
         pguide.elfin.obj_ptr = pguide
 
         return pguide
     except Exception as e:
-        if pguide: pguide.elfin.destroy()
+        if pguide: 
+            # In case something went wrong before this line in try
+            pguide.elfin.obj_ptr = pguide
+            pguide.elfin.destroy()
         raise e
 
 def module_menu(self, context): 
@@ -385,6 +390,8 @@ def extrude_terminus(which_term, selector, sel_mod, color):
         return {'FINISHED'}
     except Exception as e:
         if ext_mod:
+            # In case something went wrong before this line in try
+            ext_mod.elfin.obj_ptr = ext_mod
             ext_mod.elfin.destroy()
         sel_mod.select = True # Restore selection
         raise e
@@ -561,6 +568,30 @@ def delete_if_overlap(obj, obj_list=None):
             return True
     return False
 
+def delete_object(obj):
+    """
+    Delete a general Blender object, preserving selection.
+    """
+
+    # Cache user selection
+    selection = [o for o in bpy.context.selected_objects if o != obj]
+    bpy.ops.object.select_all(action='DESELECT')
+
+    # Delete using default operator
+    obj.hide = False
+    obj.select = True
+    bpy.ops.object.delete(use_global=False)
+
+    if obj and obj.name in bpy.data.objects:
+        print('Object dirty exit:', obj.name)
+        # Remove it from bpy.data.objects because sometimes leftover
+        # refereneces can cause the object to remain.
+        bpy.data.objects.remove(obj)
+
+    # Restore selection
+    for ob in selection: 
+        ob.select = True
+
 def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
     """
     Tests whether an object's mesh overlaps with any mesh in obj_list.
@@ -726,5 +757,8 @@ def link_module(module_name):
 
         return linked_module
     except Exception as e:
-        if linked_module: linked_module.elfin.destroy()
+        if linked_module: 
+            # In case something went wrong before this line in try
+            linked_module.elfin.obj_ptr = linked_module
+            linked_module.elfin.destroy()
         raise e

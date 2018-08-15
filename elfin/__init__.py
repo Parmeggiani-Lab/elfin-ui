@@ -85,7 +85,7 @@ class ElfinSceneProperties(ElfinProperties):
         self.property_unset('disable_collision_check')
         livebuild_helper.LivebuildState().reset()
 
-class LinkageProperty(bpy.types.PropertyGroup):
+class Linkage(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
     source_chain_id = bpy.props.StringProperty()
     target_mod = bpy.props.PointerProperty(type=bpy.types.Object)
@@ -109,62 +109,72 @@ class LinkageProperty(bpy.types.PropertyGroup):
         # Remove forward reference
         self.target_mod = None
 
+class ObjectPointerWrapper(bpy.types.PropertyGroup):
+    obj = bpy.props.PointerProperty(type=bpy.types.Object)
+
 class ElfinObjectProperties(ElfinProperties):
     """Elfin's Object property catcher class"""
     obj_type = bpy.props.IntProperty(default=livebuild_helper.ElfinObjType.NONE.value)
     module_name = bpy.props.StringProperty()
     module_type = bpy.props.StringProperty()
     obj_ptr = bpy.props.PointerProperty(type=bpy.types.Object)
+    destroy_together = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
     c_linkage = \
-        bpy.props.CollectionProperty(type=LinkageProperty)
+        bpy.props.CollectionProperty(type=Linkage)
     n_linkage = \
-        bpy.props.CollectionProperty(type=LinkageProperty)
+        bpy.props.CollectionProperty(type=Linkage)
 
     def is_module(self):
         return self.obj_type == livebuild_helper.ElfinObjType.MODULE.value
+
+    def is_joint(self):
+        return self.obj_type == livebuild_helper.ElfinObjType.PG_JOINT.value
+
+    def is_bridge(self):
+        return self.obj_type == livebuild_helper.ElfinObjType.PG_BRIDGE.value
 
     def destroy(self):
         """Delete an object using default delete operator while preserving
         selection before deletion.
         """
-        if not self.obj_ptr or not self.is_module(): return
 
-        obj = self.obj_ptr
-        obj_name = obj.name
+        if self.is_module():
+            self.cleanup_for_module()
+        elif self.is_joint():
+            for ch in self.obj_ptr.children:
+                ch.elfin.destroy()
+        elif self.is_bridge():
+            ...
+        else:
+            print('elfin.destroy() called on non-elfin object:', self.obj_ptr.name)
+            ...
 
-        # Cache user selection
-        selection = [o for o in bpy.context.selected_objects if o != obj]
+        for opw in self.destroy_together:
+            # if opw.obj.elfin.destroy_together
+            # Remove back reference
+            if opw.obj is None: continue
+            dt = opw.obj.elfin.destroy_together
+            i = 0
+            while i < len(dt):
+                if dt[i].obj == self.obj_ptr: dt.remove(i)
+                else: i += 1
 
-        bpy.ops.object.select_all(action='DESELECT')
+            opw.obj.elfin.destroy()
 
+        livebuild_helper.delete_object(self.obj_ptr)
+        self.obj_ptr = None # Remove reference
+
+    def cleanup_for_module(self):
         self.sever_links()
 
-        # Destory mirrors
-        if self.mirrors:
-            for m in self.mirrors:
-                if m != obj:
-                    m.elfin.mirrors = []
-                    m.elfin.destroy()
+        # Destroy mirrors
+        for m in self.mirrors:
+            if m != self.obj_ptr:
+                m.elfin.mirrors = []
+                m.elfin.destroy()
 
-        # Delete using default operator
-        obj.hide = False
-        obj.select = True
-        bpy.ops.object.delete(use_global=False)
-
-        if obj.name in bpy.data.objects:
-            print('Module dirty exit: ', obj_name)
-            # Remove it from bpy.data.objects because sometimes leftover
-            # refereneces can cause the object to remain.
-            bpy.data.objects.remove(obj)
-    
-        # Restore selection
-        for ob in selection: ob.select = True
-
-        # Remove reference
-        self.obj_ptr = obj = None
-
-        print('{} destroyed.'.format(obj_name))
+        print('Module {} cleaned up.'.format(self.obj_ptr))
 
     def new_c_link(self, source_chain_id, target_mod, target_chain_id):
         link = self.c_linkage.add()
@@ -193,7 +203,7 @@ class ElfinObjectProperties(ElfinProperties):
 
     @property
     def mirrors(self):
-        return self.get('_mirrors', None)
+        return self.get('_mirrors', [])
 
     @mirrors.setter
     def mirrors(self, value):
