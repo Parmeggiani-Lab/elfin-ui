@@ -12,17 +12,16 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ## Goals
 
- * Enable full assembly design through manual manipulation.
+ * Enable full assembly design through manual manipulation of modules and networks.
  * Enable partially automated (with [elfin-solver](https://github.com/joy13975/elfin-solver)) design through path guides.
 
 ## Development Notes:
 
  1. Symmetric hubs
  	* There are only two symmetric hubs in the database right now. 
- 	* All "arms" of a symmetric hub must be identical and because of this, any network can only logically have zero or one symmetric hub "core".
+ 	* All "arms" of a symmetric hub must be identical, and because of this, any network can only logically have zero or one symmetric hub "core".
     * Should a symmetric hub network be allowed to have asymmetric hubs in its arms? 
-        * This is currently allowed
-        * In strctures like `<asy_hub - sym_hub - asy_hub>` should the symetric property propogate and force  each arm of the asy_hub to also be identical?
+        * This is currently allowed.
 
  2. Mirror-linked modules
  	* Symmetric hub extrusions are automatically mirrored.
@@ -42,22 +41,24 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 	 1. Check compatibility
 	 2. Then do a frame re-shift for all objs in first network based on the selected module
 	 * Allow pull-join having one side being symmetric core?
- * Allow user to confirm deletion when collision is detected. Collision detection using single module 3D models are not very accurate (currently each module is shruken to 85% before checking).
+ * Confirm deletion caused by collision
+ 	* Collision detection using single module 3D models are not very accurate (currently each module is shrunken to 85% before checking).
+ * Incremental selection
+ 	 * We already have a Select Network oeprator though
 
 ### TODO: Feasibility N/A
- * Incremental selection
- 	 * Don't think Blender has API for this yet but we could add an operator.
- * Select previous module upon module delete (possible ?)
+ * Select previous module upon module delete
  * Auto-seek extrusion
+ 	 * List all extrudable termini of the network that the selected module belongs to.
 	 * If there are hubs in the network there might be multiple heads. In this case ask the user to choose one.
 		
 ### TO-CHANGE: Once Blender gets an API upgrade
  * Hooking callback upon object deletion or entrance to scene
  	 * In v2.79 there are no callback hooks for object deletion/entrance.
- 	 * Currently implemented using a watcher at 100ms, which can be flacky under rare circumstances e.g. if the user uses a script to edit the scene at non-human speeds.
- * Hub symmetry enfrocement
+ 	 * Currently implemented using a watcher that checks the scene objects at 100ms intervals, which can be flacky under rare circumstances e.g. if the user uses a script to edit the scene at non-human speeds. For the most part this works, but is obviously not the best approach.
+ * Hub symmetry enforcement
  	 * In v2.79, we're not able to create custom modifiers in Python.
- 	 * Currently implemented using \<TBD\>
+ 	 * Currently implemented using mirror-linking.
 
 ## Getting Started
 
