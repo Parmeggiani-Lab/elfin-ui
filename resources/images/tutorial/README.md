@@ -66,11 +66,11 @@ All functionalities of the Elfin UI addon are accessed via what Blender calls "o
 
 The following are some basic examples of creating and manipulating modules.
 
-## Placement
+## Adding a Module
 
-There are two ways to spawn a single/hub module into the scene: through the `Place Module` operator or through Blender's primitives menu (<kbd>shift</kbd>+<kbd>a</kbd>). The former is more flexible because you can search the prototype list by typing the name instead of scrolling around. Below is a demonstration.
+There are two ways to spawn a single/hub module into the scene: through the `Add Module` operator or through Blender's primitives menu (<kbd>shift</kbd>+<kbd>a</kbd>). The former is more flexible because you can search the prototype list by typing the name instead of scrolling around. Below is a demonstration.
 
-Move the cursor into Blender's viewport and hit <kbd>space</kbd>. Type in `place` and one item should read `Elfin: Place a module`:
+Move the cursor into Blender's viewport and hit <kbd>space</kbd>. Type in `place` and one item should read `Elfin: Add (place) a module` (the GIF is a bit outdated but the process is the same):
 
 <p align="center">
 <img src="place.gif" width="85%">
@@ -80,9 +80,9 @@ Hit <kbd>enter</kbd> and a prototype list should be displayed. You can select th
 
 <b>Note: </b> double modules are deliberately disabled, because they do not serve a purpose in elfin-ui's design paradigm.
 
-<b>Optional: color setting.</b> Now that the Place operator is activated, you can move your cursor away and set the color for the new module before loading the actual model by using the Operator Properties panel at the bottom-left corner. You don't have to do this because elfin-ui sets a new color randomly for each new module. You <em>can</em> still change the color after loading the model, but if you do that through the Operator Properties panel it will cause lag as Blender removes the model it had loaded and re-loads a new one with a different color. If you've already loaded the model and want to change the color, go into the lower half of the right-hand-side panel, find the `Material` tab (with a copper-colored ball icon) and you can change it there without causing lag.
+<b>Optional: color setting.</b> Now that the Add Module operator is activated, you can move your cursor away and set the color for the new module before loading the actual model by using the Operator Properties panel at the bottom-left corner. You don't have to do this because elfin-ui sets a new color randomly for each new module. You <em>can</em> still change the color after loading the model, but if you do that through the Operator Properties panel it will cause lag as Blender removes the model it had loaded and re-loads a new one with a different color. If you've already loaded the model and want to change the color, go into the lower half of the right-hand-side panel, find the `Material` tab (with a copper-colored ball icon) and you can change it there without causing lag.
 
-<b>Optional: re-select prototype.</b> The Operator Properties panel also lets you "redo" - that is to choose again the module prototype to place (this is the same as viewport's prototype list).
+<b>Optional: re-select prototype.</b> The Operator Properties panel also lets you "redo" - that is to choose again the module prototype to add (this is the same as viewport's prototype list).
 
 ## Extrusion
 
@@ -94,7 +94,7 @@ In the following GIF I chose to extrude at the C-Terminus, then chose `-Change C
 <img src="extrude_c.gif" width="85%">
 </p>
 
-Select the module prototype the same way as with the Place Module operator.
+Select the module prototype the same way as with the Add Module operator.
 
 ## Mirror Link Operator
 
@@ -123,7 +123,7 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
 # Operator List
 
 Currently implemented operators:
- * <b>Place Module</b>
+ * <b>Add Module</b> (formerly called "Place Module")
   	* Adds a new module to the scene at origin.
     * Only available <b>when nothing is selected</b> in the scene
  * <b>Extrude Module</b> 
@@ -142,6 +142,13 @@ Currently implemented operators:
  	* Selects all modules connected to the selected module(s).
  * <b>Select Mirror</b>
  	* Selects all mirror-linked modules of the selected module(s).
+ * <b>Add Joint</b>
+ 	* Add a path guide joint
+ 	* Only available <b>when the selection does not contain joints</b>.
+ * <b>Extrude Joint</b>
+ 	* Extrude a path guide joint from another.
+ 	* Only available <b>when the selection only contains joints</b>.
+
 
 You don't have to type the full name of the module. For example, "ext" will bring up the <b>Extrude Module</b> operator.
 
@@ -151,9 +158,9 @@ You don't have to type the full name of the module. For example, "ext" will brin
 <img src="ui_tutorial_names.png" width="70%">
 </p>
 
-Place and Extrude operators will prompt you with a filtered list of actionable modules - let's call them <em>filtered prototypes</em>. There could be many modules in a scene, but modules with the same module name (not Blender name) are of the same prototype (like what classes are to objects). For extrusion, prototypes are filtered by compatibility and also terminus occupancy (i.e. is the N and/or C terminus already occupied?).
+Add Module and Extrude Module operators will prompt you with a filtered list of actionable module names - let's call them <em>filtered prototypes</em>. There could be many modules in a scene, but modules with the same module name (not Blender name) are of the same prototype (like what classes are to objects). For extrusion, prototypes are filtered by compatibility and also terminus occupancy (i.e. is the N and/or C terminus already occupied?).
 
-In the filtered prototype list, you will see that the name of a module is bounded by two period marks. These marks are sentinels which makes it easy to search the exact module one is looking for. Try typing just `D4` in the <b>Place</b> operator, and see what happens when you type `.D4` or `D4.` or `.D4.`.
+In the filtered prototype list, you will see that the name of a module is bounded by two period marks. These marks are sentinels which makes it easy to search the exact module one is looking for. Try typing just `D4` in the <b>Add Module</b> operator, and see what happens when you type `.D4` or `D4.` or `.D4.`.
 
 The first letter, if there is one, denotes the <b>C Terminus</b> chain ID of the extrusion. This is needed because hub modules have more than one chain to extrude to and from.
 
