@@ -755,6 +755,9 @@ def link_module(module_name):
         linked_module.elfin.obj_type = ElfinObjType.MODULE.value
         linked_module.elfin.obj_ptr = linked_module
 
+        # Always trigger dirty exit so we can clean up
+        linked_module.use_fake_user = True
+
         return linked_module
     except Exception as e:
         if linked_module: 

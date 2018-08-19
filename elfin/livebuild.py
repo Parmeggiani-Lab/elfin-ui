@@ -36,9 +36,11 @@ class ExtrudeJoint(bpy.types.Operator):
             stretch_cons.target = joint_b
             stretch_cons.bulge = 0.0
 
-            # Register bridge for destruction
-            opw_a = joint_a.elfin.destroy_together.add()
-            opw_a.obj = bridge
+            # Register new connection
+            bridge.elfin.pg_neighbours.add().obj = joint_a
+            bridge.elfin.pg_neighbours.add().obj = joint_b
+            joint_a.elfin.pg_neighbours.add().obj = bridge
+            joint_b.elfin.pg_neighbours.add().obj = bridge
 
             self.joints.append(
                 (
@@ -117,6 +119,10 @@ class AddJoint(bpy.types.Operator):
         
         joint = link_pguide(pg_type='joint')
         joint.location = loc
+
+        for s in get_selected(-1):
+            s.select = False
+        joint.select = True
 
         return {'FINISHED'}
 

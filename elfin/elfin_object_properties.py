@@ -30,15 +30,15 @@ class ObjectPointerWrapper(bpy.types.PropertyGroup):
     obj = bpy.props.PointerProperty(type=bpy.types.Object)
 
 class ElfinObjectProperties(bpy.types.PropertyGroup):
-    """Elfin's Object property catcher class"""
+    """Represents an elfin object (module/joint/bridge)."""
     obj_type = bpy.props.IntProperty(default=LH.ElfinObjType.NONE.value)
     module_name = bpy.props.StringProperty()
     module_type = bpy.props.StringProperty()
     obj_ptr = bpy.props.PointerProperty(type=bpy.types.Object)
-    destroy_together = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
     c_linkage = bpy.props.CollectionProperty(type=Linkage)
     n_linkage = bpy.props.CollectionProperty(type=Linkage)
+    pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
     def is_module(self):
         return self.obj_type == LH.ElfinObjType.MODULE.value
@@ -55,32 +55,37 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         """
 
         if self.is_module():
-            self.cleanup_for_module()
+            self.cleanup_module()
         elif self.is_joint():
-            for ch in self.obj_ptr.children:
-                ch.elfin.destroy()
+            self.cleanup_joint()
         elif self.is_bridge():
-            ...
+            self.cleanup_bridge()
         else:
-            print('elfin.destroy() called on non-elfin object:', self.obj_ptr.name)
-            ...
-
-        for opw in self.destroy_together:
-            # if opw.obj.elfin.destroy_together
-            # Remove back reference
-            if opw.obj is None: continue
-            dt = opw.obj.elfin.destroy_together
-            i = 0
-            while i < len(dt):
-                if dt[i].obj == self.obj_ptr: dt.remove(i)
-                else: i += 1
-
-            opw.obj.elfin.destroy()
+            return # No obj_ptr to delete
 
         LH.delete_object(self.obj_ptr)
-        self.obj_ptr = None # Remove reference
 
-    def cleanup_for_module(self):
+    def cleanup_bridge(self):
+        """Remove references of self object and also pointer to joints"""
+        for opw in self.pg_neighbours:
+            if opw.obj:
+                rem_idx = -1
+                jnb = opw.obj.elfin.pg_neighbours
+                for i in range(len(jnb)):
+                    if jnb[i].obj == self.obj_ptr:
+                        rem_idx = i
+                        break
+                if rem_idx != -1:
+                    jnb.remove(rem_idx)
+
+    def cleanup_joint(self):
+        """Delete connected bridges"""
+
+        while len(self.pg_neighbours) > 0:
+            self.pg_neighbours[0].obj.elfin.destroy()
+
+
+    def cleanup_module(self):
         self.sever_links()
 
         # Destroy mirrors
