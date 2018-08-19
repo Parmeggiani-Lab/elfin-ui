@@ -228,6 +228,15 @@ class LinkByMirror(bpy.types.Operator):
                     return False
             return True
 
+    def unlink_then_link(self, mirrors):
+        self.unlink_mirrors(mirrors)
+        self.link_by_mirror(mirrors)
+
+    def unlink_mirrors(self, mirrors):
+        for m in mirrors:
+            for _m in m.elfin.mirrors:
+                _m.elfin.mirrors = []
+
     def link_by_mirror(self, mirrors):
         for m in mirrors:
             m.elfin.mirrors = mirrors
@@ -255,10 +264,10 @@ class LinkByMirror(bpy.types.Operator):
 
         if existing:
             YesNoPrmopt.callback_true = \
-                YesNoPrmopt.Callback(self.link_by_mirror, [mirrors])
+                YesNoPrmopt.Callback(self.unlink_then_link, [mirrors])
             bpy.ops.elfin.yes_no_prompt('INVOKE_DEFAULT',
                 option=False,
-                title='{} already has mirrors. Replace?'.format(m.name),
+                title='{} already has mirrors. Unlink mirror group and replace?'.format(m.name),
                 message='Yes, replace.')
         else:
             self.link_by_mirror(mirrors)

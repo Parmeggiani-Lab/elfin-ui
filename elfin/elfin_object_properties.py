@@ -37,10 +37,8 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     obj_ptr = bpy.props.PointerProperty(type=bpy.types.Object)
     destroy_together = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
-    c_linkage = \
-        bpy.props.CollectionProperty(type=Linkage)
-    n_linkage = \
-        bpy.props.CollectionProperty(type=Linkage)
+    c_linkage = bpy.props.CollectionProperty(type=Linkage)
+    n_linkage = bpy.props.CollectionProperty(type=Linkage)
 
     def is_module(self):
         return self.obj_type == LH.ElfinObjType.MODULE.value
