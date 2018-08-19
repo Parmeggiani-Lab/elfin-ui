@@ -1,7 +1,6 @@
 
 import bpy
 import bpy.props
-from . import elfin_properties
 
 # Panels -----------------------------------------
 

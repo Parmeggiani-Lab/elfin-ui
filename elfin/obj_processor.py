@@ -4,8 +4,6 @@ import bpy
 import bpy.props
 import mathutils
 
-from . import elfin_properties
-
 # Panels -----------------------------------------
 
 class ProcessPanel(bpy.types.Panel):
