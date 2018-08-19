@@ -120,8 +120,9 @@ class AddJoint(bpy.types.Operator):
         joint = link_pguide(pg_type='joint')
         joint.location = loc
 
-        for s in get_selected(-1):
-            s.select = False
+        if get_selection_len() > 0:
+            for s in get_selected(-1):
+                s.select = False
         joint.select = True
 
         return {'FINISHED'}
