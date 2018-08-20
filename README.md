@@ -32,6 +32,7 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ### TODO: Currently Working On:
  * Export to Elfin Core format
+ * Documentation for all operators
 
 ### TODO: Must-Haves
 ...
