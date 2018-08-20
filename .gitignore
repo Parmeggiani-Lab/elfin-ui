@@ -1,6 +1,7 @@
 # Files from elfin-library
 **/library.blend
 **/xdb.json
+**/*.blend1
 
 .DS_Store
 
