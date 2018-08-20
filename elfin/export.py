@@ -15,7 +15,7 @@ class ExportPanel(bpy.types.Panel):
         row = layout.row(align=True)
         col = row.column()
         col.operator('elfin.export', text='Export design')
-        
+
 # Operators --------------------------------------
 
 class ExportOperator(bpy.types.Operator):
@@ -23,7 +23,17 @@ class ExportOperator(bpy.types.Operator):
     bl_label = 'Export as Elfin input'
 
     def execute(self, context):
-        # Each separate object is a separate chain
-        print('Unimplemented')
+        """Export to a json that fully specifies network and path guide
+        details.
+
+        The addon should be able to read from this JSON and recreate and
+        entire design.
+        """
+
+        # Parse networks
+
+        # Parse path guides
+        
+        # Save where?
 
         return {'FINISHED'}
