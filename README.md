@@ -31,10 +31,10 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then use the Select Mirror Links operator.
 
 ### TODO: Currently Working On:
- * Move joint to Module operator
+ * Export to Elfin Core format
 
 ### TODO: Must-Haves
- * Export to Elfin Core format
+...
 
 ### TODO: Nice-to-Haves
  * Pull-Join Operator: join two module networks by pulling first selected network to the second one.

@@ -8,6 +8,31 @@ from .livebuild_helper import *
 
 # Operators --------------------------------------
 
+class JointToModule(bpy.types.Operator):
+    bl_idname = 'elfin.joint_to_module'
+    bl_label = 'Move a joint to the COM of a module'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        joint, module = get_selected(-1)
+        if joint.elfin.is_module():
+            joint, module = module, joint
+
+        joint.location = module.location
+
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() == 2:
+            n_joints, n_module = 0, 0
+            for s in get_selected(-1):
+                if s.elfin.is_joint(): n_joints += 1
+                elif s.elfin.is_module(): n_module += 1
+            if n_joints == 1 and n_module == 1:
+                return True
+        return False
+
 class AddBridge(bpy.types.Operator):
     bl_idname = 'elfin.add_bridge'
     bl_label = 'Add a bridge between two joints'

@@ -31,5 +31,7 @@ class DebugPanel(bpy.types.Panel):
         col.operator('elfin.list_mirrors', text='List Mirrors')
         col.operator('elfin.unlink_mirrors', text='Unlink Mirrors')
         col.operator('elfin.link_by_mirror', text='Link by Birror')
+        col.operator('elfin.add_bridge', text='Bridge two joints')
+        col.operator('elfin.joint_to_module', text='Move Joint to Module')
         # col.operator('elfin.join_networks', text='Join Networks')
         col.prop(context.scene.elfin, 'disable_collision_check', text='Disable Collision Check')
