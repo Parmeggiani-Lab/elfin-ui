@@ -6,6 +6,33 @@ from . import addon_paths
 from .livebuild_helper import *
 
 
+# Panels -----------------------------------------
+
+class LivebuildPanel(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_label = 'Livebuild'
+    bl_context = 'objectmode'
+    bl_category = 'Elfin'
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row(align=True)
+        col = row.column()
+        col.prop(context.scene.elfin, 'disable_collision_check', text='Disable Collision Check')
+        col.operator('elfin.add_module', text='Place a module into scene')
+        col.operator('elfin.extrude_module', text='Extrude Module')
+        col.operator('elfin.select_mirrors', text='Select Mirrors')
+        col.operator('elfin.select_network', text='Select Network')
+        col.operator('elfin.list_mirrors', text='List Mirrors')
+        col.operator('elfin.unlink_mirrors', text='Unlink Mirrors')
+        col.operator('elfin.link_by_mirror', text='Link by Birror')
+        col.operator('elfin.add_joint', text='Add Joint')
+        col.operator('elfin.extrude_joint', text='Extrude Joint')
+        col.operator('elfin.add_bridge', text='Bridge two Joints')
+        col.operator('elfin.joint_to_module', text='Move Joint to Module')
+        # col.operator('elfin.join_networks', text='Join Networks')
+
 # Operators --------------------------------------
 
 class JointToModule(bpy.types.Operator):

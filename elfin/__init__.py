@@ -39,6 +39,9 @@ import os
 
 print('--------------------- Elfin UI Addon import/reload')
 
+# Addons don't have control over panel order, but can set them initially by
+# explicit registration. The user would still be able to re-arrange them, so
+# there is little point in trying to sort them by code.
 modules_to_import = [ 
     'addon_paths',
     'debug',
@@ -47,7 +50,8 @@ modules_to_import = [
     'obj_processing',
     'module_lifetime_watcher',
     'elfin_scene_properties',
-    'elfin_object_properties'
+    'elfin_object_properties',
+    'export',
 ]
 root_module = sys.modules[__name__]
 
@@ -62,62 +66,6 @@ for mod in modules_to_import:
 
 import bpy
 from bpy.app.handlers import persistent
-
-# Panels -----------------------------------------
-
-class ExportPanel(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
-    bl_label = 'Export'
-    bl_context = 'objectmode'
-    bl_category = 'Elfin'
-
-    def draw(self, context):
-        layout = self.layout
-        row = layout.row(align=True)
-        col = row.column()
-        col.operator('elfin.export', text='Export design')
-
-
-# Operators --------------------------------------
-
-class ExportOperator(bpy.types.Operator):
-    bl_idname = 'elfin.export'
-    bl_label = 'Export as Elfin input'
-
-    def execute(self, context):
-        # Each separate object is a separate chain
-        print('Unimplemented')
-
-        return {'FINISHED'}
-
-# class DeleteFacesOperator(bpy.types.Operator):
-#     bl_idname = 'elfin.delete_faces'
-#     bl_label = 'Delete Faces (selected only)'
-#     bl_options = {'REGISTER', 'UNDO'}
-    
-#     def execute(self, context):
-#         selObjs = context.selected_objects
-#         for obj in selObjs:
-#             context.scene.objects.active = obj
-#             bpy.ops.object.mode_set(mode='EDIT')
-#             bpy.ops.mesh.delete(type='ONLY_FACE')
-#             bpy.ops.object.mode_set(mode='OBJECT')
-#         return {'FINISHED'}
-
-#     @classmethod
-#     def poll(cls, context):
-#         return len(context.selected_objects) > 0
-
-class ResetOperator(bpy.types.Operator):
-    bl_idname = 'elfin.reset'
-    bl_label = 'Reset Elfin UI properties'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        context.scene.elfin.reset()
-        return {'FINISHED'}
-
 
 # Handlers --------------------------------------
 
