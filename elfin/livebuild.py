@@ -26,7 +26,7 @@ class LivebuildPanel(bpy.types.Panel):
         col.operator('elfin.select_network', text='Select Network')
         col.operator('elfin.list_mirrors', text='List Mirrors')
         col.operator('elfin.unlink_mirrors', text='Unlink Mirrors')
-        col.operator('elfin.link_by_mirror', text='Link by Birror')
+        col.operator('elfin.link_by_mirror', text='Link by Mirror')
         col.operator('elfin.add_joint', text='Add Joint')
         col.operator('elfin.extrude_joint', text='Extrude Joint')
         col.operator('elfin.add_bridge', text='Bridge two Joints')
@@ -202,6 +202,10 @@ class SelectMirrors(bpy.types.Operator):
                     m.select = True
         return {'FINISHED'}
 
+    @classmethod
+    def poll(cls, context):
+        return get_selection_len() > 0
+
 class SelectNetwork(bpy.types.Operator):
     bl_idname = 'elfin.select_network'
     bl_label = 'Select network (all connected modules)'
@@ -214,6 +218,10 @@ class SelectNetwork(bpy.types.Operator):
                     o.select = True
         return {'FINISHED'}
 
+    @classmethod
+    def poll(cls, context):
+        return get_selection_len() > 0
+
 class ListMirrors(bpy.types.Operator):
     bl_idname = 'elfin.list_mirrors'
     bl_label = 'List mirror links of one selected module'
@@ -224,6 +232,8 @@ class ListMirrors(bpy.types.Operator):
         mirror_strs = []
         for i in range(len(mirrors)):
             mirror_strs.append('[{}] {}'.format(i, mirrors[i].name))
+        if len(mirror_strs) == 0:
+            mirror_strs.append('No mirrors!')
         MessagePrompt.message_lines=mirror_strs
         bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
             title='List Mirror Result',
@@ -256,21 +266,28 @@ class UnlinkMirrors(bpy.types.Operator):
             icon='INFO')
 
     def execute(self, context):
-        mirrors = get_selected(-1) 
-        YesNoPrmopt.callback_true = \
-            YesNoPrmopt.Callback(self.unlink_mirrors, [mirrors, True])
-        YesNoPrmopt.callback_false = \
-            YesNoPrmopt.Callback(self.unlink_mirrors, [mirrors, False])
-        bpy.ops.elfin.yes_no_prompt('INVOKE_DEFAULT',
-            option=True,
-            title='Unlink recursively?',
-            message='Yes')
+        self.unlink_mirrors(get_selected(-1), True)
+
+        # Can't think of a reason to not recursively unlink..
+        # mirrors = get_selected(-1) 
+        # YesNoPrmopt.callback_true = \
+        #     YesNoPrmopt.Callback(self.unlink_mirrors, [mirrors, True])
+        # YesNoPrmopt.callback_false = \
+        #     YesNoPrmopt.Callback(self.unlink_mirrors, [mirrors, False])
+        # bpy.ops.elfin.yes_no_prompt('INVOKE_DEFAULT',
+        #     option=True,
+        #     title='Unlink recursively?',
+        #     message='Yes')
 
         return {'FINISHED'}
 
     @classmethod
     def poll(self, context):
-        return get_selection_len() > 0
+        if get_selection_len() > 0:
+            for s in get_selected(-1):
+                if len(s.elfin.mirrors) > 0:
+                    return True
+        return False
 
 class LinkByMirror(bpy.types.Operator):
     bl_idname = 'elfin.link_by_mirror'
@@ -281,13 +298,15 @@ class LinkByMirror(bpy.types.Operator):
     def can_link(cls):
         """Only show operator if selected objects are of the same prototype
         """
-        selection = get_selected(-1)
-        if selection:
-            mod_name = selection[0].elfin.module_name
-            for o in selection:
-                if not o.elfin.is_module() or o.elfin.module_name != mod_name:
-                    return False
-            return True
+        if get_selection_len() > 1:
+            selection = get_selected(-1)
+            if selection:
+                mod_name = selection[0].elfin.module_name
+                for o in selection:
+                    if not o.elfin.is_module() or o.elfin.module_name != mod_name:
+                        return False
+                return True
+        return False
 
     def unlink_then_link(self, mirrors):
         self.unlink_mirrors(mirrors)
