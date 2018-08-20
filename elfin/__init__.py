@@ -44,7 +44,7 @@ modules_to_import = [
     'debug',
     'livebuild_helper',
     'livebuild', 
-    'obj_processor',
+    'obj_processing',
     'module_lifetime_watcher',
     'elfin_scene_properties',
     'elfin_object_properties'
@@ -91,19 +91,23 @@ class ExportOperator(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class DeleteFacesOperator(bpy.types.Operator):
-    bl_idname = 'elfin.delete_faces'
-    bl_label = 'Delete Faces (selected only)'
-    bl_options = {'REGISTER', 'UNDO'}
+# class DeleteFacesOperator(bpy.types.Operator):
+#     bl_idname = 'elfin.delete_faces'
+#     bl_label = 'Delete Faces (selected only)'
+#     bl_options = {'REGISTER', 'UNDO'}
     
-    def execute(self, context):
-        selObjs = context.selected_objects
-        for obj in selObjs:
-            context.scene.objects.active = obj
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.mesh.delete(type='ONLY_FACE')
-            bpy.ops.object.mode_set(mode='OBJECT')
-        return {'FINISHED'}
+#     def execute(self, context):
+#         selObjs = context.selected_objects
+#         for obj in selObjs:
+#             context.scene.objects.active = obj
+#             bpy.ops.object.mode_set(mode='EDIT')
+#             bpy.ops.mesh.delete(type='ONLY_FACE')
+#             bpy.ops.object.mode_set(mode='OBJECT')
+#         return {'FINISHED'}
+
+#     @classmethod
+#     def poll(cls, context):
+#         return len(context.selected_objects) > 0
 
 class ResetOperator(bpy.types.Operator):
     bl_idname = 'elfin.reset'

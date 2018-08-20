@@ -1,4 +1,5 @@
 import glob
+import os
 
 import bpy
 import bpy.props
@@ -37,7 +38,7 @@ class LoadAllObjFiles(bpy.types.Operator):
 
         module_types = ['singles', 'doubles', 'hubs']
         
-        if sum([folder in src_folders for folder in module_types]) != 3:
+        if sum([folder in src_folders for folder in module_types]) != len(module_types):
             self.report({'ERROR'}, 'Source folder {} does not contain {} folders: {}'. \
                 format(abs_src_path, module_types, src_folders))
             return {'CANCELLED'}
@@ -58,7 +59,7 @@ class BatchProcess(bpy.types.Operator):
             self.report({'ERROR'}, 'Scene must be empty for processing')
             return {'CANCELLED'}
         
-        bpy.ops.elfin.load_all_obj_files()
+        print('return: ', bpy.ops.elfin.load_all_obj_files())
 
         make_dir(bpy.path.dirname(context.scene.elfin.pp_dst_dir))
         abs_dst_path = bpy.path.abspath(context.scene.elfin.pp_dst_dir)
@@ -100,3 +101,6 @@ class ProcessObj(bpy.types.Operator):
             bpy.ops.object.modifier_apply(apply_as='DATA', modifier='Decimate')
         return {'FINISHED'}
 
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) > 0
