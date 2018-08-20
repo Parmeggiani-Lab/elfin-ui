@@ -1,4 +1,5 @@
 import bpy
+import mathutils
 
 from . import livebuild_helper as LH
 
@@ -95,6 +96,37 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
                 m.elfin.destroy()
 
         print('Module {} cleaned up.'.format(self.obj_ptr))
+
+
+    def create_bridge(self, joint_a, joint_b):
+        # Cache locations
+        jb_loc = mathutils.Vector(joint_b.location)
+
+        # Move ja and jb to default locations
+        joint_b.location = joint_a.location + mathutils.Vector([0, 5, 0])
+
+        bridge = self.obj_ptr
+        bridge.parent = joint_b
+
+        bridge.constraints.new(type='COPY_LOCATION').target = joint_a
+        bridge.constraints.new(type='COPY_ROTATION').target = joint_a
+
+        stretch_cons = bridge.constraints.new(type='STRETCH_TO')
+        stretch_cons.target = joint_b
+        stretch_cons.bulge = 0.0
+
+        bridge.elfin.pg_neighbours.add().obj = joint_a
+        bridge.elfin.pg_neighbours.add().obj = joint_b
+        joint_a.elfin.pg_neighbours.add().obj = bridge
+        joint_b.elfin.pg_neighbours.add().obj = bridge
+
+        # Restore joint_b location 
+        # 
+        # [!] Must call update so that constraints don't bug out. This works
+        # normally in Blender console if you copy paste the code of this
+        # function but will break in script if update() is not called.
+        bpy.context.scene.update()
+        joint_b.location = jb_loc
 
     def new_c_link(self, source_chain_id, target_mod, target_chain_id):
         link = self.c_linkage.add()

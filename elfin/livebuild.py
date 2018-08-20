@@ -8,6 +8,29 @@ from .livebuild_helper import *
 
 # Operators --------------------------------------
 
+class AddBridge(bpy.types.Operator):
+    bl_idname = 'elfin.add_bridge'
+    bl_label = 'Add a bridge between two joints'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        joint_a, joint_b = get_selected(-1)
+        # Always make bridge parent of non active selection (second joint)
+        if joint_a == context.active_object:
+            joint_a, joint_b = joint_b, joint_a
+        bridge = link_pguide(pg_type='bridge')
+        bridge.elfin.create_bridge(joint_a, joint_b)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() == 2:
+            for s in get_selected(-1):
+                if not s.elfin.is_joint():
+                    return False
+            return True
+        return False
+
 class ExtrudeJoint(bpy.types.Operator):
     bl_idname = 'elfin.extrude_joint'
     bl_label = 'Extrude a path guide joint'
@@ -16,31 +39,10 @@ class ExtrudeJoint(bpy.types.Operator):
     def extrude(self):
         self.joints = []
         for joint_a in get_selected(-1):
-            loc = joint_a.location
-
             bridge = link_pguide(pg_type='bridge')
-            bridge.location = loc[:]
-            
             joint_b = link_pguide(pg_type='joint')
-            joint_b.location = loc[:] 
-            joint_b.location[1] += 5.0 # This is the y-dimension of bridge
 
-            bridge.parent = joint_b
-
-            loc_cons = bridge.constraints.new(type='COPY_LOCATION')
-            loc_cons.target = joint_a
-            rot_cons = bridge.constraints.new(type='COPY_ROTATION')
-            rot_cons.target = joint_a
-
-            stretch_cons = bridge.constraints.new(type='STRETCH_TO')
-            stretch_cons.target = joint_b
-            stretch_cons.bulge = 0.0
-
-            # Register new connection
-            bridge.elfin.pg_neighbours.add().obj = joint_a
-            bridge.elfin.pg_neighbours.add().obj = joint_b
-            joint_a.elfin.pg_neighbours.add().obj = bridge
-            joint_b.elfin.pg_neighbours.add().obj = bridge
+            bridge.elfin.create_bridge(joint_a, joint_b)
 
             self.joints.append(
                 (
