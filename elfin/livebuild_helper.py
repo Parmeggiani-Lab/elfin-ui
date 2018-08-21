@@ -132,12 +132,12 @@ class object_receiver:
 
     def __call__(self, obj=None, *args, **kwargs):
         if not obj:
-            obj = get_selected()
-            if not obj:
+            if get_selection_len() == 0:
                 print('No object specified nor selected.')
                 return
-
-        return self.func(obj, *args, **kwargs)
+            return [self.func(obj, *args, **kwargs) for obj in get_selected(-1)]
+        else:
+            return self.func(obj, *args, **kwargs)
 
 # Quick Access Methods ---------------------------
 

@@ -30,6 +30,12 @@ class ExportOperator(bpy.types.Operator):
         entire design.
         """
 
+        # Should we just export the selection?
+        # objs = bpy.data.object
+
+        # Separate modules and pguides
+
+
         # Parse networks
 
         # Parse path guides

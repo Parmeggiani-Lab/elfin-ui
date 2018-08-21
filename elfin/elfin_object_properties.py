@@ -15,17 +15,12 @@ class Linkage(bpy.types.PropertyGroup):
 
     def sever(self):
         if self.target_mod:
-            target_nl = self.target_mod.elfin.n_linkage \
+            tl = self.target_mod.elfin.n_linkage \
                 if self.terminus == 'c' else \
                 self.target_mod.elfin.c_linkage
             print('Severing: ', repr(self))
 
-            # Remove back reference
-            target_nl[self.target_chain_id].target_mod = None
-            target_nl.remove(target_nl.find(self.target_chain_id))
-
-        # Remove forward reference
-        self.target_mod = None
+            tl.remove(tl.find(self.target_chain_id))
 
 class ObjectPointerWrapper(bpy.types.PropertyGroup):
     obj = bpy.props.PointerProperty(type=bpy.types.Object)
@@ -81,7 +76,6 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
     def cleanup_joint(self):
         """Delete connected bridges"""
-
         while len(self.pg_neighbours) > 0:
             self.pg_neighbours[0].obj.elfin.destroy()
 

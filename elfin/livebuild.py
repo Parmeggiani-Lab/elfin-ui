@@ -35,6 +35,49 @@ class LivebuildPanel(bpy.types.Panel):
 
 # Operators --------------------------------------
 
+class JoinNetworks(bpy.types.Operator):
+    bl_idname = 'elfin.join_networks'
+    bl_label = 'Join two compatible networks'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        raise NotImplementedError
+
+class SeverNetwork(bpy.types.Operator):
+    bl_idname = 'elfin.sever_network'
+    bl_label = 'Sever one network into two at the specific point'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        mod_a, mod_b = get_selected(-1)
+        for cl in mod_a.elfin.c_linkage:
+            if cl.target_mod == mod_b:
+                cl.sever()
+                acl = mod_a.elfin.c_linkage
+                acl.remove(acl.find(cl.source_chain_id))
+                break
+        else:
+            for nl in mod_a.elfin.n_linkage:
+                if nl.target_mod == mod_b:
+                    nl.sever()
+                    anl = mod_a.elfin.n_linkage
+                    anl.remove(anl.find(nl.source_chain_id))
+                    break
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() == 2:
+            # Check whether the two selected moduels are next to each other
+            mod_a, mod_b = get_selected(-1)
+            for cl in mod_a.elfin.c_linkage:
+                if cl.target_mod == mod_b:
+                    return True
+            for nl in mod_a.elfin.n_linkage:
+                if nl.target_mod == mod_b:
+                    return True
+        return False
+
 class JointToModule(bpy.types.Operator):
     bl_idname = 'elfin.joint_to_module'
     bl_label = 'Move a joint to the COM of a module'
@@ -357,14 +400,6 @@ class LinkByMirror(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return cls.can_link()
-
-class JoinNetworks(bpy.types.Operator):
-    bl_idname = 'elfin.join_networks'
-    bl_label = 'Join two compatible networks'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        raise NotImplementedError
 
 class ExtrudeModule(bpy.types.Operator):
     bl_idname = 'elfin.extrude_module'

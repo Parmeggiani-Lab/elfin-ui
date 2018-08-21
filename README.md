@@ -30,6 +30,12 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  		* Only intra-network auto mirroring is supported.
  		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then use the Select Mirror Links operator.
 
+### Known Bugs:
+ * Sometimes the deletion cleanup is not called. Not sure of the cause yet, but can be alleviated by <kbd>ctrl</kbd>+<kbd>z</kbd> then re-deleting.
+
+### Known Limits:
+ * There is no spatial constraint to keep a network together. This means if the user accidentally or intentionally pull away a network into parts, elfin doesn't know that. The proper way to "sever" a network into parts is to use the Sever Network operator, which will let elfin know that two parts of a network should now become separate networks. After doing so, the user may move and transform the severed parts freely.
+
 ### TODO: Currently Working On:
  * Export to Elfin Core format
  * Documentation for all operators
