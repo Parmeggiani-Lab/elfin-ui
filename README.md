@@ -41,13 +41,12 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  * Documentation for all operators
 
 ### TODO: Must-Haves
-...
-
-### TODO: Nice-to-Haves
- * Pull-Join Operator: join two module networks by pulling first selected network to the second one.
+ * Join Network Operator: join two networks by pulling first selected module, including its network,  to the second module's connecting interface.
 	 1. Check compatibility
 	 2. Then do a frame re-shift for all objs in first network based on the selected module
 	 * Allow pull-join having one side being symmetric core?
+
+### TODO: Nice-to-Haves
  * Confirm deletion caused by collision
  	* Collision detection using single module 3D models are not very accurate (currently each module is shrunken to 85% before checking).
  * Incremental selection
