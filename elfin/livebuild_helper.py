@@ -186,28 +186,40 @@ def check_network_integrity(network):
     ...
     return NotImplementedError
 
-def link_pguide(pg_type):
-    """Links a joint or bridge object from pguide.blend."""
-    pguide = None
-    pg_type = pg_type.lower()
-    assert pg_type in {'joint', 'bridge'}
+def import_joint():
+    """Links a bridge object and initializes it using two end joints."""
+    joint = None
     try:
         with bpy.data.libraries.load(addon_paths.pguide_path) as (data_from, data_to):
-            data_to.objects = [pg_type]
+            data_to.objects = ['joint']
 
-        pguide = bpy.context.scene.objects.link(data_to.objects[0]).object
-        pguide.elfin.obj_type = \
-            ElfinObjType.JOINT.value if pg_type == 'joint' else \
-            ElfinObjType.BRIDGE.value
-        pguide.elfin.module_type = pg_type
-        pguide.elfin.obj_ptr = pguide
+        joint = bpy.context.scene.objects.link(data_to.objects[0]).object
+        joint.elfin.init_joint(joint)
 
-        return pguide
+        return joint
     except Exception as e:
-        if pguide: 
+        if joint: 
             # In case something went wrong before this line in try
-            pguide.elfin.obj_ptr = pguide
-            pguide.elfin.destroy()
+            joint.elfin.obj_ptr = joint
+            joint.elfin.destroy()
+        raise e
+
+def import_bridge(joint_a, joint_b):
+    """Links a bridge object and initializes it using two end joints."""
+    bridge = None
+    try:
+        with bpy.data.libraries.load(addon_paths.pguide_path) as (data_from, data_to):
+            data_to.objects = ['bridge']
+
+        bridge = bpy.context.scene.objects.link(data_to.objects[0]).object
+        bridge.elfin.init_bridge(bridge, joint_a, joint_b)
+
+        return bridge
+    except Exception as e:
+        if bridge: 
+            # In case something went wrong before this line in try
+            bridge.elfin.obj_ptr = bridge
+            bridge.elfin.destroy()
         raise e
 
 def module_menu(self, context): 
@@ -248,7 +260,8 @@ def extrude_terminus(which_term, selector, sel_mod, color):
         # Extract chain IDs and module name
         c_chain, ext_mod_name, n_chain = \
             selector.split('.')
-        ext_mod = link_module(ext_mod_name)
+        ext_mod = import_module(ext_mod_name)
+        ext_mod.parent = sel_mod.parent # Same network
         extrude_from = n_chain if which_term == 'n' else c_chain
         extrude_into = c_chain if which_term == 'n' else n_chain
 
@@ -367,7 +380,8 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                        
                     mirrors = [new_mod]
                     for src_chain_id in hub_free_chains:
-                        mirror_mod = link_module(ext_mod_name)
+                        mirror_mod = import_module(ext_mod_name)
+                        mirror_mod.parent = sel_mod.parent # Same network
                         extrude_single_at_chain(sel_mod, mirror_mod, src_chain_id)
                         mirrors.append(mirror_mod)
 
@@ -519,7 +533,8 @@ def create_module_mirrors(
     extrude_func):
     for m in root_mod.elfin.mirrors:
         if m != root_mod:
-            mirror_mod = link_module(link_mod_name)
+            mirror_mod = import_module(link_mod_name)
+            mirror_mod.parent = m.parent # same parent as m
             to_be_mirrored = extrude_func(m, mirror_mod)
             if to_be_mirrored:
                 new_mirrors.append(to_be_mirrored)
@@ -705,44 +720,16 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
 
     return (mod_sel, mod_sel, '')
 
-def link_module(module_name):
+def import_module(mod_name):
     """Links a module object from library.blend. Supports all module types."""
     lmod = None
     try:
         with bpy.data.libraries.load(addon_paths.modlib_path) as (data_from, data_to):
-            data_to.objects = [module_name]
+            data_to.objects = [mod_name]
 
         lmod = bpy.context.scene.objects.link(data_to.objects[0]).object
-        lmod.elfin.module_name = module_name
 
-        xdb = LivebuildState().xdb
-        single_xdata = xdb['single_data'].get(module_name, None)
-        if single_xdata:
-            lmod.elfin.module_type = 'single'
-        else:
-            hub_xdata = xdb['hub_data'].get(module_name, None)
-            if hub_xdata:
-                lmod.elfin.module_type = 'hub'
-            else:
-                print('Warning: user is trying to link a module that is neither single or hub type')
-                single_a_name, single_b_name = module_name.split['-']
-                double_xdata = xdb['double_data'].get(
-                    single_a_name, {}).get(
-                    single_b_name, None)
-                if double_xdata:
-                    lmod.elfin.module_type = 'double'
-                else:
-                    raise ValueError('Module name not found in xdb: ', mod_name)
-
-        lmod.elfin.obj_type = ElfinObjType.MODULE.value
-        lmod.elfin.obj_ptr = lmod
-
-        # Lock all transformation - only allow network parent to transform
-        lmod.lock_location = lmod.lock_rotation = lmod.lock_scale = [True, True, True]
-        lmod.lock_rotation_w = lmod.lock_rotations_4d = True
-
-        # Always trigger dirty exit so we can clean up
-        lmod.use_fake_user = True
+        lmod.elfin.init_module(lmod, mod_name)
 
         return lmod
     except Exception as e:

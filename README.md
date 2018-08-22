@@ -33,7 +33,6 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  	* Symmetric hub extrusions are automatically mirrored, so that further extrusions on any of the "arms" are also applied to the rest of the arms.
  	* Other modules can be mirror-linked by `Link by Mirror`.
  	* When extruding from a module that has "mirrors" to other modules of the same protoype, the newly extruded modules will also be mirror-linked together.
- 		* Only intra-network auto mirroring is supported.
  		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then apply `Select Mirror Links`.
 
 ### Known Bugs:

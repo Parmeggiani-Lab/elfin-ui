@@ -2,6 +2,8 @@ import enum
 
 import bpy
 import mathutils
+from . import livebuild_helper as LH
+# from .livebuild_helper import LivebuildState
 
 ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK')
 
@@ -41,6 +43,12 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     def is_module(self):
         return self.obj_type == ElfinObjType.MODULE.value
 
+    def is_joint(self):
+        return self.obj_type == ElfinObjType.JOINT.value
+
+    def is_bridge(self):
+        return self.obj_type == ElfinObjType.BRIDGE.value
+
     def destroy(self):
         """Clean up elfin data of this object, then call delete on the
         associated object.
@@ -48,18 +56,20 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         if self.is_module():
             self.cleanup_module()
-        elif self.obj_type == ElfinObjType.JOINT.value:
+        elif self.is_joint():
             self.cleanup_joint()
-        elif self.obj_type == ElfinObjType.BRIDGE.value:
+        elif self.is_bridge():
             self.cleanup_bridge()
         elif self.obj_type == ElfinObjType.NETWORK.value:
             self.cleanup_network()
         else:
             return # No obj_ptr to delete
 
+        print('Elfin object {} cleaned up.'.format(self.obj_ptr))
+
         # If this is the last object in the network, the network will be
         # deleted instead.
-        if len(self.obj_ptr.parent.children) == 1:
+        if self.obj_ptr.parent and len(self.obj_ptr.parent.children) == 1:
             self.obj_ptr.parent.elfin.destroy()
         else:
             self.delete_object(self.obj_ptr)
@@ -114,20 +124,27 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         while len(self.pg_neighbours) > 0:
             self.pg_neighbours[0].obj.elfin.destroy()
 
-
     def cleanup_module(self):
         self.sever_links()
 
         # Destroy mirrors
         for m in self.mirrors:
-            if m != self.obj_ptr:
+            if m and m != self.obj_ptr:
                 m.elfin.mirrors = []
                 m.elfin.destroy()
 
-        print('Module {} cleaned up.'.format(self.obj_ptr))
+    def init_network(self, obj):
+        self.obj_ptr = obj
+        self.obj_type = ElfinObjType.NETWORK.value
+        obj.name = 'network'
 
+        # Want to shift focus to new module, not network
+        obj.select = False
 
-    def create_bridge(self, joint_a, joint_b):
+    def init_bridge(self, obj, joint_a, joint_b):
+        self.obj_ptr = obj
+        self.obj_type = ElfinObjType.BRIDGE.value
+
         # Cache locations
         jb_loc = mathutils.Vector(joint_b.location)
 
@@ -156,6 +173,41 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         # function but will break in script if update() is not called.
         bpy.context.scene.update()
         joint_b.location = jb_loc
+
+    def init_joint(self, obj):
+        self.obj_ptr = obj
+        self.obj_type = ElfinObjType.JOINT.value
+
+    def init_module(self, obj, mod_name):
+        self.obj_ptr = obj
+        self.module_name = mod_name
+
+        xdb = LH.LivebuildState().xdb
+        single_xdata = xdb['single_data'].get(mod_name, None)
+        if single_xdata:
+            self.module_type = 'single'
+        else:
+            hub_xdata = xdb['hub_data'].get(mod_name, None)
+            if hub_xdata:
+                self.module_type = 'hub'
+            else:
+                print('Warning: user is trying to link a module that is neither single or hub type')
+                single_a_name, single_b_name = mod_name.split['-']
+                double_xdata = xdb['double_data'].get(
+                    single_a_name, {}).get(
+                    single_b_name, None)
+                if double_xdata:
+                    self.module_type = 'double'
+                else:
+                    raise ValueError('Module name not found in xdb: ', mod_name)
+        self.obj_type = ElfinObjType.MODULE.value
+
+        # Lock all transformation - only allow network parent to transform
+        obj.lock_location = obj.lock_rotation = obj.lock_scale = [True, True, True]
+        obj.lock_rotation_w = obj.lock_rotations_4d = True
+
+        # Always trigger dirty exit so we can clean up
+        obj.use_fake_user = True
 
     def new_c_link(self, source_chain_id, target_mod, target_chain_id):
         link = self.c_linkage.add()

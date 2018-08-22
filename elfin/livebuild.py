@@ -132,8 +132,7 @@ class AddBridge(bpy.types.Operator):
         # Always make bridge parent of non active selection (second joint)
         if joint_a == context.active_object:
             joint_a, joint_b = joint_b, joint_a
-        bridge = link_pguide(pg_type='bridge')
-        bridge.elfin.create_bridge(joint_a, joint_b)
+        bridge = import_bridge(joint_a, joint_b)
         return {'FINISHED'}
 
     @classmethod
@@ -153,10 +152,8 @@ class ExtrudeJoint(bpy.types.Operator):
     def extrude(self):
         self.joints = []
         for joint_a in get_selected(-1):
-            bridge = link_pguide(pg_type='bridge')
-            joint_b = link_pguide(pg_type='joint')
-
-            bridge.elfin.create_bridge(joint_a, joint_b)
+            joint_b = import_joint()
+            bridge = import_bridge(joint_a, joint_b)
 
             self.joints.append(
                 (
@@ -217,7 +214,7 @@ class ExtrudeJoint(bpy.types.Operator):
     def poll(cls, context):
         if get_selection_len() > 0:
             for s in get_selected(-1):
-                if s.elfin.module_type != 'joint':
+                if not s.elfin.is_joint():
                     return False
             else:
                 return True
@@ -233,7 +230,7 @@ class AddJoint(bpy.types.Operator):
         if get_selection_len() > 0:
             loc = get_selected().location
         
-        joint = link_pguide(pg_type='joint')
+        joint = import_joint()
         joint.location = loc
 
         if get_selection_len() > 0:
@@ -248,7 +245,7 @@ class AddJoint(bpy.types.Operator):
         # Forbid adding joint on top of existing joint
         if get_selection_len() > 0:
             for s in get_selected(-1):
-                if s.elfin.module_type == 'joint':
+                if s.elfin.is_joint():
                     return False
         return True
 
@@ -568,7 +565,7 @@ class AddModule(bpy.types.Operator):
         print('Placing module {}'.format(self.module_to_place))
         
         sel_mod_name = self.module_to_place.split('.')[1]
-        lmod = link_module(sel_mod_name)
+        lmod = import_module(sel_mod_name)
 
         give_module_new_color(lmod, self.color)
         lmod.hide = False # By default the obj is hidden
@@ -576,12 +573,10 @@ class AddModule(bpy.types.Operator):
         # Create a new empty object as network parent
         bpy.ops.object.empty_add(type='ARROWS')
         network_parent = get_selected()
-        network_parent.elfin.obj_type = ElfinObjType.NETWORK.value
-        network_parent.name = 'network'
+        network_parent.elfin.init_network(network_parent)
         lmod.parent = network_parent
 
         # Select only the newly placed module
-        network_parent.select = False
         lmod.select = True
 
         self.ask_prototype = True
