@@ -301,7 +301,7 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                 rel = xdb['double_data'][single_a_name][single_b_name]
                 transform_func(new_mod, rel, fixed_mod=sel_mod)
                 touch_up_new_mod(sel_mod, new_mod)
-                return new_mod
+                return [new_mod]
 
             extrude_single_single(sel_mod, ext_mod)
 
@@ -332,7 +332,7 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                     drop_frame(new_mod, rel, fixed_mod=sel_mod)
 
                 touch_up_new_mod(sel_mod, new_mod)
-                return new_mod
+                return [new_mod]
 
             extrude_single_hub(sel_mod, ext_mod)
 
@@ -388,16 +388,16 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                     for m in mirrors:
                         m.elfin.mirrors = mirrors
 
-                    return None # Mirrers are taken care of here already
+                    return mirrors # Mirrers are taken care of here already
                 else:
-                    return new_mod
+                    return [new_mod]
 
-            extrude_hub_single(sel_mod, ext_mod)
+            first_mirror_group = extrude_hub_single(sel_mod, ext_mod)
 
             if sel_mod.elfin.mirrors:
                 create_module_mirrors(
                     sel_mod,
-                    [] if hub_xdata['symmetric'] else [ext_mod],
+                    first_mirror_group,
                     ext_mod_name,
                     extrude_hub_single)
         elif sel_ext_type_pair == ('hub', 'hub'):
@@ -536,8 +536,9 @@ def create_module_mirrors(
             mirror_mod = import_module(link_mod_name)
             mirror_mod.parent = m.parent # same parent as m
             to_be_mirrored = extrude_func(m, mirror_mod)
-            if to_be_mirrored:
-                new_mirrors.append(to_be_mirrored)
+            for tbm in to_be_mirrored:
+                new_mirrors.append(tbm)
+
     for m in new_mirrors:
         m.elfin.mirrors = new_mirrors
 
