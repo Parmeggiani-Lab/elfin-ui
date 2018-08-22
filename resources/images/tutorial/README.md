@@ -80,7 +80,7 @@ Hit <kbd>enter</kbd> and a prototype list should be displayed. You can select th
 
 <b>Note: </b> double modules are deliberately disabled, because they do not serve a purpose in elfin-ui's design paradigm.
 
-<b>Optional: color setting.</b> Now that the Add Module operator is activated, you can move your cursor away and set the color for the new module before loading the actual model by using the Operator Properties panel at the bottom-left corner. You don't have to do this because elfin-ui sets a new color randomly for each new module. You <em>can</em> still change the color after loading the model, but if you do that through the Operator Properties panel it will cause lag as Blender removes the model it had loaded and re-loads a new one with a different color. If you've already loaded the model and want to change the color, go into the lower half of the right-hand-side panel, find the `Material` tab (with a copper-colored ball icon) and you can change it there without causing lag.
+<b>Optional: color setting.</b> Now that `Add Module` is activated, you can move your cursor away and set the color for the new module before loading the actual model by using the Operator Properties panel at the bottom-left corner. You don't have to do this because elfin-ui sets a new color randomly for each new module. You <em>can</em> still change the color after loading the model, but if you do that through the Operator Properties panel it will cause lag as Blender removes the model it had loaded and re-loads a new one with a different color. If you've already loaded the model and want to change the color, go into the lower half of the right-hand-side panel, find the `Material` tab (with a copper-colored ball icon) and you can change it there without causing lag.
 
 <b>Optional: re-select prototype.</b> The Operator Properties panel also lets you "redo" - that is to choose again the module prototype to add (this is the same as viewport's prototype list).
 
@@ -94,9 +94,9 @@ In the following GIF I chose to extrude at the C-Terminus, then chose `-Change C
 <img src="extrude_c.gif" width="85%">
 </p>
 
-Select the module prototype the same way as with the Add Module operator.
+Select the module prototype the same way as with `Add Module`.
 
-## Mirror Link Operator
+## Mirror Linking
 
 Originally designed for enforcing symmetric hubs' arm identiticality, mirror linking cause simultaneous manipulation for two or more separate modules that are not necessarily spatially related.
 
@@ -112,7 +112,7 @@ Selected modules must be of the same prototype.
 
 If the linking was successful a message should be shown. If the selected modules already have mirrors linked, you will get a warning and a choice as to whether or not to replace existing links with new ones.
 
-You can also list the mirrors of a module with the List Mirror opereator. You can select all mirrors of the currently selected module with the Select Mirrors operator.
+You can also list the mirrors of a module with the List Mirror opereator. You can select all mirrors of the currently selected module with `Select Mirrors`.
 
 Try deleting one of the extruded modules and see what happens. Revert using <kbd>cmd</kbd>+<kbd>z</kbd> (<kbd>ctrl</kbd> for Windows and Linux).
 
@@ -123,34 +123,35 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
 # Operator List
 
 Currently implemented operators:
- * <b>Add Module</b> (formerly called "Place Module")
+ * `Add Module` (formerly called "Place Module")
   	* Adds a new module to the scene at origin.
+  	* Automatically creates a new network and places the newly added module under that network.
     * Only available <b>when nothing is selected</b> in the scene
- * <b>Extrude Module</b> 
+ * `Extrude Module` 
  	* Add a module to the N- or C-Terminus of the selected module.
  	* Only available when one or more modules are selected
- * <b>Link by Mirror</b>
+ * `Link by Mirror`
  	* Link multiple modules of the same prototype by mirror.
  	* Only available when one or more <b>homogenous modules</b> are selected (same prototype)
- * <b>Unlink Mirrors</b>
+ * `Unlink Mirrors`
  	* Unlink mirrors from all selected modules.
  	* Only available when one or more modules are selected.
- * <b>List Mirrors</b>
+ * `List Mirrors`
  	* List mirror links of one selected module.
  	* Only available when <b>exactly one</b> module is selected.
- * <b>Select Network</b>
+ * `Select Network`
  	* Selects all modules connected to the selected module(s).
- * <b>Select Mirror</b>
+ * `Select Mirror`
  	* Selects all mirror-linked modules of the selected module(s).
- * <b>Add Joint</b>
+ * `Add Joint`
  	* Add a path guide joint
  	* Only available <b>when the selection does not contain joints</b>.
- * <b>Extrude Joint</b>
+ * `Extrude Joint`
  	* Extrude a path guide joint from another.
  	* Only available <b>when the selection only contains joints</b>.
 
 
-You don't have to type the full name of the module. For example, "ext" will bring up the <b>Extrude Module</b> operator.
+You don't have to type the full name of the module. For example, "extr" will bring up the `Extrude Module` operator.
 
 # Prototype Naming Convention
 
@@ -158,9 +159,9 @@ You don't have to type the full name of the module. For example, "ext" will brin
 <img src="ui_tutorial_names.png" width="70%">
 </p>
 
-Add Module and Extrude Module operators will prompt you with a filtered list of actionable module names - let's call them <em>filtered prototypes</em>. There could be many modules in a scene, but modules with the same module name (not Blender name) are of the same prototype (like what classes are to objects). For extrusion, prototypes are filtered by compatibility and also terminus occupancy (i.e. is the N and/or C terminus already occupied?).
+`Add Module` and `Extrude Module` will prompt you with a filtered list of actionable module names - let's call them <em>filtered prototypes</em>. There could be many modules in a scene, but modules with the same module name (not Blender name) are of the same prototype (like what classes are to objects). For extrusion, prototypes are filtered by compatibility and also terminus occupancy (i.e. is the N and/or C terminus already occupied?).
 
-In the filtered prototype list, you will see that the name of a module is bounded by two period marks. These marks are sentinels which makes it easy to search the exact module one is looking for. Try typing just `D4` in the <b>Add Module</b> operator, and see what happens when you type `.D4` or `D4.` or `.D4.`.
+In the filtered prototype list, you will see that the name of a module is bounded by two period marks. These marks are sentinels which makes it easy to search the exact module one is looking for. Try typing just `D4` in `Add Module`, and see what happens when you type `.D4` or `D4.` or `.D4.`.
 
 The first letter, if there is one, denotes the <b>C Terminus</b> chain ID of the extrusion. This is needed because hub modules have more than one chain to extrude to and from.
 

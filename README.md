@@ -16,25 +16,28 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  * Enable partially automated (with [elfin-solver](https://github.com/joy13975/elfin-solver)) design through path guides.
 
 ## Development Notes:
-
- 1. Symmetric hubs
+ * Module networks:
+ 	* Each network contains a group of connected modules. A network might have multiple chains, but no "floatin" parts. All modules in a network transform together.
+ 	* Each time a module is added (via `Add Module`), a new network will be automatically created as the parent object of the new module. 
+ 	* Networks can be joined or severed (one split into two, via `Sever Network`). 
+ 	* The user is forbidden from transforming individual modules (even though still possible if the user insists on doing so, which will break assumptions in elfin). 
+ 	* The user must select the parent "network" object (displayed as axes arrows), and apply the desired transformation.
+ 
+ * Symmetric hubs
  	* There are only two symmetric hubs in the database right now. 
  	* All "arms" of a symmetric hub must be identical, and because of this, any network can only logically have zero or one symmetric hub "core".
     * Should a symmetric hub network be allowed to have asymmetric hubs in its arms? 
         * This is currently allowed.
 
- 2. Mirror-linked modules
- 	* Symmetric hub extrusions are automatically mirrored.
- 	* Other modules can be mirror-linked by the Link by Mirror operator.
+ * Mirror linking
+ 	* Symmetric hub extrusions are automatically mirrored, so that further extrusions on any of the "arms" are also applied to the rest of the arms.
+ 	* Other modules can be mirror-linked by `Link by Mirror`.
  	* When extruding from a module that has "mirrors" to other modules of the same protoype, the newly extruded modules will also be mirror-linked together.
  		* Only intra-network auto mirroring is supported.
- 		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then use the Select Mirror Links operator.
+ 		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then apply `Select Mirror Links`.
 
 ### Known Bugs:
  * Sometimes the deletion cleanup is not called. Not sure of the cause yet, but can be alleviated by <kbd>ctrl</kbd>+<kbd>z</kbd> then re-deleting.
-
-### Known Limits:
- * There is no spatial constraint to keep a network together. This means if the user accidentally or intentionally pull away a network into parts, elfin doesn't know that. The proper way to "sever" a network into parts is to use the Sever Network operator, which will let elfin know that two parts of a network should now become separate networks. After doing so, the user may move and transform the severed parts freely.
 
 ### TODO: Currently Working On:
  * Export to Elfin Core format
@@ -47,7 +50,7 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  * Documentation for all operators
 
 ### TODO: Must-Haves
- * Join Network Operator: join two networks by pulling first selected module, including its network,  to the second module's connecting interface.
+ * `Join Network`: join two networks by pulling first selected module, including its network,  to the second module's connecting interface.
 	 1. Check compatibility
 	 2. Then do a frame re-shift for all objs in first network based on the selected module
 	 * Allow pull-join having one side being symmetric core?
