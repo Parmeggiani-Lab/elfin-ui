@@ -96,7 +96,7 @@ def add_watcher(scene):
 def watch_movement(scene):
     # obj = bpy.context.active_object
     # if obj and obj.is_updated:
-    #     print('obj updated: {}'.format(obj))
+    #     print('obj updated: {}, {}'.format(obj, obj.location))
     ...
 
 # Registration ----------------------------------

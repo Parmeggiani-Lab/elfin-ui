@@ -179,6 +179,15 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
+def check_network_integrity(network):
+    """Returns the network (list of modules) consists of a single network and
+    is spatially well formed, meaning all interfaces of the network must be
+    the way they were found by elfin as elfin had placed them via extrusion.
+    Network level transformations should not destroy well-formed-ness.
+    """
+    ...
+    return NotImplementedError
+
 def link_pguide(pg_type):
     """Links a joint or bridge object from pguide.blend."""
     pguide = None

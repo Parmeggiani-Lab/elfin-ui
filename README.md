@@ -38,8 +38,12 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ### TODO: Currently Working On:
  * Export to Elfin Core format
- 	* Need to check network integrity.
- 	* Might as well make that into an operator so the user can check also.
+ 	* Either check network integrity, or always keep networks well formed.
+ 		* New solution: keep modules in a network under an empty parent. Then,
+ 		  lock all transformations. Only by selecting the parent can the user
+ 		  transform, all modules together.
+ 		* This has the added benefit that networks are already separated into
+ 		  parent objects; easy for export.
  * Documentation for all operators
 
 ### TODO: Must-Haves
