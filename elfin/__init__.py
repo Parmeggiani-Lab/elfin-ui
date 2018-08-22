@@ -93,11 +93,16 @@ def add_watcher(scene):
     mod_life_watcher = module_lifetime_watcher.ModuleLifetimeWatcher()
     mlw_handler_list.append(mod_life_watcher)
 
+def watch_movement(scene):
+    # obj = bpy.context.active_object
+    # if obj and obj.is_updated:
+    #     print('obj updated: {}'.format(obj))
+    ...
 
 # Registration ----------------------------------
 
 def register():
-    """Registers properties, and handlers"""
+    """Registers PropertyGroups and handlers"""
     print('--------------------- Elfin Front Addon register()')
     bpy.utils.register_module(__name__)
 
@@ -114,6 +119,8 @@ def register():
         remove_watcher)
     remove_then_add_handler(bpy.app.handlers.load_post,
         add_watcher)
+    remove_then_add_handler(bpy.app.handlers.scene_update_pre,
+        watch_movement)
 
     # Watcher needs to be hooked up in register() as well, because on addon
     # reload the load_pre and load_post handlers won't get called.
@@ -125,7 +132,7 @@ def register():
     print('--------------------- Elfin Front Addon registered')
     
 def unregister():
-    """Unregisters properties, and handlers"""
+    """Unregisters PropertyGroups and handlers"""
     print('------------------- Elfin Front Addon unregister()')
     bpy.utils.unregister_module(__name__)
 
@@ -139,10 +146,12 @@ def unregister():
 
     # Handlers
     remove_watcher(None)
-    remove_handler(bpy.app.handlers.load_pre, \
+    remove_handler(bpy.app.handlers.load_pre,
         remove_watcher)
-    remove_handler(bpy.app.handlers.load_post, \
+    remove_handler(bpy.app.handlers.load_post,
         add_watcher)
+    remove_handler(bpy.app.handlers.scene_update_pre,
+        watch_movement)
 
     bpy.types.INFO_MT_add.remove(livebuild_helper.module_menu)
                 

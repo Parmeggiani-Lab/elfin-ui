@@ -60,9 +60,9 @@ class LivebuildState(metaclass=Singleton):
         self.load_path_guide()
         self.update_placeables()
 
-    def update_extrudables(self):
-        self.n_extrudables = get_extrusion_prototype_list('n')
-        self.c_extrudables = get_extrusion_prototype_list('c')
+    def update_extrudables(self, sel_mod):
+        self.n_extrudables = get_extrusion_prototype_list(sel_mod, 'n')
+        self.c_extrudables = get_extrusion_prototype_list(sel_mod, 'c')
 
     def update_placeables(self):
         res = [color_change_placeholder_enum_tuple] + \
@@ -406,7 +406,7 @@ def execute_extrusion(which_term, selector, color):
     for sel_mod in get_selected(-1): 
         extrude_terminus(which_term, selector, sel_mod, color)
 
-def get_extrusion_prototype_list(which_term):
+def get_extrusion_prototype_list(sel_mod, which_term):
     """Generates a prototype list appropriately filtered for extrusion.
     """
     assert which_term in {'n', 'c'}
@@ -414,7 +414,6 @@ def get_extrusion_prototype_list(which_term):
     enum_tuples = [color_change_placeholder_enum_tuple]
 
     # Selection length is guranteed by poll()
-    sel_mod = get_selected()
     sel_mod_name = sel_mod.elfin.module_name
     sel_mod_type = sel_mod.elfin.module_type
 

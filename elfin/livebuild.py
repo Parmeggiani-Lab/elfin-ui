@@ -43,6 +43,24 @@ class JoinNetworks(bpy.types.Operator):
     def execute(self, context):
         raise NotImplementedError
 
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() == 2:
+            # Check whether an extrusion is possible from mod_a to mod_b
+            mod_a, mod_b = get_selected(-1)
+
+            # Plan: get n/c extrudables for both modules, then find out the
+            # shared termini and let the user choose
+            LS = LivebuildState()
+            LS.update_extrudables(mod_a)
+
+            if len(LS.n_extrudables) > 0:
+                available_termini.append(('N', 'N', ''))
+            if len(LS.c_extrudables) > 0:
+                available_termini.append(('C', 'C', ''))
+
+        return False
+
 class SeverNetwork(bpy.types.Operator):
     bl_idname = 'elfin.sever_network'
     bl_label = 'Sever one network into two at the specific point'
@@ -410,9 +428,11 @@ class ExtrudeModule(bpy.types.Operator):
     def get_available_termini(self, context):
         available_termini = []
 
-        # Save state into singleton
         LS = LivebuildState()
-        LS.update_extrudables()
+
+        # suitable_for_extrusion() gurantees homogeneity so we get just take
+        # the first object in selection
+        LS.update_extrudables(get_selected())
 
         if len(LS.n_extrudables) > 0:
             available_termini.append(('N', 'N', ''))
@@ -476,9 +496,6 @@ class ExtrudeCTerm(bpy.types.Operator):
     bl_label = 'Extrude C (add a module to the cterm)'
     bl_property = "cterm_ext_module_selector"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-
-    def get_prototype_list(self, context):
-        return get_extrusion_prototype_list('c')
 
     cterm_ext_module_selector = bpy.props.EnumProperty(
         items=lambda self, context: LivebuildState().c_extrudables)

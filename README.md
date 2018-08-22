@@ -38,6 +38,8 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ### TODO: Currently Working On:
  * Export to Elfin Core format
+ 	* Need to check network integrity.
+ 	* Might as well make that into an operator so the user can check also.
  * Documentation for all operators
 
 ### TODO: Must-Haves
