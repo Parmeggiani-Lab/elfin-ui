@@ -4,6 +4,7 @@ from bpy_extras import view3d_utils
 
 from . import addon_paths
 from .livebuild_helper import *
+from .elfin_object_properties import ElfinObjType
 
 
 # Panels -----------------------------------------
@@ -519,6 +520,83 @@ class ExtrudeCTerm(bpy.types.Operator):
     def poll(cls, context):
         return suitable_for_extrusion(context)
 
+class CheckCollisionAndDelete(bpy.types.Operator):
+    bl_idname = 'elfin.check_collision_and_delete'
+    bl_label = 'Check collision and delete if positive'
+
+    # Allow keyword specification
+    object_name = bpy.props.StringProperty(default='__unset__')
+
+    def execute(self, context):
+        found_overlap = False
+
+        try:
+            ob = bpy.data.objects[self.object_name]
+            found_overlap |= delete_if_overlap(ob)
+        except KeyError:
+            # No valid object_name specified - use selection
+            for ob in get_selected(-1):
+                if ob.elfin.is_module():
+                    found_overlap |= delete_if_overlap(ob)
+                else:
+                    print('No overlap: {}'.format(ob.name))
+
+        if found_overlap:
+            MessagePrompt.message_lines=['Collision was detected and modules were deleted.']
+            bpy.ops.elfin.message_prompt('INVOKE_DEFAULT')
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        self.object_name = ''
+
+class AddModule(bpy.types.Operator):
+    bl_idname = 'elfin.add_module'
+    bl_label = 'Add (place) a module'
+    bl_property = 'module_to_place'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    ask_prototype = bpy.props.BoolProperty(default=True, options={'HIDDEN'})
+    module_to_place = bpy.props.EnumProperty(items=LivebuildState().placeables)
+    color = bpy.props.FloatVectorProperty(name="Display Color", 
+                                        subtype='COLOR', 
+                                        default=[0,0,0])
+
+    def execute(self, context):
+        if self.module_to_place in nop_enum_selectors:
+            return {'FINISHED'}
+
+        print('Placing module {}'.format(self.module_to_place))
+        
+        sel_mod_name = self.module_to_place.split('.')[1]
+        lmod = link_module(sel_mod_name)
+
+        give_module_new_color(lmod, self.color)
+        lmod.hide = False # By default the obj is hidden
+
+        # Create a new empty object as network parent
+        bpy.ops.object.empty_add(type='ARROWS')
+        network_parent = get_selected()
+        network_parent.elfin.obj_type = ElfinObjType.NETWORK.value
+        network_parent.name = 'network'
+        lmod.parent = network_parent
+
+        # Select only the newly placed module
+        network_parent.select = False
+        lmod.select = True
+
+        self.ask_prototype = True
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        self.color = ColorWheel().next_color()
+
+        if self.ask_prototype:
+            context.window_manager.invoke_search_popup(self)
+        else:
+            return self.execute(context)
+
+        return {'FINISHED'}
+
 class LoadXdb(bpy.types.Operator):
     bl_idname = 'elfin.load_xdb'
     bl_label = '(Re)load xdb'
@@ -603,73 +681,6 @@ class YesNoPrmopt(bpy.types.Operator):
         row = self.layout
         row.label(self.title, icon=self.icon)
         row.prop(self, 'option', text=self.message)
-
-class CheckCollisionAndDelete(bpy.types.Operator):
-    bl_idname = 'elfin.check_collision_and_delete'
-    bl_label = 'Check collision and delete if positive'
-
-    # Allow keyword specification
-    object_name = bpy.props.StringProperty(default='__unset__')
-
-    def execute(self, context):
-        found_overlap = False
-
-        try:
-            ob = bpy.data.objects[self.object_name]
-            found_overlap |= delete_if_overlap(ob)
-        except KeyError:
-            # No valid object_name specified - use selection
-            for ob in get_selected(-1):
-                if ob.elfin.is_module():
-                    found_overlap |= delete_if_overlap(ob)
-                else:
-                    print('No overlap: {}'.format(ob.name))
-
-        if found_overlap:
-            MessagePrompt.message_lines=['Collision was detected and modules were deleted.']
-            bpy.ops.elfin.message_prompt('INVOKE_DEFAULT')
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        self.object_name = ''
-
-class AddModule(bpy.types.Operator):
-    bl_idname = 'elfin.add_module'
-    bl_label = 'Add (place) a module'
-    bl_property = 'module_to_place'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    ask_prototype = bpy.props.BoolProperty(default=True, options={'HIDDEN'})
-    module_to_place = bpy.props.EnumProperty(items=LivebuildState().placeables)
-    color = bpy.props.FloatVectorProperty(name="Display Color", 
-                                        subtype='COLOR', 
-                                        default=[0,0,0])
-
-    def execute(self, context):
-        if self.module_to_place in nop_enum_selectors:
-            return {'FINISHED'}
-
-        print('Placing module {}'.format(self.module_to_place))
-        
-        sel_mod_name = self.module_to_place.split('.')[1]
-        lmod = link_module(sel_mod_name)
-
-        give_module_new_color(lmod, self.color)
-        lmod.hide = False # By default the obj is hidden
-        lmod.select = True
-
-        self.ask_prototype = True
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        self.color = ColorWheel().next_color()
-
-        if self.ask_prototype:
-            context.window_manager.invoke_search_popup(self)
-        else:
-            return self.execute(context)
-
-        return {'FINISHED'}
 
 class INFO_MT_mesh_elfin_add(bpy.types.Menu):
     bl_idname = 'INFO_MT_elfin_add'

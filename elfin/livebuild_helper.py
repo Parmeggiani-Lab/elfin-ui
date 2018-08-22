@@ -3,13 +3,13 @@ import random
 import json
 import collections
 import functools
-import enum
 
 import bpy
 import bmesh
 import mathutils
 import mathutils.bvhtree
 from . import addon_paths
+from .elfin_object_properties import ElfinObjType
 
 
 # Global (Const) Variables -----------------------
@@ -36,8 +36,6 @@ nop_enum_selectors = {
     color_change_placeholder,
     empty_list_placeholder
 }
-
-ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE PG_JOINT PG_BRIDGE')
 
 # Classes ----------------------------------------
 
@@ -199,8 +197,8 @@ def link_pguide(pg_type):
 
         pguide = bpy.context.scene.objects.link(data_to.objects[0]).object
         pguide.elfin.obj_type = \
-            ElfinObjType.PG_JOINT.value if pg_type == 'joint' else \
-            ElfinObjType.PG_BRIDGE.value
+            ElfinObjType.JOINT.value if pg_type == 'joint' else \
+            ElfinObjType.BRIDGE.value
         pguide.elfin.module_type = pg_type
         pguide.elfin.obj_ptr = pguide
 
@@ -576,30 +574,6 @@ def delete_if_overlap(obj, obj_list=None):
             return True
     return False
 
-def delete_object(obj):
-    """
-    Delete a general Blender object, preserving selection.
-    """
-
-    # Cache user selection
-    selection = [o for o in bpy.context.selected_objects if o != obj]
-    bpy.ops.object.select_all(action='DESELECT')
-
-    # Delete using default operator
-    obj.hide = False
-    obj.select = True
-    bpy.ops.object.delete(use_global=False)
-
-    if obj and obj.name in bpy.data.objects:
-        print('Object dirty exit:', obj.name)
-        # Remove it from bpy.data.objects because sometimes leftover
-        # refereneces can cause the object to remain.
-        bpy.data.objects.remove(obj)
-
-    # Restore selection
-    for ob in selection: 
-        ob.select = True
-
 def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
     """
     Tests whether an object's mesh overlaps with any mesh in obj_list.
@@ -733,22 +707,22 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
 
 def link_module(module_name):
     """Links a module object from library.blend. Supports all module types."""
-    linked_module = None
+    lmod = None
     try:
         with bpy.data.libraries.load(addon_paths.modlib_path) as (data_from, data_to):
             data_to.objects = [module_name]
 
-        linked_module = bpy.context.scene.objects.link(data_to.objects[0]).object
-        linked_module.elfin.module_name = module_name
+        lmod = bpy.context.scene.objects.link(data_to.objects[0]).object
+        lmod.elfin.module_name = module_name
 
         xdb = LivebuildState().xdb
         single_xdata = xdb['single_data'].get(module_name, None)
         if single_xdata:
-            linked_module.elfin.module_type = 'single'
+            lmod.elfin.module_type = 'single'
         else:
             hub_xdata = xdb['hub_data'].get(module_name, None)
             if hub_xdata:
-                linked_module.elfin.module_type = 'hub'
+                lmod.elfin.module_type = 'hub'
             else:
                 print('Warning: user is trying to link a module that is neither single or hub type')
                 single_a_name, single_b_name = module_name.split['-']
@@ -756,20 +730,24 @@ def link_module(module_name):
                     single_a_name, {}).get(
                     single_b_name, None)
                 if double_xdata:
-                    linked_module.elfin.module_type = 'double'
+                    lmod.elfin.module_type = 'double'
                 else:
                     raise ValueError('Module name not found in xdb: ', mod_name)
 
-        linked_module.elfin.obj_type = ElfinObjType.MODULE.value
-        linked_module.elfin.obj_ptr = linked_module
+        lmod.elfin.obj_type = ElfinObjType.MODULE.value
+        lmod.elfin.obj_ptr = lmod
+
+        # Lock all transformation - only allow network parent to transform
+        lmod.lock_location = lmod.lock_rotation = lmod.lock_scale = [True, True, True]
+        lmod.lock_rotation_w = lmod.lock_rotations_4d = True
 
         # Always trigger dirty exit so we can clean up
-        linked_module.use_fake_user = True
+        lmod.use_fake_user = True
 
-        return linked_module
+        return lmod
     except Exception as e:
-        if linked_module: 
+        if lmod: 
             # In case something went wrong before this line in try
-            linked_module.elfin.obj_ptr = linked_module
-            linked_module.elfin.destroy()
+            lmod.elfin.obj_ptr = lmod
+            lmod.elfin.destroy()
         raise e

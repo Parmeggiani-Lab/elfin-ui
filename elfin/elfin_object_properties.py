@@ -1,7 +1,9 @@
+import enum
+
 import bpy
 import mathutils
 
-from . import livebuild_helper as LH
+ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK')
 
 class Linkage(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
@@ -27,7 +29,7 @@ class ObjectPointerWrapper(bpy.types.PropertyGroup):
 
 class ElfinObjectProperties(bpy.types.PropertyGroup):
     """Represents an elfin object (module/joint/bridge)."""
-    obj_type = bpy.props.IntProperty(default=LH.ElfinObjType.NONE.value)
+    obj_type = bpy.props.IntProperty(default=ElfinObjType.NONE.value)
     module_name = bpy.props.StringProperty()
     module_type = bpy.props.StringProperty()
     obj_ptr = bpy.props.PointerProperty(type=bpy.types.Object)
@@ -37,32 +39,65 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
     def is_module(self):
-        return self.obj_type == LH.ElfinObjType.MODULE.value
-
-    def is_joint(self):
-        return self.obj_type == LH.ElfinObjType.PG_JOINT.value
-
-    def is_bridge(self):
-        return self.obj_type == LH.ElfinObjType.PG_BRIDGE.value
+        return self.obj_type == ElfinObjType.MODULE.value
 
     def destroy(self):
-        """Delete an object using default delete operator while preserving
-        selection before deletion.
+        """Clean up elfin data of this object, then call delete on the
+        associated object.
         """
 
         if self.is_module():
             self.cleanup_module()
-        elif self.is_joint():
+        elif self.obj_type == ElfinObjType.JOINT.value:
             self.cleanup_joint()
-        elif self.is_bridge():
+        elif self.obj_type == ElfinObjType.BRIDGE.value:
             self.cleanup_bridge()
+        elif self.obj_type == ElfinObjType.NETWORK.value:
+            self.cleanup_network()
         else:
             return # No obj_ptr to delete
 
-        LH.delete_object(self.obj_ptr)
+        # If this is the last object in the network, the network will be
+        # deleted instead.
+        if len(self.obj_ptr.parent.children) == 1:
+            self.obj_ptr.parent.elfin.destroy()
+        else:
+            self.delete_object(self.obj_ptr)
+
+    def delete_object(self, obj):
+        """
+        Delete the Blender object to which the current elfin object
+        PropertyGroup is associated with, preserving selection. 
+        """
+
+        # Cache user selection
+        selection = [o for o in bpy.context.selected_objects if o != obj]
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # Delete using default operator
+        obj.hide = False
+        obj.select = True
+        bpy.ops.object.delete(use_global=False)
+
+        if obj and obj.name in bpy.data.objects:
+            print('Object dirty exit:', obj.name)
+            # Remove it from bpy.data.objects because sometimes leftover
+            # refereneces can cause the object to remain.
+            bpy.data.objects.remove(obj)
+
+        # Restore selection
+        for ob in selection:
+            if ob: ob.select = True
+
+    def cleanup_network(self):
+        """Delete all children modules."""
+        # [!] Do not call destroy on children modules. It will cause infinite
+        # call loop.
+        for obj in self.obj_ptr.children:
+            self.delete_object(obj)
 
     def cleanup_bridge(self):
-        """Remove references of self object and also pointer to joints"""
+        """Remove references of self object and also pointer to joints."""
         for opw in self.pg_neighbours:
             if opw.obj:
                 rem_idx = -1
