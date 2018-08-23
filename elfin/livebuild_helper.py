@@ -173,9 +173,45 @@ def get_selected(n=1):
         else:
             return selection[:n]
     else:
-        return None
+        return []
 
 # Helpers ----------------------------------------
+
+def move_to_new_network(mod, new_network=None):
+    """Move all modules on the same network as mod under a new network parent
+    object.
+    """
+    if not new_network:
+        new_network = create_network()
+
+    # Gather all modules into a list and calculate COM
+    com = mathutils.Vector([0, 0, 0])
+    modules = []
+    for m in walk_network(mod):
+        modules.append(m)
+        com += m.location
+
+    com = com / len(modules)
+    new_network.location =  mod.parent.location + com
+    for m in modules:
+        m.parent = new_network
+        m.location -= com
+
+def create_network():
+    """Creates and returns a new arrow object as a network parent object, preserving
+    selection.
+    """
+    selection = get_selected(-1)
+    for s in selection: s.select = False
+
+    bpy.ops.object.empty_add(type='ARROWS')
+    nw = get_selected()
+    nw.select = False
+    nw.elfin.init_network(nw)
+
+    for s in selection:s.select = True
+
+    return nw
 
 def check_network_integrity(network):
     """Returns the network (list of modules) consists of a single network and
@@ -183,7 +219,7 @@ def check_network_integrity(network):
     the way they were found by elfin as elfin had placed them via extrusion.
     Network level transformations should not destroy well-formed-ness.
     """
-    ...
+    ... # Currently not needed
     return NotImplementedError
 
 def import_joint():
@@ -261,7 +297,6 @@ def extrude_terminus(which_term, selector, sel_mod, color):
         c_chain, ext_mod_name, n_chain = \
             selector.split('.')
         ext_mod = import_module(ext_mod_name)
-        ext_mod.parent = sel_mod.parent # Same network
         extrude_from = n_chain if which_term == 'n' else c_chain
         extrude_into = c_chain if which_term == 'n' else n_chain
 
@@ -274,6 +309,9 @@ def extrude_terminus(which_term, selector, sel_mod, color):
             from_chain=extrude_from))
 
         def touch_up_new_mod(sel_mod, new_mod, sel_mod_chain_id=extrude_from):
+            bpy.context.scene.update() # Udpate to get the correct matrices
+            new_mod.parent = sel_mod.parent # Same network
+
             give_module_new_color(new_mod, color)
             new_mod.hide = False # Unhide (default is hidden)
             if which_term == 'n':

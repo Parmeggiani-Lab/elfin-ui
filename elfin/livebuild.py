@@ -82,6 +82,14 @@ class SeverNetwork(bpy.types.Operator):
                     anl = mod_a.elfin.n_linkage
                     anl.remove(anl.find(nl.source_chain_id))
                     break
+
+        
+        # Move both sub-networks under new parents that has the correct COM
+        old_network = mod_a.parent
+        move_to_new_network(mod_a)
+        move_to_new_network(mod_b)
+        old_network.elfin.destroy()
+        
         return {'FINISHED'}
 
     @classmethod
@@ -571,9 +579,7 @@ class AddModule(bpy.types.Operator):
         lmod.hide = False # By default the obj is hidden
 
         # Create a new empty object as network parent
-        bpy.ops.object.empty_add(type='ARROWS')
-        network_parent = get_selected()
-        network_parent.elfin.init_network(network_parent)
+        network_parent = create_network()
         lmod.parent = network_parent
 
         # Select only the newly placed module
