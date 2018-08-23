@@ -89,7 +89,7 @@ class SeverNetwork(bpy.types.Operator):
         move_to_new_network(mod_a)
         move_to_new_network(mod_b)
         old_network.elfin.destroy()
-        
+
         return {'FINISHED'}
 
     @classmethod
@@ -279,10 +279,9 @@ class SelectNetwork(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        if get_selection_len() > 0:
-            for sm in get_selected(n=-1):
-                for o in walk_network(sm):
-                    o.select = True
+        for s in get_selected(-1):
+            s.select = False
+            s.parent.select = True
         return {'FINISHED'}
 
     @classmethod
