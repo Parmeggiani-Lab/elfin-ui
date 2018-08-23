@@ -192,7 +192,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
                 self.module_type = 'hub'
             else:
                 print('Warning: user is trying to link a module that is neither single or hub type')
-                single_a_name, single_b_name = mod_name.split['-']
+                single_a_name, single_b_name = mod_name.split('-')
                 double_xdata = xdb['double_data'].get(
                     single_a_name, {}).get(
                     single_b_name, None)

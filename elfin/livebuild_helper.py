@@ -665,35 +665,41 @@ def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
     return False
 
 def raise_frame(moving_mod, rel, fixed_mod=None):
-    rot = mathutils.Matrix(rel['rot'])
+    tx = get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+    moving_mod.matrix_world = tx * moving_mod.matrix_world
+
+def get_raise_frame_transform(rel_rot, rel_tran, fixed_mod=None):
+    rtp = []
+    rot = mathutils.Matrix(rel_rot)
     rot.transpose()
-    transform_object(
-        obj=moving_mod, 
-        rot=rot, 
-        tran_before=[-t/blender_pymol_unit_conversion for t in rel['tran']]
-    )
+    rtp.append((None, [-t/blender_pymol_unit_conversion for t in rel_tran]))
+    rtp.append((rot, None))
     # Equalize frame
     if fixed_mod != None:
-        transform_object(
-            obj=moving_mod, 
-            rot=fixed_mod.rotation_euler.to_matrix(),
-            tran_after=fixed_mod.location
-        )
+        rtp.append((fixed_mod.rotation_euler.to_matrix(), fixed_mod.location))
+    return stack_transforms(rtp)
 
 def drop_frame(moving_mod, rel, fixed_mod=None):
-    transform_object(
-        obj=moving_mod, 
-        rot=rel['rot'], 
-        tran_after=[t/blender_pymol_unit_conversion for t in rel['tran']]
-    )
+    tx = get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+    moving_mod.matrix_world = tx * moving_mod.matrix_world
+
+def get_drop_frame_transform(rel_rot, rel_tran, fixed_mod=None):
+    rtp = []
+    rtp.append((rel_rot, [t/blender_pymol_unit_conversion for t in rel_tran]))
     # Equalize frame
     if fixed_mod != None:
-        transform_object(
-            obj=moving_mod, 
-            rot=fixed_mod.rotation_euler.to_matrix(),
-            tran_after=fixed_mod.location
-        )
+        rtp.append((fixed_mod.rotation_euler.to_matrix(), fixed_mod.location))
+    return stack_transforms(rtp)
 
+def stack_transforms(rt_pairs):
+    tx = mathutils.Matrix()
+    for rt in rt_pairs:
+        if rt[0]: tx = mathutils.Matrix(rt[0]).to_4x4() * tx
+        if rt[1]: tx = mathutils.Matrix.Translation(rt[1]) * tx
+
+    return tx
+
+# Deprecated
 def transform_object(
         obj, 
         tran_before=[0,0,0],
@@ -752,12 +758,15 @@ def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=
     # Keep the selector format: n_chain, mod, c_chain
     if direction == 'c':
         mod_sel = '.'.join([extrude_from, mod_name, extrude_into])
+        display = ':{}(C) -> (N){}:{}.'.format(extrude_from, extrude_into, mod_name)
     elif direction == 'n':
         mod_sel = '.'.join([extrude_into, mod_name, extrude_from])
+        display = ':{}(N) -> (C){}:{}.'.format(extrude_from, extrude_into, mod_name)
     else:
         mod_sel = '.'.join(['', mod_name, ''])
+        display = mod_sel
 
-    return (mod_sel, mod_sel, '')
+    return (mod_sel, display, '')
 
 def import_module(mod_name):
     """Links a module object from library.blend. Supports all module types."""

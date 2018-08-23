@@ -39,27 +39,107 @@ class LivebuildPanel(bpy.types.Panel):
 class JoinNetworks(bpy.types.Operator):
     bl_idname = 'elfin.join_networks'
     bl_label = 'Join two compatible networks'
+    bl_property = "way_selector"
     bl_options = {'REGISTER', 'UNDO'}
 
+    @classmethod
+    def relevant_extrudables(cls, extrudables, mod_name):
+        res = []
+        for ext in extrudables:
+            if ext != color_change_placeholder_enum_tuple and \
+                ext[0].split('.')[1] == mod_name:
+                res.append(ext)
+        return res
+
+    def get_ways(self, context):
+        no_way = [empty_list_placeholder_enum_tuple]
+        if get_selection_len() != 2:
+            return no_way
+
+        # Check whether an extrusion is possible from mod_a to mod_b
+        mod_a, mod_b = get_selected(-1)
+        if context.active_object == mod_a:
+            mod_a, mod_b = mod_b, mod_a
+
+        a_mod_name = mod_a.elfin.module_name
+        b_mod_name = mod_b.elfin.module_name
+
+        # Don't allow pull-join on symmetric hubs (yet?)
+        xdb = get_xdb()
+        if mod_a.elfin.module_type == 'hub':
+            if xdb['hub_data'][a_mod_name]['symmetric']:
+                return no_way
+        if mod_b.elfin.module_type == 'hub':
+            if xdb['hub_data'][b_mod_name]['symmetric']:
+                return no_way
+
+        # Plan: get n/c extrudables for both modules, then find out the
+        # shared termini and let the user choose
+        LS = LivebuildState()
+        LS.update_extrudables(mod_a)
+        an_extrudables = JoinNetworks.relevant_extrudables(LS.n_extrudables, b_mod_name)
+        ac_extrudables = JoinNetworks.relevant_extrudables(LS.c_extrudables, b_mod_name)
+
+        if len(an_extrudables) == 0 and len(ac_extrudables) == 0: 
+            return no_way
+
+        LS.update_extrudables(mod_b)
+        bn_extrudables = JoinNetworks.relevant_extrudables(LS.n_extrudables, a_mod_name)
+        bc_extrudables = JoinNetworks.relevant_extrudables(LS.c_extrudables, a_mod_name)
+
+        an_chains = {ane[0].split('.')[2] for ane in an_extrudables}
+        ac_chains = {ace[0].split('.')[0] for ace in ac_extrudables}
+        bn_chains = {bne[0].split('.')[2] for bne in bn_extrudables}
+        bc_chains = {bce[0].split('.')[0] for bce in bc_extrudables}
+
+        ways = []
+        join_sign = ' <--> '
+
+        for an_ch in an_chains:
+            for bc_ch in bc_chains:
+                left = '.{}:{}({})'.format(mod_a.name, an_ch, 'N')
+                right = '({}){}:{}.'.format('C', bc_ch, mod_b.name)
+                an_bc = left + join_sign + right
+                selector = '.'.join([an_ch, bc_ch])
+                ways.append((selector, an_bc, ''))
+
+        for ac_ch in ac_chains:
+            for bn_ch in bn_chains:
+                left = '.{}:{}({})'.format(mod_a.name, ac_ch, 'C')
+                right = '({}){}:{}.'.format('N', bn_ch, mod_b.name)
+                ac_bn = left + join_sign + right
+                selector = '.'.join([bn_ch, ac_ch])
+                ways.append((selector, ac_bn, ''))
+
+        return ways if len(ways) > 0 else no_way
+
+    way_selector = bpy.props.EnumProperty(items=get_ways)
+
     def execute(self, context):
-        raise NotImplementedError
+        if not self.way_selector in nop_enum_selectors:
+            mod_a, mod_b = get_selected(-1)
+            if context.active_object == mod_a:
+                mod_a, mod_b = mod_b, mod_a
+
+            # Execute pull-join (a to b)
+            for mod in walk_network(mod_a):
+                mod.parent = None # All shift to origin automatically
+
+            # mod_a
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
         if get_selection_len() == 2:
-            # Check whether an extrusion is possible from mod_a to mod_b
-            mod_a, mod_b = get_selected(-1)
-
-            # Plan: get n/c extrudables for both modules, then find out the
-            # shared termini and let the user choose
-            LS = LivebuildState()
-            LS.update_extrudables(mod_a)
-
-            if len(LS.n_extrudables) > 0:
-                available_termini.append(('N', 'N', ''))
-            if len(LS.c_extrudables) > 0:
-                available_termini.append(('C', 'C', ''))
-
+            for s in get_selected(-1):
+                if not s.elfin.is_module(): 
+                    return False
+            else:
+                return True
         return False
 
 class SeverNetwork(bpy.types.Operator):
@@ -456,7 +536,7 @@ class ExtrudeModule(bpy.types.Operator):
         elif self.terminus_selector.lower() == 'c':
             return bpy.ops.elfin.extrude_cterm('INVOKE_DEFAULT')
         else:
-            raise ValueError('Unknown terminus selector')
+            raise ValueError('Unknown terminus selector:', self.terminus_selector)
             return {'CANCELLED'}
 
     def invoke(self, context, event):
@@ -582,6 +662,7 @@ class AddModule(bpy.types.Operator):
         lmod.parent = network_parent
 
         # Select only the newly placed module
+        for s in get_selected(-1): s.select = False
         lmod.select = True
 
         self.ask_prototype = True
