@@ -126,6 +126,25 @@ class JoinNetworks(bpy.types.Operator):
                 mod.parent = None # All shift to origin automatically
 
             # mod_a
+
+            # Single-Single example
+            # from elfin.livebuild_helper import *
+            # a = bpy.data.objects['D49_j1_D14']
+            # b = bpy.data.objects['D49']
+
+            # a.parent = None
+            # atran = -a.location
+            # arot = a.rotation_euler.to_matrix().to_4x4()
+
+            # a.location = [0, 0, 0]
+            # a.rotation_euler = [0, 0, 0]
+
+            # rel = get_xdb()['double_data'][b.elfin.module_name][a.elfin.module_name]
+            # tx = get_raise_frame_transform(rel['rot'], rel['tran'], b)
+
+            a.matrix_world = tx * a.matrix_world
+
+            a.parent = b.parent
         return {'FINISHED'}
 
     def invoke(self, context, event):

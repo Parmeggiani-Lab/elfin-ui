@@ -41,7 +41,7 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 ### TODO: Currently Working On:
  * Export to Elfin Core format
  	* Solve the network integrity problem
- 		* Support sever and join of networks.
+ 		* Support join of networks.
  * Documentation for all operators
 
 ### TODO: Must-Haves

@@ -299,6 +299,7 @@ def extrude_terminus(which_term, selector, sel_mod, color):
         ext_mod = import_module(ext_mod_name)
         extrude_from = n_chain if which_term == 'n' else c_chain
         extrude_into = c_chain if which_term == 'n' else n_chain
+        sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
 
         print(('Extruding module {to_mod} (chain {to_chain})'
             ' from {from_mod}\'s {terminus}-Term (chain {from_chain})').format(
@@ -308,104 +309,51 @@ def extrude_terminus(which_term, selector, sel_mod, color):
             terminus=which_term.upper(),
             from_chain=extrude_from))
 
-        def touch_up_new_mod(sel_mod, new_mod, sel_mod_chain_id=extrude_from):
-            bpy.context.scene.update() # Udpate to get the correct matrices
-            new_mod.parent = sel_mod.parent # Same network
+        def _extrude(fixed_mod, ext_mod, src_chain=extrude_from):
+            tx = get_tx(
+                fixed_mod, 
+                src_chain,
+                extrude_into,
+                ext_mod, 
+                which_term, 
+                sel_ext_type_pair
+                )
+            ext_mod.matrix_world = tx * ext_mod.matrix_world
 
-            give_module_new_color(new_mod, color)
-            new_mod.hide = False # Unhide (default is hidden)
+            # touch up
+            bpy.context.scene.update() # Udpate to get the correct matrices
+            ext_mod.parent = fixed_mod.parent # Same network
+
+            give_module_new_color(ext_mod, color)
+            ext_mod.hide = False # Unhide (default is hidden)
             if which_term == 'n':
-                sel_mod.elfin.new_n_link(sel_mod_chain_id, new_mod, extrude_into)
-                new_mod.elfin.new_c_link(extrude_into, sel_mod, sel_mod_chain_id)
+                fixed_mod.elfin.new_n_link(src_chain, ext_mod, extrude_into)
+                ext_mod.elfin.new_c_link(extrude_into, fixed_mod, src_chain)
             else:
-                sel_mod.elfin.new_c_link(sel_mod_chain_id, new_mod, extrude_into)
-                new_mod.elfin.new_n_link(extrude_into, sel_mod, sel_mod_chain_id)
-            new_mod.select = True
+                fixed_mod.elfin.new_c_link(src_chain, ext_mod, extrude_into)
+                ext_mod.elfin.new_n_link(extrude_into, fixed_mod, src_chain)
+            ext_mod.select = True
+
+            return [ext_mod] # for mirror linking
+
 
         xdb = get_xdb()
-        sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
-        if sel_ext_type_pair == ('single', 'single'):
-            #
-            # Extrude from single to single.
-            #
-            def extrude_single_single(sel_mod, new_mod):
-                if which_term == 'n':
-                    single_a_name, single_b_name = ext_mod_name, sel_mod_name
-                    transform_func = drop_frame
-                else:
-                    single_a_name, single_b_name = sel_mod_name, ext_mod_name
-                    transform_func = raise_frame
-
-                rel = xdb['double_data'][single_a_name][single_b_name]
-                transform_func(new_mod, rel, fixed_mod=sel_mod)
-                touch_up_new_mod(sel_mod, new_mod)
-                return [new_mod]
-
-            extrude_single_single(sel_mod, ext_mod)
+        if sel_ext_type_pair in {('single', 'single'), ('single', 'hub')}:
+            _extrude(sel_mod, ext_mod)
 
             if sel_mod.elfin.mirrors:
                 create_module_mirrors(
                     sel_mod, 
                     [ext_mod], 
                     ext_mod_name, 
-                    extrude_single_single)
-        elif sel_ext_type_pair == ('single', 'hub'):
-            #
-            # Extrude from single to hub.
-            #
-            def extrude_single_hub(sel_mod, new_mod):
-                chain_xdata = xdb \
-                    ['hub_data'][ext_mod_name]\
-                    ['component_data'][extrude_into]
-                if which_term == 'n':
-                    rel = chain_xdata['c_connections'][sel_mod_name]
-                    # First drop to hub component frame
-                    drop_frame(new_mod, rel)
-                    rel = xdb['double_data'] \
-                        [chain_xdata['single_name']][sel_mod_name]
-                    # Second drop to double B frame
-                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
-                else:
-                    rel = chain_xdata['n_connections'][sel_mod_name]
-                    drop_frame(new_mod, rel, fixed_mod=sel_mod)
-
-                touch_up_new_mod(sel_mod, new_mod)
-                return [new_mod]
-
-            extrude_single_hub(sel_mod, ext_mod)
-
-            if sel_mod.elfin.mirrors:
-                create_module_mirrors(
-                    sel_mod,
-                    [ext_mod],
-                    ext_mod_name,
-                    extrude_single_hub
-                    )
+                    _extrude)
         elif sel_ext_type_pair == ('hub', 'single'):
             #
             # Extrude from hub to single.
             #
             hub_xdata = xdb['hub_data'][sel_mod_name]
-            comp_xdata = hub_xdata['component_data']
-            def extrude_single_at_chain(sel_mod, new_mod, src_chain_id):
-                chain_xdata = comp_xdata[src_chain_id]
-                if which_term == 'n':
-                    rel = chain_xdata['n_connections'][ext_mod_name]
-                    raise_frame(new_mod, rel, fixed_mod=sel_mod)
-                else:
-                    # First raise to double B frame
-                    rel = xdb['double_data'] \
-                        [chain_xdata['single_name']][ext_mod_name]
-                    raise_frame(new_mod, rel)
-
-                    # Second raise to hub component frame
-                    rel = chain_xdata['c_connections'][ext_mod_name]
-                    raise_frame(new_mod, rel, fixed_mod=sel_mod)
-
-                touch_up_new_mod(sel_mod, new_mod, src_chain_id)
-
             def extrude_hub_single(sel_mod, new_mod):
-                extrude_single_at_chain(sel_mod, new_mod, extrude_from)
+                _extrude(sel_mod, new_mod, src_chain=extrude_from)
 
                 if hub_xdata['symmetric']:
                     # Calculate non-occupied chain IDs
@@ -420,7 +368,7 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                     for src_chain_id in hub_free_chains:
                         mirror_mod = import_module(ext_mod_name)
                         mirror_mod.parent = sel_mod.parent # Same network
-                        extrude_single_at_chain(sel_mod, mirror_mod, src_chain_id)
+                        _extrude(sel_mod, mirror_mod, src_chain_id)
                         mirrors.append(mirror_mod)
 
                     for m in mirrors:
@@ -546,6 +494,67 @@ def get_extrusion_prototype_list(sel_mod, which_term):
 
     # Remove color change placeholder if nothing can be extruded
     return enum_tuples if len(enum_tuples) > 1 else []
+
+def get_tx(
+    fixed_mod, 
+    extrude_from,
+    extrude_into,
+    ext_mod, 
+    which_term, 
+    rel_type
+    ):
+    """Returns the transformation matrix for when ext_mod is extruded from
+    fixed_mod's which_term.
+    """
+    assert which_term in {'n', 'c'}
+
+    fixed_mod_name = fixed_mod.elfin.module_name
+    ext_mod_name = ext_mod.elfin.module_name
+    xdb = get_xdb()
+
+    if rel_type == ('single', 'single'):
+
+        if which_term == 'n':
+            rel = xdb['double_data'][ext_mod_name][fixed_mod_name]
+            return get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+        else:
+            rel = xdb['double_data'][fixed_mod_name][ext_mod_name]
+            return get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+
+    elif rel_type == ('single', 'hub'):
+
+        chain_xdata = xdb['hub_data'][ext_mod_name]['component_data'][extrude_into]
+        if which_term == 'n':
+            rel = chain_xdata['c_connections'][fixed_mod_name]
+            # First drop to hub component frame
+            tx1 = get_drop_frame_transform(rel['rot'], rel['tran'])
+
+            rel = xdb['double_data'][chain_xdata['single_name']][fixed_mod_name]
+            # Second drop to double B frame
+            tx2 = get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+
+            return tx2 * tx1
+        else:
+            rel = chain_xdata['n_connections'][fixed_mod_name]
+            return get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+
+    elif rel_type == ('hub', 'single'):
+
+        chain_xdata = xdb['hub_data'][fixed_mod_name]['component_data'][extrude_from]
+        if which_term == 'n':
+            rel = chain_xdata['n_connections'][ext_mod_name]
+            return get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+        else:
+            # First raise to double B frame
+            rel = xdb['double_data'] \
+                [chain_xdata['single_name']][ext_mod_name]
+            tx1 = get_raise_frame_transform(rel['rot'], rel['tran'])
+
+            # Second raise to hub component frame
+            rel = chain_xdata['c_connections'][ext_mod_name]
+            tx2 = get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+
+            return tx2 * tx1
 
 def unlink_mirror(modules=None):
     mods = modules[:] if modules else bpy.context.selected_objects[:]
