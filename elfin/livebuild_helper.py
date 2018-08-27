@@ -673,10 +673,6 @@ def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
 
     return False
 
-def raise_frame(moving_mod, rel, fixed_mod=None):
-    tx = get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
-    moving_mod.matrix_world = tx * moving_mod.matrix_world
-
 def get_raise_frame_transform(rel_rot, rel_tran, fixed_mod=None):
     rtp = []
     rot = mathutils.Matrix(rel_rot)
@@ -687,10 +683,6 @@ def get_raise_frame_transform(rel_rot, rel_tran, fixed_mod=None):
     if fixed_mod != None:
         rtp.append((fixed_mod.rotation_euler.to_matrix(), fixed_mod.location))
     return stack_transforms(rtp)
-
-def drop_frame(moving_mod, rel, fixed_mod=None):
-    tx = get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
-    moving_mod.matrix_world = tx * moving_mod.matrix_world
 
 def get_drop_frame_transform(rel_rot, rel_tran, fixed_mod=None):
     rtp = []

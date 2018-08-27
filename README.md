@@ -40,15 +40,9 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ### TODO: Currently Working On:
  * Export to Elfin Core format
- 	* Solve the network integrity problem
- 		* Support join of networks.
  * Documentation for all operators
 
 ### TODO: Must-Haves
- * `Join Network`: join two networks by pulling first selected module, including its network,  to the second module's connecting interface.
-	 1. Check compatibility
-	 2. Then do a frame re-shift for all objs in first network based on the selected module
-	 * Allow pull-join having one side being symmetric core?
 
 ### TODO: Nice-to-Haves
  * Confirm deletion caused by collision
@@ -82,4 +76,4 @@ After you've downloaded Blender, run it and go to `File` > `User Preferences` an
 
 Next, refer to:
 
-### [Tutorial With GIFs](resources/images/tutorial/README.md)
+### [Tutorial With GIFs](resources/tutorial/README.md)

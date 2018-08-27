@@ -52,11 +52,12 @@ class JoinNetworks(bpy.types.Operator):
         return res
 
     def get_ways(self, context):
+        # Check whether an extrusion is possible from mod_a to mod_b
         no_way = [empty_list_placeholder_enum_tuple]
         if get_selection_len() != 2:
             return no_way
 
-        # Check whether an extrusion is possible from mod_a to mod_b
+        # mod_b is always the fixed module
         mod_a, mod_b = get_selected(-1)
         if context.active_object == mod_a:
             mod_a, mod_b = mod_b, mod_a
@@ -95,12 +96,14 @@ class JoinNetworks(bpy.types.Operator):
         ways = []
         join_sign = ' <--> '
 
+        # selector format:
+        # moving_mod_chain.fixed_mod_chain.which_term_of_fixed_mod
         for an_ch in an_chains:
             for bc_ch in bc_chains:
                 left = '.{}:{}({})'.format(mod_a.name, an_ch, 'N')
                 right = '({}){}:{}.'.format('C', bc_ch, mod_b.name)
                 an_bc = left + join_sign + right
-                selector = '.'.join([an_ch, bc_ch])
+                selector = '.'.join([an_ch, bc_ch, 'c'])
                 ways.append((selector, an_bc, ''))
 
         for ac_ch in ac_chains:
@@ -108,7 +111,7 @@ class JoinNetworks(bpy.types.Operator):
                 left = '.{}:{}({})'.format(mod_a.name, ac_ch, 'C')
                 right = '({}){}:{}.'.format('N', bn_ch, mod_b.name)
                 ac_bn = left + join_sign + right
-                selector = '.'.join([bn_ch, ac_ch])
+                selector = '.'.join([ac_ch, bn_ch, 'n'])
                 ways.append((selector, ac_bn, ''))
 
         return ways if len(ways) > 0 else no_way
@@ -117,34 +120,45 @@ class JoinNetworks(bpy.types.Operator):
 
     def execute(self, context):
         if not self.way_selector in nop_enum_selectors:
+            # Execute pull-join (a to b)
             mod_a, mod_b = get_selected(-1)
             if context.active_object == mod_a:
                 mod_a, mod_b = mod_b, mod_a
 
-            # Execute pull-join (a to b)
+            moving_mod_chain, fixed_mod_chain, which_term = \
+                self.way_selector.split('.')
+
+            old_network = mod_a.parent
+            a_network_mods = []
             for mod in walk_network(mod_a):
-                mod.parent = None # All shift to origin automatically
+                mod.parent = None # reset origin
+                a_network_mods.append(mod)
 
-            # mod_a
+            a_offset = mathutils.Matrix.Translation(-mod_a.location)
+            a_rot = mod_a.rotation_euler.to_matrix().to_4x4()
+            a_tx = a_rot * a_offset
 
-            # Single-Single example
-            # from elfin.livebuild_helper import *
-            # a = bpy.data.objects['D49_j1_D14']
-            # b = bpy.data.objects['D49']
+            mod_a.location = mod_a.rotation_euler = [0, 0, 0]
+            context.scene.update() # mandatory update to reflect the loc/roc settings
 
-            # a.parent = None
-            # atran = -a.location
-            # arot = a.rotation_euler.to_matrix().to_4x4()
+            rel_type = (mod_b.elfin.module_type, mod_a.elfin.module_type)
+            tx = get_tx(
+                fixed_mod=mod_b, 
+                extrude_from=fixed_mod_chain,
+                extrude_into=moving_mod_chain,
+                ext_mod=mod_a, 
+                which_term=which_term, 
+                rel_type=rel_type
+                )
 
-            # a.location = [0, 0, 0]
-            # a.rotation_euler = [0, 0, 0]
+            for mod in a_network_mods:
+                if mod == mod_a:
+                    mod.matrix_world = tx * mod.matrix_world
+                else:
+                    mod.matrix_world = tx * a_tx * mod.matrix_world
+                mod.parent = mod_b.parent
 
-            # rel = get_xdb()['double_data'][b.elfin.module_name][a.elfin.module_name]
-            # tx = get_raise_frame_transform(rel['rot'], rel['tran'], b)
-
-            a.matrix_world = tx * a.matrix_world
-
-            a.parent = b.parent
+            old_network.elfin.destroy()
         return {'FINISHED'}
 
     def invoke(self, context, event):
