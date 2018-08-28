@@ -17,11 +17,11 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 
 ## Development Notes:
  * Module networks:
- 	* Each network contains a group of connected modules. A network might have multiple chains, but no "floatin" parts. All modules in a network transform together.
+ 	* Each network contains a group of connected modules. A network might have multiple chains, but no floating/loose parts. All modules in a network transform together.
  	* Each time a module is added (via `Add Module`), a new network will be automatically created as the parent object of the new module. 
- 	* Networks can be joined or severed (one split into two, via `Sever Network`). 
- 	* The user is forbidden from transforming individual modules (even though still possible if the user insists on doing so, which will break assumptions in elfin). 
- 	* The user must select the parent "network" object (displayed as axes arrows), and apply the desired transformation.
+ 	* Networks can be joined or severed (via `Sever Network` and `Join Network`). 
+ 	* In order to preserve network integrity, elfin-ui forbids the transforming of individual modules (even though still possible if the user insists on doing so, which will break assumptions in elfin). 
+ 	* The user must select the parent "network" object (displayed as axes arrows), and apply the desired transformation. The `Select Network` operator exists for this purpose.
  
  * Symmetric hubs
  	* There are only two symmetric hubs in the database right now. 
@@ -36,11 +36,10 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then apply `Select Mirror Links`.
 
 ### Known Bugs:
- * Sometimes the deletion cleanup is not called. Not sure of the cause yet, but can be alleviated by <kbd>ctrl</kbd>+<kbd>z</kbd> then re-deleting.
+ * Sometimes the deletion cleanup is not called. Not sure of the cause yet, but can be alleviated by <kbd>ctrl</kbd>+<kbd>z</kbd> then re-deleting. Probably due to the watcher being flaky.
 
 ### TODO: Currently Working On:
  * Export to Elfin Core format
- * Documentation for all operators
 
 ### TODO: Must-Haves
 
