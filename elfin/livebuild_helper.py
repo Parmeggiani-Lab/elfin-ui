@@ -225,7 +225,7 @@ def create_network(network_type):
     nw.select = False
     nw.elfin.init_network(nw, network_type)
 
-    for s in selection:s.select = True
+    for s in selection: s.select = True
 
     return nw
 
@@ -277,45 +277,51 @@ def import_bridge(joint_a, joint_b):
 def module_menu(self, context): 
     self.layout.menu("INFO_MT_elfin_add", icon="PLUGIN")
 
-def walk_pg_network(joint, prev_joint=None):
+def walk_pg_network(joint, initial=True):
     """A generator that traverses the path guide network depth-first and
     yields each object on the way, without repeating.
     """
     if not joint.elfin.is_joint():
         return
 
+    if initial:
+        for pg in joint.parent.children:
+            pg.elfin.node_walked = False
+
     yield joint
+    joint.elfin.node_walked = True
 
     for bridge_nb in joint.elfin.pg_neighbours:
         bridge = bridge_nb.obj
         for other_end_nb in bridge.elfin.pg_neighbours:
             other_end = other_end_nb.obj
-            if other_end == joint or other_end == prev_joint:
-                continue
-            yield from walk_pg_network(other_end, joint)
+            if not other_end.elfin.node_walked:
+                yield from walk_pg_network(other_end, initial=False)
 
-def walk_network(module_obj, entering_chain=None, entering_side=None):
+def walk_network(module, initial=True):
     """A generator that traverses the module network depth-first and yields
     each object on the way, without repeating.
     """
 
-    yield module_obj
+    if not module.elfin.is_module():
+        return
+
+    if initial:
+        for pg in module.parent.children:
+            pg.elfin.node_walked = False
+
+    yield module
+    module.elfin.node_walked = True
 
     # Walk n-terminus first
-    for n_obj in module_obj.elfin.n_linkage:
-        if not (entering_side == 'c' and entering_chain == n_obj.source_chain_id):
-            yield from walk_network(
-                module_obj=n_obj.target_mod, 
-                entering_chain=n_obj.target_chain_id,
-                entering_side='n')
+    for n_obj in module.elfin.n_linkage:
+        if not n_obj.target_mod.elfin.node_walked:
+            yield from walk_network(module=n_obj.target_mod, initial=False)
 
     # Then c-terminus
-    for c_obj in module_obj.elfin.c_linkage:
-        if not (entering_side == 'n' and entering_chain == c_obj.source_chain_id):
-            yield from walk_network(
-                module_obj=c_obj.target_mod, 
-                entering_chain=c_obj.target_chain_id,
-                entering_side='c')
+    for c_obj in module.elfin.c_linkage:
+        if not c_obj.target_mod.elfin.node_walked:
+            yield from walk_network(module=c_obj.target_mod, initial=False)
 
 def extrude_terminus(which_term, selector, sel_mod, color):
     """Extrudes selector module at the which_term of sel_mod"""

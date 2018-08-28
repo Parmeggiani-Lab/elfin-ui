@@ -39,6 +39,8 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     n_linkage = bpy.props.CollectionProperty(type=Linkage)
     pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
+    node_walked = bpy.props.BoolProperty(default=False)
+
     def is_module(self):
         return self.obj_type == ElfinObjType.MODULE.value
 
