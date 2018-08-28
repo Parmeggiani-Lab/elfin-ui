@@ -274,13 +274,14 @@ class ExtrudeJoint(bpy.types.Operator):
         self.joints = []
         for joint_a in get_selected(-1):
             joint_b = import_joint()
+            joint_b.parent = joint_a.parent
             bridge = import_bridge(joint_a, joint_b)
+            joint_b.location = [0,5,0]
 
             self.joints.append(
                 (
                     joint_a,
-                    joint_b,
-                    joint_b.location.copy()
+                    joint_b
                 )
             )
 
@@ -291,14 +292,15 @@ class ExtrudeJoint(bpy.types.Operator):
 
         mouse_offset = self.mouse
 
-        #The direction indicated by the mouse position from the current view
+        # The direction indicated by the mouse position from the current view
         view_vector = view3d_utils.region_2d_to_vector_3d(region, region3D, mouse_offset)
-        #The 3D location in this direction
+        # The 3D location in this direction
         offset = view3d_utils.region_2d_to_location_3d(region, region3D, mouse_offset, view_vector)
 
-        mw = self.joints[0][0].matrix_local.inverted()
-        for ja, jb, _ in self.joints:
-            jb.location = ja.location + mw * offset
+        mw = self.joints[0][0].matrix_world.inverted()
+        mouse_offset_from_first_ja = mw * offset
+        for ja, jb in self.joints:
+            jb.location = ja.location + mouse_offset_from_first_ja
 
         return {'FINISHED'}
 
@@ -308,25 +310,19 @@ class ExtrudeJoint(bpy.types.Operator):
             self.mouse = (event.mouse_region_x, event.mouse_region_y)
             self.execute(context)
         elif event.type == 'LEFTMOUSE':
-            done = True
-        elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            for ja, jb, jb_init_loc in self.joints:
-                jb.elfin.destroy() # Don't leave this joint staced on ja
-                # jb.location = mathutils.Vector(jb_init_loc)
-            done = True
-
-        if done:
             for s in get_selected(-1): 
                 s.select = False
-            for ja, jb, _ in self.joints: 
+            for ja, jb in self.joints: 
                 ja.select, jb.select = False, True
-                mw = jb.matrix_world.copy()
-                jb.parent = ja.parent
-                jb.matrix_world = mw
             self.joints = []
             return {'FINISHED'}
-        else:
-            return {'RUNNING_MODAL'}
+        elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            for _, jb in self.joints:
+                # Don't leave joints stacked on ja
+                jb.elfin.destroy()
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
         self.extrude()
