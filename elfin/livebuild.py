@@ -311,7 +311,8 @@ class ExtrudeJoint(bpy.types.Operator):
             done = True
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             for ja, jb, jb_init_loc in self.joints:
-                jb.location = mathutils.Vector(jb_init_loc)
+                jb.elfin.destroy() # Don't leave this joint staced on ja
+                # jb.location = mathutils.Vector(jb_init_loc)
             done = True
 
         if done:
@@ -319,6 +320,9 @@ class ExtrudeJoint(bpy.types.Operator):
                 s.select = False
             for ja, jb, _ in self.joints: 
                 ja.select, jb.select = False, True
+                mw = jb.matrix_world.copy()
+                jb.parent = ja.parent
+                jb.matrix_world = mw
             self.joints = []
             return {'FINISHED'}
         else:

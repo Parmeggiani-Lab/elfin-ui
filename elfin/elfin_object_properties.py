@@ -59,6 +59,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         associated object.
         """
 
+        print('Destroy', self.obj_ptr)
         if self.is_module():
             self.cleanup_module()
         elif self.is_joint():
@@ -74,7 +75,8 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         # If this is the last object in the network, the network will be
         # deleted instead.
-        if self.obj_ptr.parent and len(self.obj_ptr.parent.children) == 1:
+        if self.obj_ptr.parent and self.obj_ptr.parent.elfin.is_network() and \
+            len(self.obj_ptr.parent.children) == 1:
             self.obj_ptr.parent.elfin.destroy()
         else:
             self.delete_object(self.obj_ptr)
