@@ -19,7 +19,7 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
  * Module networks:
  	* Each network contains a group of connected modules. A network might have multiple chains, but no floating/loose parts. All modules in a network transform together.
  	* Each time a module is added (via `Add Module`), a new network will be automatically created as the parent object of the new module. 
- 	* Networks can be joined or severed (via `Sever Network` and `Join Network`). 
+ 	* Networks can be joined or severed (via `Sever Network` and `Join Network`). Deleting a module automatically severs the network on its two termini (elfin-ui assumes no loops). 
  	* In order to preserve network integrity, elfin-ui forbids the transforming of individual modules (even though still possible if the user insists on doing so, which will break assumptions in elfin). 
  	* The user must select the parent "network" object (displayed as axes arrows), and apply the desired transformation. The `Select Network` operator exists for this purpose.
  

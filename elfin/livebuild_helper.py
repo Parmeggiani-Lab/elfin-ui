@@ -177,29 +177,41 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
-def move_to_new_network(mod, network_type):
-    """Move all modules on the same network as mod under a new network parent
+def move_to_new_network(mod, existing_network=None):
+    """Move all modules or pguides on the same network as mod under a new network parent
     object.
     """
-    new_network = create_network(network_type)
+    old_network = mod.parent
+    if old_network.elfin.is_network():
+        network_type = 'module'
+    elif old_network.elfin.is_pg_network():
+        network_type = 'pguide'
+    else:
+        print('Invalid object passed to move_to_new_network():', mod)
+        return
 
-    # Gather all modules into a list and calculate COM
+    new_network = existing_network if existing_network else create_network(network_type)
+
+    # Gather all network objects into a list and calculate COM
     com = mathutils.Vector([0, 0, 0])
-    modules = []
+    network_obj = []
 
     walker = walk_network if network_type == 'module' else walk_pg_network
     for m in walker(mod):
-        modules.append(m)
+        network_obj.append(m)
         com += m.matrix_world.translation
 
-    com = com / len(modules)
+    com = com / len(network_obj)
     new_network.location = com
     new_network.rotation_euler = mod.parent.rotation_euler.copy()
     bpy.context.scene.update() # Mandatory update to reflect new parent transform
-    for m in modules:
+    for m in network_obj:
         mw = m.matrix_world.copy()
         m.parent = new_network
         m.matrix_world = mw
+
+    if not old_network.children:
+        old_network.elfin.destroy()
 
 def create_network(network_type):
     """Creates and returns a new arrow object as a network parent object, preserving
@@ -280,7 +292,6 @@ def walk_pg_network(joint, prev_joint=None):
             other_end = other_end_nb.obj
             if other_end == joint or other_end == prev_joint:
                 continue
-            yield bridge
             yield from walk_pg_network(other_end, joint)
 
 def walk_network(module_obj, entering_chain=None, entering_side=None):

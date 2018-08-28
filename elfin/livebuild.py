@@ -199,8 +199,8 @@ class SeverNetwork(bpy.types.Operator):
         
         # Move both sub-networks under new parents that has the correct COM
         old_network = mod_a.parent
-        move_to_new_network(mod_a, 'module')
-        move_to_new_network(mod_b, 'module')
+        move_to_new_network(mod_a)
+        move_to_new_network(mod_b)
         old_network.elfin.destroy()
 
         return {'FINISHED'}
@@ -253,6 +253,12 @@ class AddBridge(bpy.types.Operator):
         # Always make bridge parent of non active selection (second joint)
         if joint_a == context.active_object:
             joint_a, joint_b = joint_b, joint_a
+
+        for pg in walk_pg_network(joint_a):
+            mw = pg.matrix_world.copy()
+            pg.parent = joint_b.parent
+            pg.matrix_world = mw
+
         bridge = import_bridge(joint_a, joint_b)
         return {'FINISHED'}
 
@@ -285,6 +291,10 @@ class ExtrudeJoint(bpy.types.Operator):
                 )
             )
 
+    def clean_up(self):
+        self.joints = []
+        self.active_joint = None
+
     def execute(self, context):
         #Contextual active object, 2D and 3D regions
         region = bpy.context.region
@@ -297,7 +307,7 @@ class ExtrudeJoint(bpy.types.Operator):
         # The 3D location in this direction
         offset = view3d_utils.region_2d_to_location_3d(region, region3D, mouse_offset, view_vector)
 
-        mw = self.joints[0][0].matrix_world.inverted()
+        mw = self.active_joint.matrix_world.inverted()
         mouse_offset_from_first_ja = mw * offset
         for ja, jb in self.joints:
             jb.location = ja.location + mouse_offset_from_first_ja
@@ -306,6 +316,7 @@ class ExtrudeJoint(bpy.types.Operator):
 
     def modal(self, context, event):
         done = False
+        ret = None
         if event.type == 'MOUSEMOVE':
             self.mouse = (event.mouse_region_x, event.mouse_region_y)
             self.execute(context)
@@ -314,20 +325,23 @@ class ExtrudeJoint(bpy.types.Operator):
                 s.select = False
             for ja, jb in self.joints: 
                 ja.select, jb.select = False, True
-            self.joints = []
-            return {'FINISHED'}
+            ret = {'FINISHED'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             for _, jb in self.joints:
                 # Don't leave joints stacked on ja
                 jb.elfin.destroy()
-            return {'CANCELLED'}
+            ret = {'CANCELLED'}
 
-        return {'RUNNING_MODAL'}
+        if ret:
+            self.clean_up()
+            return ret
+        else:
+            return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
         self.extrude()
         self.mouse_origin = (event.mouse_region_x, event.mouse_region_y)
-
+        self.active_joint =  bpy.context.active_object
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
