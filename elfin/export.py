@@ -26,13 +26,14 @@ class ExportOperator(bpy.types.Operator):
         """Export to a json that fully specifies network and path guide
         details.
 
-        The addon should be able to read from this JSON and recreate and
+        The addon should be able to read from this JSON and recreate the
         entire design.
         """
 
         # Should we just export the selection?
-        # objs = bpy.data.object
-
+        # For now let's do entire scene
+        networks = [obj for obj in context.scene.objects if obj.elfin.is_network()]
+        
         # Separate modules and pguides
 
 

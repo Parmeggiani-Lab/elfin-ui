@@ -177,27 +177,29 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
-def move_to_new_network(mod, new_network=None):
+def move_to_new_network(mod):
     """Move all modules on the same network as mod under a new network parent
     object.
     """
-    if not new_network:
-        new_network = create_network()
+    new_network = create_network('module')
 
     # Gather all modules into a list and calculate COM
     com = mathutils.Vector([0, 0, 0])
     modules = []
     for m in walk_network(mod):
         modules.append(m)
-        com += m.location
+        com += m.matrix_world.translation
 
     com = com / len(modules)
-    new_network.location =  mod.parent.location + com
+    new_network.location = com
+    new_network.rotation_euler = mod.parent.rotation_euler.copy()
+    bpy.context.scene.update() # Mandatory update to reflect new parent transform
     for m in modules:
+        mw = m.matrix_world.copy()
         m.parent = new_network
-        m.location -= com
+        m.matrix_world = mw
 
-def create_network():
+def create_network(network_type):
     """Creates and returns a new arrow object as a network parent object, preserving
     selection.
     """
@@ -207,7 +209,7 @@ def create_network():
     bpy.ops.object.empty_add(type='ARROWS')
     nw = get_selected()
     nw.select = False
-    nw.elfin.init_network(nw)
+    nw.elfin.init_network(nw, network_type)
 
     for s in selection:s.select = True
 

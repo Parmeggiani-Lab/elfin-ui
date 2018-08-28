@@ -2,10 +2,9 @@ import enum
 
 import bpy
 import mathutils
-from . import livebuild_helper as LH
-# from .livebuild_helper import LivebuildState
+from . import livebuild_helper as lh
 
-ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK')
+ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK PG_NETWORK')
 
 class Linkage(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
@@ -49,6 +48,12 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     def is_bridge(self):
         return self.obj_type == ElfinObjType.BRIDGE.value
 
+    def is_network(self):
+        return self.obj_type == ElfinObjType.NETWORK.value
+
+    def is_pg_network(self):
+        return self.obj_type == ElfinObjType.PG_NETWORK.value
+
     def destroy(self):
         """Clean up elfin data of this object, then call delete on the
         associated object.
@@ -60,7 +65,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             self.cleanup_joint()
         elif self.is_bridge():
             self.cleanup_bridge()
-        elif self.obj_type == ElfinObjType.NETWORK.value:
+        elif self.is_network() or self.is_pg_network():
             self.cleanup_network()
         else:
             return # No obj_ptr to delete
@@ -125,6 +130,15 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             self.pg_neighbours[0].obj.elfin.destroy()
 
     def cleanup_module(self):
+        # Preserve neighbour nodes
+        neighbours = {}
+        for lk in self.c_linkage:
+            if lk.target_mod:
+                neighbours[lk.target_mod.name] = lk.target_mod
+        for lk in self.n_linkage:
+            if lk.target_mod:
+                neighbours[lk.target_mod.name] = lk.target_mod
+        old_network = self.obj_ptr.parent
         self.sever_links()
 
         # Destroy mirrors
@@ -133,10 +147,26 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
                 m.elfin.mirrors = []
                 m.elfin.destroy()
 
-    def init_network(self, obj):
+        # Separate networks
+        while neighbours:
+            name, nb = neighbours.popitem()
+
+            # Could become None is some weird situations, such as a deleted mirrors, etc.
+            if nb and nb.parent == old_network:
+                lh.move_to_new_network(nb)
+                print('Moved',nb)
+
+
+    def init_network(self, obj, network_type):
+        assert network_type in {'module', 'pguide'}
+        is_module_network = network_type == 'module'
+
         self.obj_ptr = obj
-        self.obj_type = ElfinObjType.NETWORK.value
-        obj.name = 'network'
+        self.obj_type = \
+            ElfinObjType.NETWORK.value \
+            if is_module_network else \
+            ElfinObjType.PG_NETWORK.value
+        obj.name = 'network' if is_module_network else 'pg_network'
 
         # Want to shift focus to new module, not network
         obj.select = False
@@ -182,7 +212,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         self.obj_ptr = obj
         self.module_name = mod_name
 
-        xdb = LH.LivebuildState().xdb
+        xdb = lh.LivebuildState().xdb
         single_xdata = xdb['single_data'].get(mod_name, None)
         if single_xdata:
             self.module_type = 'single'

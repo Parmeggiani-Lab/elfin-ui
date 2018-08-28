@@ -349,10 +349,21 @@ class AddJoint(bpy.types.Operator):
     def execute(self, context):
         loc = [0, 0, 0]
         if get_selection_len() > 0:
-            loc = get_selected().location
+            first_sel = get_selected()
+            loc = first_sel.location
+            if first_sel.elfin.is_module():
+                p = first_sel.parent
+                if not p:
+                    self.report({'ERROR'}, {'Selected module has no network parent.'})
+                    return {'CANCELLED'}
+                ploc = p.location
+                loc = ploc + (p.rotation_euler.to_matrix().to_4x4() * mathutils.Matrix.Translation(loc)).translation
         
+        network = create_network('pguide')
         joint = import_joint()
-        joint.location = loc
+        joint.parent = network
+
+        network.location = loc
 
         if get_selection_len() > 0:
             for s in get_selected(-1):
@@ -691,7 +702,7 @@ class AddModule(bpy.types.Operator):
         lmod.hide = False # By default the obj is hidden
 
         # Create a new empty object as network parent
-        network_parent = create_network()
+        network_parent = create_network('module')
         lmod.parent = network_parent
 
         # Select only the newly placed module
