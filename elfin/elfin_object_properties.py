@@ -128,11 +128,28 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
     def cleanup_joint(self):
         """Delete connected bridges"""
+        # Preserve neighbour joints for pg-network separation
+        nb_joints = {}
+        for bridge_nb in self.pg_neighbours:
+            bridge = bridge_nb.obj
+            for other_end_nb in bridge.elfin.pg_neighbours:
+                other_end = other_end_nb.obj
+                if other_end != self.obj_ptr:
+                    nb_joints[other_end] = other_end
+                    break # Each bridge only has 2 ends
+
         while len(self.pg_neighbours) > 0:
             self.pg_neighbours[0].obj.elfin.destroy()
 
+        # Separate pg-networks
+        while nb_joints:
+            name, joint = nb_joints.popitem()
+
+            lh.move_to_new_network(joint, 'pguide')
+
+
     def cleanup_module(self):
-        # Preserve neighbour nodes
+        # Preserve neighbours for network separation
         neighbours = {}
         for lk in self.c_linkage:
             if lk.target_mod:
@@ -151,12 +168,11 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         # Separate networks
         while neighbours:
-            name, nb = neighbours.popitem()
+            name, mod = neighbours.popitem()
 
             # Could become None is some weird situations, such as a deleted mirrors, etc.
-            if nb and nb.parent == old_network:
-                lh.move_to_new_network(nb)
-                print('Moved',nb)
+            if mod and mod.parent == old_network:
+                lh.move_to_new_network(mod, 'module')
 
 
     def init_network(self, obj, network_type):

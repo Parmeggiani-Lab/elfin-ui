@@ -177,16 +177,18 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
-def move_to_new_network(mod):
+def move_to_new_network(mod, network_type):
     """Move all modules on the same network as mod under a new network parent
     object.
     """
-    new_network = create_network('module')
+    new_network = create_network(network_type)
 
     # Gather all modules into a list and calculate COM
     com = mathutils.Vector([0, 0, 0])
     modules = []
-    for m in walk_network(mod):
+
+    walker = walk_network if network_type == 'module' else walk_pg_network
+    for m in walker(mod):
         modules.append(m)
         com += m.matrix_world.translation
 
@@ -263,9 +265,27 @@ def import_bridge(joint_a, joint_b):
 def module_menu(self, context): 
     self.layout.menu("INFO_MT_elfin_add", icon="PLUGIN")
 
+def walk_pg_network(joint, prev_joint=None):
+    """A generator that traverses the path guide network depth-first and
+    yields each object on the way, without repeating.
+    """
+    if not joint.elfin.is_joint():
+        return
+
+    yield joint
+
+    for bridge_nb in joint.elfin.pg_neighbours:
+        bridge = bridge_nb.obj
+        for other_end_nb in bridge.elfin.pg_neighbours:
+            other_end = other_end_nb.obj
+            if other_end == joint or other_end == prev_joint:
+                continue
+            yield bridge
+            yield from walk_pg_network(other_end, joint)
+
 def walk_network(module_obj, entering_chain=None, entering_side=None):
-    """A generator that traverses the module network depth-first and yields each object on the
-    way.
+    """A generator that traverses the module network depth-first and yields
+    each object on the way, without repeating.
     """
 
     yield module_obj

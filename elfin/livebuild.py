@@ -199,8 +199,8 @@ class SeverNetwork(bpy.types.Operator):
         
         # Move both sub-networks under new parents that has the correct COM
         old_network = mod_a.parent
-        move_to_new_network(mod_a)
-        move_to_new_network(mod_b)
+        move_to_new_network(mod_a, 'module')
+        move_to_new_network(mod_b, 'module')
         old_network.elfin.destroy()
 
         return {'FINISHED'}
