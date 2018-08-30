@@ -87,25 +87,8 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         Delete the Blender object to which the current elfin object
         PropertyGroup is associated with, preserving selection. 
         """
-
-        # Cache user selection
-        selection = [o for o in bpy.context.selected_objects if o != obj]
-        bpy.ops.object.select_all(action='DESELECT')
-
-        # Delete using default operator
-        obj.hide = False
-        obj.select = True
-        bpy.ops.object.delete(use_global=False)
-
-        if obj and obj.name in bpy.data.objects:
-            print('Object dirty exit:', obj.name)
-            # Remove it from bpy.data.objects because sometimes leftover
-            # refereneces can cause the object to remain.
-            bpy.data.objects.remove(obj)
-
-        # Restore selection
-        for ob in selection:
-            if ob: ob.select = True
+        bpy.data.objects.remove(obj)
+        bpy.context.scene.update() # Flush out dead object
 
     def cleanup_network(self):
         """Delete all children modules."""
@@ -155,7 +138,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
                     break
             bridge_nbs.remove(i)
 
-            nb.obj.elfin.destroy()
+            bridge.elfin.destroy()
 
     def cleanup_module(self):
         # Preserve neighbours for network separation
@@ -182,7 +165,6 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             # Could become None is some weird situations, such as a deleted mirrors, etc.
             if mod and mod.parent == old_network:
                 lh.move_to_new_network(mod)
-
 
     def init_network(self, obj, network_type):
         assert network_type in {'module', 'pguide'}
