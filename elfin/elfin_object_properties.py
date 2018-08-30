@@ -61,34 +61,49 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         associated object.
         """
 
-        if self.is_module():
-            self.cleanup_module()
-        elif self.is_joint():
-            self.cleanup_joint()
-        elif self.is_bridge():
-            self.cleanup_bridge()
-        elif self.is_network() or self.is_pg_network():
-            self.cleanup_network()
-        else:
-            return # No obj_ptr to delete
-
-        print('Elfin object {} cleaned up.'.format(self.obj_ptr))
-
-        if self.obj_ptr.parent:
-            if (self.obj_ptr.parent.elfin.is_network() or \
+        if self.obj_ptr and self.obj_ptr.parent and \
+                (self.obj_ptr.parent.elfin.is_network() or \
                 self.obj_ptr.parent.elfin.is_pg_network()) and \
                 len(self.obj_ptr.parent.children) == 1:
                 self.obj_ptr.parent.elfin.destroy()
         else:
+            if self.is_module():
+                self.cleanup_module()
+            elif self.is_joint():
+                self.cleanup_joint()
+            elif self.is_bridge():
+                self.cleanup_bridge()
+            elif self.is_network() or self.is_pg_network():
+                self.cleanup_network()
+            else:
+                return # No obj_ptr to delete
+
+            print('Elfin object {} cleaned up.'.format(self.obj_ptr))
+
             self.delete_object(self.obj_ptr)
+            bpy.context.scene.update() # Flush out dead object
 
     def delete_object(self, obj):
         """
         Delete the Blender object to which the current elfin object
         PropertyGroup is associated with, preserving selection. 
         """
-        bpy.data.objects.remove(obj)
-        bpy.context.scene.update() # Flush out dead object
+
+        # Cache user selection
+        selection = [o for o in bpy.context.selected_objects if o != obj]
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # Delete using default operator
+        obj.hide = False
+        obj.select = True
+        bpy.ops.object.delete(use_global=False)
+
+        if obj and obj.name in bpy.data.objects:
+            bpy.data.objects.remove(obj)
+
+        # Restore selection
+        for ob in selection:
+            if ob: ob.select = True
 
     def cleanup_network(self):
         """Delete all children modules."""
@@ -180,6 +195,9 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         # Want to shift focus to new module, not network
         obj.select = False
 
+        # Always trigger dirty exit so we can clean up
+        obj.use_fake_user = True
+
     def init_bridge(self, obj, joint_a, joint_b):
         self.obj_ptr = obj
         self.obj_type = ElfinObjType.BRIDGE.value
@@ -213,9 +231,15 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         bpy.context.scene.update()
         joint_b.location = jb_loc
 
+        # Always trigger dirty exit so we can clean up
+        obj.use_fake_user = True
+
     def init_joint(self, obj):
         self.obj_ptr = obj
         self.obj_type = ElfinObjType.JOINT.value
+
+        # Always trigger dirty exit so we can clean up
+        obj.use_fake_user = True
 
     def init_module(self, obj, mod_name):
         self.obj_ptr = obj

@@ -6,6 +6,7 @@ from . import addon_paths
 from .livebuild_helper import *
 from .elfin_object_properties import ElfinObjType
 
+# Path guide operators ---------------------------
 class AddBridge(bpy.types.Operator):
     bl_idname = 'elfin.add_bridge'
     bl_label = 'Add a bridge between two joints'
@@ -30,7 +31,6 @@ class AddBridge(bpy.types.Operator):
             return True
         return False
 
-# Path guide operators ---------------------------
 class ExtrudeJoint(bpy.types.Operator):
     bl_idname = 'elfin.extrude_joint'
     bl_label = 'Extrude a path guide joint'
