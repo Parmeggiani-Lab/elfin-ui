@@ -6,36 +6,6 @@ from . import addon_paths
 from .livebuild_helper import *
 from .elfin_object_properties import ElfinObjType
 
-
-# Panels -----------------------------------------
-
-class LivebuildPanel(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
-    bl_label = 'Livebuild'
-    bl_context = 'objectmode'
-    bl_category = 'Elfin'
-
-    def draw(self, context):
-        layout = self.layout
-        row = layout.row(align=True)
-        col = row.column()
-        col.prop(context.scene.elfin, 'disable_collision_check', text='Disable Collision Check')
-        col.operator('elfin.add_module', text='Place a module into scene')
-        col.operator('elfin.extrude_module', text='Extrude Module')
-        col.operator('elfin.select_mirrors', text='Select Mirrors')
-        col.operator('elfin.select_network', text='Select Network')
-        col.operator('elfin.list_mirrors', text='List Mirrors')
-        col.operator('elfin.unlink_mirrors', text='Unlink Mirrors')
-        col.operator('elfin.link_by_mirror', text='Link by Mirror')
-        col.operator('elfin.add_joint', text='Add Joint')
-        col.operator('elfin.extrude_joint', text='Extrude Joint')
-        col.operator('elfin.add_bridge', text='Bridge two Joints')
-        col.operator('elfin.joint_to_module', text='Move Joint to Module')
-        # col.operator('elfin.join_networks', text='Join Networks')
-
-# Operators --------------------------------------
-
 class AddBridge(bpy.types.Operator):
     bl_idname = 'elfin.add_bridge'
     bl_label = 'Add a bridge between two joints'
@@ -53,6 +23,7 @@ class AddBridge(bpy.types.Operator):
             pg.matrix_world = mw
 
         bridge = import_bridge(joint_a, joint_b)
+        move_to_new_network(joint_a, joint_b.parent)
         return {'FINISHED'}
 
     @classmethod
@@ -64,6 +35,7 @@ class AddBridge(bpy.types.Operator):
             return True
         return False
 
+# Path guide operators ---------------------------
 class ExtrudeJoint(bpy.types.Operator):
     bl_idname = 'elfin.extrude_joint'
     bl_label = 'Extrude a path guide joint'
@@ -214,6 +186,7 @@ class AddJoint(bpy.types.Operator):
                     return False
         return True
 
+# Module network operators -----------------------
 class JoinNetworks(bpy.types.Operator):
     bl_idname = 'elfin.join_networks'
     bl_label = 'Join two compatible networks'
@@ -336,6 +309,13 @@ class JoinNetworks(bpy.types.Operator):
                     mod.matrix_world = tx * a_tx * mod.matrix_world
                 mod.parent = mod_b.parent
 
+            mod_b_link_func = mod_b.elfin.new_n_link \
+                if which_term == 'n' else mod_b.elfin.new_c_link
+            mod_a_link_func = mod_a.elfin.new_c_link \
+                if which_term == 'n' else mod_a.elfin.new_n_link
+            mod_b_link_func(fixed_mod_chain, mod_a, moving_mod_chain)
+            mod_a_link_func(moving_mod_chain, mod_b, fixed_mod_chain)
+
             old_network.elfin.destroy()
         return {'FINISHED'}
 
@@ -396,6 +376,23 @@ class SeverNetwork(bpy.types.Operator):
                     return True
         return False
 
+class SelectNetwork(bpy.types.Operator):
+    bl_idname = 'elfin.select_network'
+    bl_label = 'Select network (parent object)'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        for s in get_selected(-1):
+            s.select = False
+            s.parent.select = True
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        """This is intended to work for both module and pguide networks"""
+        return get_selection_len() > 0
+
+# Mirror linking operators -----------------------
 class SelectMirrors(bpy.types.Operator):
     bl_idname = 'elfin.select_mirrors'
     bl_label = 'Select mirrors (all mirror-linked modules)'
@@ -406,21 +403,6 @@ class SelectMirrors(bpy.types.Operator):
             for sm in get_selected(n=-1):
                 for m in sm.elfin.mirrors:
                     m.select = True
-        return {'FINISHED'}
-
-    @classmethod
-    def poll(cls, context):
-        return get_selection_len() > 0
-
-class SelectNetwork(bpy.types.Operator):
-    bl_idname = 'elfin.select_network'
-    bl_label = 'Select network (all connected modules)'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        for s in get_selected(-1):
-            s.select = False
-            s.parent.select = True
         return {'FINISHED'}
 
     @classmethod
@@ -563,6 +545,7 @@ class LinkByMirror(bpy.types.Operator):
     def poll(cls, context):
         return cls.can_link()
 
+# Module manipulation operators ------------------
 class ExtrudeModule(bpy.types.Operator):
     bl_idname = 'elfin.extrude_module'
     bl_label = 'Extrude module'
@@ -737,6 +720,7 @@ class AddModule(bpy.types.Operator):
 
         return {'FINISHED'}
 
+# Utility operators ------------------------------
 class LoadXdb(bpy.types.Operator):
     bl_idname = 'elfin.load_xdb'
     bl_label = '(Re)load xdb'
@@ -777,7 +761,7 @@ class MessagePrompt(bpy.types.Operator):
         for l in self.message_lines:
             row.label(l)
 
-# Credits to
+# Credits to:
 # https://blender.stackexchange.com/questions/73286/how-to-call-a-confirmation-dialog-box
 class YesNoPrmopt(bpy.types.Operator):
     bl_idname = 'elfin.yes_no_prompt'
@@ -835,3 +819,29 @@ class INFO_MT_mesh_elfin_add(bpy.types.Menu):
             props = layout.operator('elfin.add_module', text=mod_name)
             props.module_to_place = mod_name
             props.ask_prototype = False
+
+# Panels -----------------------------------------
+class LivebuildPanel(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_label = 'Livebuild'
+    bl_context = 'objectmode'
+    bl_category = 'Elfin'
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row(align=True)
+        col = row.column()
+        col.prop(context.scene.elfin, 'disable_collision_check', text='Disable Collision Check')
+        col.operator('elfin.add_module', text='Place a module into scene')
+        col.operator('elfin.extrude_module', text='Extrude Module')
+        col.operator('elfin.select_mirrors', text='Select Mirrors')
+        col.operator('elfin.select_network', text='Select Network')
+        col.operator('elfin.list_mirrors', text='List Mirrors')
+        col.operator('elfin.unlink_mirrors', text='Unlink Mirrors')
+        col.operator('elfin.link_by_mirror', text='Link by Mirror')
+        col.operator('elfin.add_joint', text='Add Joint')
+        col.operator('elfin.extrude_joint', text='Extrude Joint')
+        col.operator('elfin.add_bridge', text='Bridge two Joints')
+        col.operator('elfin.joint_to_module', text='Move Joint to Module')
+        # col.operator('elfin.join_networks', text='Join Networks')
