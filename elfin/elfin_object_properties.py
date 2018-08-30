@@ -138,7 +138,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         # Separate pg-networks
         while nb_joints:
             name, joint = nb_joints.popitem()
-            lh.move_to_new_network(joint)
+            lh.transfer_network(joint)
 
     def cleanup_joint(self):
         """Delete connected bridges"""

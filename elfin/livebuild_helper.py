@@ -177,7 +177,7 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
-def move_to_new_network(mod, existing_network=None):
+def transfer_network(mod, existing_network=None):
     """Move all modules or pguides on the same network as mod under a new
     network parent object.
     """
@@ -187,7 +187,7 @@ def move_to_new_network(mod, existing_network=None):
     elif old_network.elfin.is_pg_network():
         network_type = 'pguide'
     else:
-        print('Invalid object passed to move_to_new_network():', mod)
+        print('Invalid object passed to transfer_network():', mod)
         return
 
     new_network = create_network(network_type)
@@ -214,9 +214,6 @@ def move_to_new_network(mod, existing_network=None):
     bpy.context.scene.update() # Mandatory update to reflect new parent transform
     for m in network_obj:
         change_parent_preserve_transform(m, new_network)
-
-    print('existing_network', existing_network)
-    print('new_network', new_network)
 
     if not old_network.children:
         old_network.elfin.destroy()

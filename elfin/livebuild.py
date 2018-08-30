@@ -16,14 +16,9 @@ class AddBridge(bpy.types.Operator):
         # Always make bridge parent of non active selection (second joint)
         if joint_a == context.active_object:
             joint_a, joint_b = joint_b, joint_a
-
-        for pg in walk_pg_network(joint_a):
-            mw = pg.matrix_world.copy()
-            pg.parent = joint_b.parent
-            pg.matrix_world = mw
+        transfer_network(joint_a, joint_b.parent)
 
         bridge = import_bridge(joint_a, joint_b)
-        move_to_new_network(joint_a, joint_b.parent)
         return {'FINISHED'}
 
     @classmethod
@@ -302,7 +297,7 @@ class JoinNetworks(bpy.types.Operator):
 
             old_network.matrix_world = tx * a_tx * old_network.matrix_world
             context.scene.update() # mandatory update to reflect the loc/roc settings
-            move_to_new_network(mod_a, mod_b.parent)
+            transfer_network(mod_a, mod_b.parent)
 
             mod_b_link_func = mod_b.elfin.new_n_link \
                 if which_term == 'n' else mod_b.elfin.new_c_link
@@ -348,8 +343,8 @@ class SeverNetwork(bpy.types.Operator):
                     break
         
         # Move both sub-networks under new parents that has the correct COM
-        move_to_new_network(mod_a)
-        move_to_new_network(mod_b)
+        transfer_network(mod_a)
+        transfer_network(mod_b)
 
         return {'FINISHED'}
 
