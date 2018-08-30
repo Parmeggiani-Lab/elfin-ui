@@ -178,8 +178,8 @@ def get_selected(n=1):
 # Helpers ----------------------------------------
 
 def move_to_new_network(mod, existing_network=None):
-    """Move all modules or pguides on the same network as mod under a new network parent
-    object.
+    """Move all modules or pguides on the same network as mod under a new
+    network parent object.
     """
     old_network = mod.parent
     if old_network.elfin.is_network():
@@ -190,28 +190,39 @@ def move_to_new_network(mod, existing_network=None):
         print('Invalid object passed to move_to_new_network():', mod)
         return
 
-    new_network = existing_network if existing_network else create_network(network_type)
+    new_network = create_network(network_type)
 
     # Gather all network objects into a list and calculate COM
     com = mathutils.Vector([0, 0, 0])
     network_obj = []
 
     walker = walk_network if network_type == 'module' else walk_pg_network
+    # old network must be walked instead of using children because when
+    # severing, we rely on link information to decide whether to split
+    # networks.
     for m in walker(mod):
         network_obj.append(m)
         com += m.matrix_world.translation
 
+    existing_network_children = existing_network.children if existing_network else ()
+    for c in existing_network_children:
+        network_obj.append(c)
+        com += c.matrix_world.translation
+
     com = com / len(network_obj)
     new_network.location = com
-    new_network.rotation_euler = mod.parent.rotation_euler.copy()
     bpy.context.scene.update() # Mandatory update to reflect new parent transform
     for m in network_obj:
-        mw = m.matrix_world.copy()
-        m.parent = new_network
-        m.matrix_world = mw
+        change_parent_preserve_transform(m, new_network)
+
+    print('existing_network', existing_network)
+    print('new_network', new_network)
 
     if not old_network.children:
         old_network.elfin.destroy()
+
+    if existing_network and not existing_network.children:
+        existing_network.elfin.destroy()
 
 def create_network(network_type):
     """Creates and returns a new arrow object as a network parent object, preserving
@@ -361,7 +372,7 @@ def extrude_terminus(which_term, selector, sel_mod, color):
 
             # touch up
             bpy.context.scene.update() # Udpate to get the correct matrices
-            ext_mod.parent = fixed_mod.parent # Same network
+            change_parent_preserve_transform(ext_mod, fixed_mod.parent)
 
             give_module_new_color(ext_mod, color)
             ext_mod.hide = False # Unhide (default is hidden)
@@ -534,6 +545,11 @@ def get_extrusion_prototype_list(sel_mod, which_term):
     # Remove color change placeholder if nothing can be extruded
     return enum_tuples if len(enum_tuples) > 1 else []
 
+def change_parent_preserve_transform(child, new_parent):
+    mw = child.matrix_world.copy()
+    child.parent = new_parent
+    child.matrix_world = mw
+
 def get_tx(
     fixed_mod, 
     extrude_from,
@@ -551,14 +567,15 @@ def get_tx(
     ext_mod_name = ext_mod.elfin.module_name
     xdb = get_xdb()
 
+    tx = None
     if rel_type == ('single', 'single'):
 
         if which_term == 'n':
             rel = xdb['double_data'][ext_mod_name][fixed_mod_name]
-            return get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+            tx = get_drop_frame_transform(rel, fixed_mod)
         else:
             rel = xdb['double_data'][fixed_mod_name][ext_mod_name]
-            return get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+            tx = get_raise_frame_transform(rel, fixed_mod)
 
     elif rel_type == ('single', 'hub'):
 
@@ -566,34 +583,39 @@ def get_tx(
         if which_term == 'n':
             rel = chain_xdata['c_connections'][fixed_mod_name]
             # First drop to hub component frame
-            tx1 = get_drop_frame_transform(rel['rot'], rel['tran'])
+            tx1 = get_drop_frame_transform(rel)
 
             rel = xdb['double_data'][chain_xdata['single_name']][fixed_mod_name]
             # Second drop to double B frame
-            tx2 = get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+            tx2 = get_drop_frame_transform(rel, fixed_mod)
 
-            return tx2 * tx1
+            tx = tx2 * tx1
         else:
             rel = chain_xdata['n_connections'][fixed_mod_name]
-            return get_drop_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+            tx = get_drop_frame_transform(rel, fixed_mod)
 
     elif rel_type == ('hub', 'single'):
 
         chain_xdata = xdb['hub_data'][fixed_mod_name]['component_data'][extrude_from]
         if which_term == 'n':
             rel = chain_xdata['n_connections'][ext_mod_name]
-            return get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+            tx = get_raise_frame_transform(rel, fixed_mod)
         else:
             # First raise to double B frame
             rel = xdb['double_data'] \
                 [chain_xdata['single_name']][ext_mod_name]
-            tx1 = get_raise_frame_transform(rel['rot'], rel['tran'])
+            tx1 = get_raise_frame_transform(rel)
 
             # Second raise to hub component frame
             rel = chain_xdata['c_connections'][ext_mod_name]
-            tx2 = get_raise_frame_transform(rel['rot'], rel['tran'], fixed_mod)
+            tx2 = get_raise_frame_transform(rel, fixed_mod)
 
-            return tx2 * tx1
+            tx = tx2 * tx1
+
+    e_rot, e_tran = scaleless_rot_tran(ext_mod)
+    # tx = tx * e_rot * e_tran
+
+    return tx
 
 def unlink_mirror(modules=None):
     mods = modules[:] if modules else bpy.context.selected_objects[:]
@@ -712,32 +734,49 @@ def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
 
     return False
 
-def get_raise_frame_transform(rel_rot, rel_tran, fixed_mod=None):
-    rtp = []
-    rot = mathutils.Matrix(rel_rot)
-    rot.transpose()
-    rtp.append((None, [-t/blender_pymol_unit_conversion for t in rel_tran]))
-    rtp.append((rot, None))
-    # Equalize frame
-    if fixed_mod != None:
-        rtp.append((fixed_mod.rotation_euler.to_matrix(), fixed_mod.location))
-    return stack_transforms(rtp)
-
-def get_drop_frame_transform(rel_rot, rel_tran, fixed_mod=None):
-    rtp = []
-    rtp.append((rel_rot, [t/blender_pymol_unit_conversion for t in rel_tran]))
-    # Equalize frame
-    if fixed_mod != None:
-        rtp.append((fixed_mod.rotation_euler.to_matrix(), fixed_mod.location))
-    return stack_transforms(rtp)
-
-def stack_transforms(rt_pairs):
+def get_raise_frame_transform(rel, fixed_mod=None):
     tx = mathutils.Matrix()
-    for rt in rt_pairs:
-        if rt[0]: tx = mathutils.Matrix(rt[0]).to_4x4() * tx
-        if rt[1]: tx = mathutils.Matrix.Translation(rt[1]) * tx
+    rot, scaled_trans = rel_to_matrices(rel)
+    rot.transpose()
 
+    # Order DOES matter
+    tx = rot * scaled_trans * tx
+
+    if fixed_mod != None:
+        tx = equalize_frame(tx, fixed_mod)
     return tx
+
+def get_drop_frame_transform(rel, fixed_mod=None):
+    tx = mathutils.Matrix()
+    rot, scaled_trans = rel_to_matrices(rel)
+    scaled_trans.translation *= -1
+
+    # Order DOES matter
+    tx = scaled_trans * rot * tx
+
+    if fixed_mod != None:
+        tx = equalize_frame(tx, fixed_mod)
+    return tx
+
+def equalize_frame(tx, fixed_mod):
+    rot, tran = scaleless_rot_tran(fixed_mod)
+    return tran * rot * tx
+
+def scaleless_rot_tran(obj):
+    mw = obj.matrix_world
+
+    # Decompose matrix_world to remove 0.1 scale
+    tran = mathutils.Matrix.Translation(mw.translation)
+    rot = mw.to_euler().to_matrix().to_4x4()
+
+    return rot, tran
+
+def rel_to_matrices(rel):
+    rot = mathutils.Matrix(rel['rot']).to_4x4()
+    scaled_trans = mathutils.Matrix.Translation(
+        [-t/blender_pymol_unit_conversion for t in rel['tran']])
+
+    return rot, scaled_trans
 
 # Deprecated
 def transform_object(

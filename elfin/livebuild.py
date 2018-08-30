@@ -282,15 +282,13 @@ class JoinNetworks(bpy.types.Operator):
             old_network = mod_a.parent
             a_network_mods = []
             for mod in walk_network(mod_a):
-                mod.parent = None # reset origin
                 a_network_mods.append(mod)
 
-            a_offset = mathutils.Matrix.Translation(-mod_a.location)
-            a_rot = mod_a.rotation_euler.to_matrix().to_4x4()
-            a_tx = a_rot * a_offset
-
-            mod_a.location = mod_a.rotation_euler = [0, 0, 0]
-            context.scene.update() # mandatory update to reflect the loc/roc settings
+            a_mw = mod_a.matrix_world.copy()
+            a_rot, a_tran = scaleless_rot_tran(mod_a)
+            a_rot.transpose()
+            a_tran.translation *= -1
+            a_tx = a_rot * a_tran 
 
             rel_type = (mod_b.elfin.module_type, mod_a.elfin.module_type)
             tx = get_tx(
@@ -302,12 +300,9 @@ class JoinNetworks(bpy.types.Operator):
                 rel_type=rel_type
                 )
 
-            for mod in a_network_mods:
-                if mod == mod_a:
-                    mod.matrix_world = tx * mod.matrix_world
-                else:
-                    mod.matrix_world = tx * a_tx * mod.matrix_world
-                mod.parent = mod_b.parent
+            old_network.matrix_world = tx * a_tx * old_network.matrix_world
+            context.scene.update() # mandatory update to reflect the loc/roc settings
+            move_to_new_network(mod_a, mod_b.parent)
 
             mod_b_link_func = mod_b.elfin.new_n_link \
                 if which_term == 'n' else mod_b.elfin.new_c_link
@@ -315,8 +310,6 @@ class JoinNetworks(bpy.types.Operator):
                 if which_term == 'n' else mod_a.elfin.new_n_link
             mod_b_link_func(fixed_mod_chain, mod_a, moving_mod_chain)
             mod_a_link_func(moving_mod_chain, mod_b, fixed_mod_chain)
-
-            old_network.elfin.destroy()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -353,13 +346,10 @@ class SeverNetwork(bpy.types.Operator):
                     anl = mod_a.elfin.n_linkage
                     anl.remove(anl.find(nl.source_chain_id))
                     break
-
         
         # Move both sub-networks under new parents that has the correct COM
-        old_network = mod_a.parent
         move_to_new_network(mod_a)
         move_to_new_network(mod_b)
-        old_network.elfin.destroy()
 
         return {'FINISHED'}
 
