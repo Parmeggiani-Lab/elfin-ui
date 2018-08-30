@@ -36,6 +36,184 @@ class LivebuildPanel(bpy.types.Panel):
 
 # Operators --------------------------------------
 
+class AddBridge(bpy.types.Operator):
+    bl_idname = 'elfin.add_bridge'
+    bl_label = 'Add a bridge between two joints'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        joint_a, joint_b = get_selected(-1)
+        # Always make bridge parent of non active selection (second joint)
+        if joint_a == context.active_object:
+            joint_a, joint_b = joint_b, joint_a
+
+        for pg in walk_pg_network(joint_a):
+            mw = pg.matrix_world.copy()
+            pg.parent = joint_b.parent
+            pg.matrix_world = mw
+
+        bridge = import_bridge(joint_a, joint_b)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() == 2:
+            for s in get_selected(-1):
+                if not s.elfin.is_joint():
+                    return False
+            return True
+        return False
+
+class ExtrudeJoint(bpy.types.Operator):
+    bl_idname = 'elfin.extrude_joint'
+    bl_label = 'Extrude a path guide joint'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def extrude(self):
+        self.joints = []
+        for joint_a in get_selected(-1):
+            joint_b = import_joint()
+            joint_b.parent = joint_a.parent
+            bridge = import_bridge(joint_a, joint_b)
+            joint_b.location = [0,5,0]
+
+            self.joints.append(
+                (
+                    joint_a,
+                    joint_b
+                )
+            )
+
+    def clean_up(self):
+        self.joints = []
+        self.active_joint = None
+
+    def execute(self, context):
+        #Contextual active object, 2D and 3D regions
+        region = bpy.context.region
+        region3D = bpy.context.space_data.region_3d
+
+        mouse_offset = self.mouse
+
+        # The direction indicated by the mouse position from the current view
+        view_vector = view3d_utils.region_2d_to_vector_3d(region, region3D, mouse_offset)
+        # The 3D location in this direction
+        offset = view3d_utils.region_2d_to_location_3d(region, region3D, mouse_offset, view_vector)
+
+        mw = self.active_joint.matrix_world.inverted()
+        mouse_offset_from_first_ja = mw * offset
+        for ja, jb in self.joints:
+            jb.location = ja.location + mouse_offset_from_first_ja
+
+        return {'FINISHED'}
+
+    def modal(self, context, event):
+        done = False
+        ret = None
+        if event.type == 'MOUSEMOVE':
+            self.mouse = (event.mouse_region_x, event.mouse_region_y)
+            self.execute(context)
+        elif event.type == 'LEFTMOUSE':
+            for s in get_selected(-1): 
+                s.select = False
+            for ja, jb in self.joints: 
+                ja.select, jb.select = False, True
+            ret = {'FINISHED'}
+        elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            for _, jb in self.joints:
+                # Don't leave joints stacked on ja
+                jb.elfin.destroy()
+            ret = {'CANCELLED'}
+
+        if ret:
+            self.clean_up()
+            return ret
+        else:
+            return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        self.extrude()
+        self.mouse_origin = (event.mouse_region_x, event.mouse_region_y)
+        self.active_joint =  bpy.context.active_object
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() > 0:
+            for s in get_selected(-1):
+                if not s.elfin.is_joint():
+                    return False
+            else:
+                return True
+        return False
+
+class JointToModule(bpy.types.Operator):
+    bl_idname = 'elfin.joint_to_module'
+    bl_label = 'Move a joint to the COM of a module'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        joint, module = get_selected(-1)
+        if joint.elfin.is_module():
+            joint, module = module, joint
+
+        joint.matrix_world.translation = \
+            module.matrix_world.translation.copy()
+
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        if get_selection_len() == 2:
+            n_joints, n_module = 0, 0
+            for s in get_selected(-1):
+                if s.elfin.is_joint(): n_joints += 1
+                elif s.elfin.is_module(): n_module += 1
+            if n_joints == 1 and n_module == 1:
+                return True
+        return False
+
+class AddJoint(bpy.types.Operator):
+    bl_idname = 'elfin.add_joint'
+    bl_label = 'Add a path guide joint'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        loc = [0, 0, 0]
+        if get_selection_len() > 0:
+            first_sel = get_selected()
+            loc = first_sel.location
+            if first_sel.elfin.is_module():
+                p = first_sel.parent
+                if not p:
+                    self.report({'ERROR'}, {'Selected module has no network parent.'})
+                    return {'CANCELLED'}
+                ploc = p.location
+                loc = ploc + (p.rotation_euler.to_matrix().to_4x4() * mathutils.Matrix.Translation(loc)).translation
+        
+        network = create_network('pguide')
+        joint = import_joint()
+        joint.parent = network
+
+        network.location = loc
+
+        if get_selection_len() > 0:
+            for s in get_selected(-1):
+                s.select = False
+        joint.select = True
+
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        # Forbid adding joint on top of existing joint
+        if get_selection_len() > 0:
+            for s in get_selected(-1):
+                if s.elfin.is_joint():
+                    return False
+        return True
+
 class JoinNetworks(bpy.types.Operator):
     bl_idname = 'elfin.join_networks'
     bl_label = 'Join two compatible networks'
@@ -217,183 +395,6 @@ class SeverNetwork(bpy.types.Operator):
                 if nl.target_mod == mod_b:
                     return True
         return False
-
-class JointToModule(bpy.types.Operator):
-    bl_idname = 'elfin.joint_to_module'
-    bl_label = 'Move a joint to the COM of a module'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        joint, module = get_selected(-1)
-        if joint.elfin.is_module():
-            joint, module = module, joint
-
-        joint.location = module.location
-
-        return {'FINISHED'}
-
-    @classmethod
-    def poll(cls, context):
-        if get_selection_len() == 2:
-            n_joints, n_module = 0, 0
-            for s in get_selected(-1):
-                if s.elfin.is_joint(): n_joints += 1
-                elif s.elfin.is_module(): n_module += 1
-            if n_joints == 1 and n_module == 1:
-                return True
-        return False
-
-class AddBridge(bpy.types.Operator):
-    bl_idname = 'elfin.add_bridge'
-    bl_label = 'Add a bridge between two joints'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        joint_a, joint_b = get_selected(-1)
-        # Always make bridge parent of non active selection (second joint)
-        if joint_a == context.active_object:
-            joint_a, joint_b = joint_b, joint_a
-
-        for pg in walk_pg_network(joint_a):
-            mw = pg.matrix_world.copy()
-            pg.parent = joint_b.parent
-            pg.matrix_world = mw
-
-        bridge = import_bridge(joint_a, joint_b)
-        return {'FINISHED'}
-
-    @classmethod
-    def poll(cls, context):
-        if get_selection_len() == 2:
-            for s in get_selected(-1):
-                if not s.elfin.is_joint():
-                    return False
-            return True
-        return False
-
-class ExtrudeJoint(bpy.types.Operator):
-    bl_idname = 'elfin.extrude_joint'
-    bl_label = 'Extrude a path guide joint'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def extrude(self):
-        self.joints = []
-        for joint_a in get_selected(-1):
-            joint_b = import_joint()
-            joint_b.parent = joint_a.parent
-            bridge = import_bridge(joint_a, joint_b)
-            joint_b.location = [0,5,0]
-
-            self.joints.append(
-                (
-                    joint_a,
-                    joint_b
-                )
-            )
-
-    def clean_up(self):
-        self.joints = []
-        self.active_joint = None
-
-    def execute(self, context):
-        #Contextual active object, 2D and 3D regions
-        region = bpy.context.region
-        region3D = bpy.context.space_data.region_3d
-
-        mouse_offset = self.mouse
-
-        # The direction indicated by the mouse position from the current view
-        view_vector = view3d_utils.region_2d_to_vector_3d(region, region3D, mouse_offset)
-        # The 3D location in this direction
-        offset = view3d_utils.region_2d_to_location_3d(region, region3D, mouse_offset, view_vector)
-
-        mw = self.active_joint.matrix_world.inverted()
-        mouse_offset_from_first_ja = mw * offset
-        for ja, jb in self.joints:
-            jb.location = ja.location + mouse_offset_from_first_ja
-
-        return {'FINISHED'}
-
-    def modal(self, context, event):
-        done = False
-        ret = None
-        if event.type == 'MOUSEMOVE':
-            self.mouse = (event.mouse_region_x, event.mouse_region_y)
-            self.execute(context)
-        elif event.type == 'LEFTMOUSE':
-            for s in get_selected(-1): 
-                s.select = False
-            for ja, jb in self.joints: 
-                ja.select, jb.select = False, True
-            ret = {'FINISHED'}
-        elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            for _, jb in self.joints:
-                # Don't leave joints stacked on ja
-                jb.elfin.destroy()
-            ret = {'CANCELLED'}
-
-        if ret:
-            self.clean_up()
-            return ret
-        else:
-            return {'RUNNING_MODAL'}
-
-    def invoke(self, context, event):
-        self.extrude()
-        self.mouse_origin = (event.mouse_region_x, event.mouse_region_y)
-        self.active_joint =  bpy.context.active_object
-        context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
-
-    @classmethod
-    def poll(cls, context):
-        if get_selection_len() > 0:
-            for s in get_selected(-1):
-                if not s.elfin.is_joint():
-                    return False
-            else:
-                return True
-        return False
-
-class AddJoint(bpy.types.Operator):
-    bl_idname = 'elfin.add_joint'
-    bl_label = 'Add a path guide joint'
-    bl_options = {'REGISTER', 'UNDO'}
-
-    def execute(self, context):
-        loc = [0, 0, 0]
-        if get_selection_len() > 0:
-            first_sel = get_selected()
-            loc = first_sel.location
-            if first_sel.elfin.is_module():
-                p = first_sel.parent
-                if not p:
-                    self.report({'ERROR'}, {'Selected module has no network parent.'})
-                    return {'CANCELLED'}
-                ploc = p.location
-                loc = ploc + (p.rotation_euler.to_matrix().to_4x4() * mathutils.Matrix.Translation(loc)).translation
-        
-        network = create_network('pguide')
-        joint = import_joint()
-        joint.parent = network
-
-        network.location = loc
-
-        if get_selection_len() > 0:
-            for s in get_selected(-1):
-                s.select = False
-        joint.select = True
-
-        return {'FINISHED'}
-
-    @classmethod
-    def poll(cls, context):
-        # Forbid adding joint on top of existing joint
-        if get_selection_len() > 0:
-            for s in get_selected(-1):
-                if s.elfin.is_joint():
-                    return False
-        return True
 
 class SelectMirrors(bpy.types.Operator):
     bl_idname = 'elfin.select_mirrors'
