@@ -1,7 +1,6 @@
 # elfin-ui
 
-Elfin-ui is like a protein CAD. It's Blender addon that serves as [elfin](https://github.com/joy13975/elfin)'s frontend user interface for assembling large proteins using protein modules.
-
+Elfin-ui is like a protein CAD. It's a Blender addon that serves as [elfin](https://github.com/joy13975/elfin)'s frontend user interface for assembling large proteins using protein modules.
 
 <p align="center">
 <img src="resources/images/simultaneous_extrusion.gif" width="70%">
