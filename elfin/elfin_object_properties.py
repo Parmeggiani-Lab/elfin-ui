@@ -192,7 +192,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
             # Could become None is some weird situations, such as a deleted mirrors, etc.
             if mod and mod.parent == old_network:
-                lh.move_to_new_network(mod)
+                lh.transfer_network(mod)
 
     def init_network(self, obj, network_type):
         assert network_type in {'module', 'pguide'}
