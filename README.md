@@ -79,9 +79,9 @@ When you're creating a network that involves a symmetric hub, you should start w
 
 <b>5. What is mirror-linking?</b>
 
-It is a extrusion/deletion mirroring mechanism originally implemented for symmetric hubs. Extrude and delete operations on any one of a group of mirror-linked modules are automatically copied. Extruded modules are also automatically mirror-linked so further extrusions are also copied as expected.
+It is a extrusion/deletion mirroring mechanism originally implemented for symmetric hubs. Extrude and delete operations on any one of a group of mirror-linked modules are automatically copied across. Extruded modules are also automatically mirror-linked so further extrusions are also copied as expected.
 
-To manually create mirror-linkage, use `Link by Mirror`. There are a couple of related mirror linking operators.
+It's sometimes useful to manually create mirror-linked groups that extrude together. To do so, use `Link by Mirror`. There are also a couple of other mirror linking operators - see [tutorial](resources/tutorial/README.md).
 
 ## Don't do's
 <b>Can I change module object settings?</b>
