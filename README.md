@@ -15,9 +15,6 @@ Elfin-ui is like a protein CAD. It's a Blender addon that serves as [elfin](http
  * Enable full assembly design through manual manipulation of modules and networks.
  * Enable partially automated (with [elfin-solver](https://github.com/joy13975/elfin-solver)) design through path guides.
 
-### Known Bugs:
- * Sometimes the deletion cleanup is not called. Not sure of the cause yet, but can be alleviated by <kbd>ctrl</kbd>+<kbd>z</kbd> then re-deleting. Probably due to the watcher being flaky.
-
 ## Getting Started
 
 Get [Blender v2.79b](https://builder.blender.org/download/).

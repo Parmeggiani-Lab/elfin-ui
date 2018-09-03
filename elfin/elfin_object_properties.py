@@ -40,6 +40,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
     node_walked = bpy.props.BoolProperty(default=False)
+    destroy_entered = bpy.props.BoolProperty(default=False)
 
     def find_link(self, mod_b):
         """Tries to find a link between mod_a and mod_b, or returns None if
@@ -74,27 +75,37 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         associated object.
         """
 
-        if self.obj_ptr and self.obj_ptr.parent and \
-                (self.obj_ptr.parent.elfin.is_network() or \
-                self.obj_ptr.parent.elfin.is_pg_network()) and \
-                len(self.obj_ptr.parent.children) == 1:
-                self.obj_ptr.parent.elfin.destroy()
+        # Prevent parent calling child destroy infinite loop
+        if self.destroy_entered:
+            return
         else:
-            if self.is_module():
-                self.cleanup_module()
-            elif self.is_joint():
-                self.cleanup_joint()
-            elif self.is_bridge():
-                self.cleanup_bridge()
-            elif self.is_network() or self.is_pg_network():
-                self.cleanup_network()
-            else:
-                return # No obj_ptr to delete
+            self.destroy_entered = True
 
-            print('Elfin object {} cleaned up.'.format(self.obj_ptr))
+        print('Enter destroy() of', self.obj_ptr)
 
-            self.delete_object(self.obj_ptr)
-            bpy.context.scene.update() # Flush out dead object
+        if self.is_module():
+            self.cleanup_module()
+        elif self.is_joint():
+            self.cleanup_joint()
+        elif self.is_bridge():
+            self.cleanup_bridge()
+        elif self.is_network() or self.is_pg_network():
+            self.cleanup_network()
+        else:
+            return # No obj_ptr to delete
+
+        print('Cleaned up', self.obj_ptr)
+
+        parent = self.obj_ptr.parent
+        self.delete_object(self.obj_ptr)
+
+        if parent and \
+            (parent.elfin.is_network() or \
+            parent.elfin.is_pg_network()) and \
+            len(parent.children) == 0:
+            parent.elfin.destroy()
+
+        bpy.context.scene.update() # Flush out dead object
 
     def delete_object(self, obj):
         """
