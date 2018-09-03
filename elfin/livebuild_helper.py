@@ -177,6 +177,21 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
+def find_symmetric_hub(network_parents):
+    """Returns the symmetric hub center piece if there is one, else None.
+    """
+    xdb = get_xdb()
+    walkers = [walk_network(np.children[0]) for np in network_parents]
+    for walker in walkers:
+        for m in walker:
+            m_name = m.elfin.module_name
+            if m_name in xdb['hub_data'] and \
+                xdb['hub_data'][m_name]['symmetric']:
+                return m
+
+    return None
+
+
 def transfer_network(mod, existing_network=None):
     """Move all modules or pguides on the same network as mod under a new
     network parent object.

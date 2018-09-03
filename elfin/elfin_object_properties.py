@@ -6,14 +6,14 @@ from . import livebuild_helper as lh
 
 ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK PG_NETWORK')
 
-class Linkage(bpy.types.PropertyGroup):
+class Link(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
     source_chain_id = bpy.props.StringProperty()
     target_mod = bpy.props.PointerProperty(type=bpy.types.Object)
     target_chain_id = bpy.props.StringProperty()
 
     def __repr__(self):
-        return 'Linkage => (Src CID={}, Tgt={}, Tgt CID={})'.format(
+        return 'Link => (Src CID={}, Tgt={}, Tgt CID={})'.format(
             self.source_chain_id, self.target_mod, self.target_chain_id)
 
     def sever(self):
@@ -35,11 +35,24 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     module_type = bpy.props.StringProperty()
     obj_ptr = bpy.props.PointerProperty(type=bpy.types.Object)
 
-    c_linkage = bpy.props.CollectionProperty(type=Linkage)
-    n_linkage = bpy.props.CollectionProperty(type=Linkage)
+    c_linkage = bpy.props.CollectionProperty(type=Link)
+    n_linkage = bpy.props.CollectionProperty(type=Link)
     pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
 
     node_walked = bpy.props.BoolProperty(default=False)
+
+    def find_link(self, mod_b):
+        """Tries to find a link between mod_a and mod_b, or returns None if
+        not found.
+        """
+        for cl in self.c_linkage:
+            if cl.target_mod == mod_b:
+                return cl, self.c_linkage
+        for nl in self.n_linkage:
+            if nl.target_mod == mod_b:
+                return nl, self.n_linkage
+
+        return None
 
     def is_module(self):
         return self.obj_type == ElfinObjType.MODULE.value

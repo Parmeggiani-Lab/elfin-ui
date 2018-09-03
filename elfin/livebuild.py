@@ -1,5 +1,3 @@
-import itertools
-
 import bpy
 import mathutils
 from bpy_extras import view3d_utils
@@ -211,15 +209,8 @@ class JoinNetworks(bpy.types.Operator):
             mod_a, mod_b = mod_b, mod_a
 
         # disable symmetric hub
-        xdb = get_xdb()
-        walker_chain = itertools.chain(
-            walk_network(mod_a), 
-            walk_network(mod_b))
-        for m in walker_chain:
-            m_name = m.elfin.module_name
-            if m_name in xdb['hub_data'] and \
-                xdb['hub_data'][m_name]['symmetric']:
-                return no_way
+        if find_symmetric_hub([mod_a.parent, mod_b.parent]):
+            return no_way
 
         a_mod_name = mod_a.elfin.module_name
         b_mod_name = mod_b.elfin.module_name
@@ -338,26 +329,59 @@ class SeverNetwork(bpy.types.Operator):
     bl_label = 'Sever one network into two at the specific point'
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
-        mod_a, mod_b = get_selected(-1)
-        for cl in mod_a.elfin.c_linkage:
-            if cl.target_mod == mod_b:
-                cl.sever()
-                acl = mod_a.elfin.c_linkage
-                acl.remove(acl.find(cl.source_chain_id))
-                break
-        else:
-            for nl in mod_a.elfin.n_linkage:
-                if nl.target_mod == mod_b:
-                    nl.sever()
-                    anl = mod_a.elfin.n_linkage
-                    anl.remove(anl.find(nl.source_chain_id))
-                    break
-        
+    link_info = None
+
+    def sever(self, link, linkage, mod_a):
+        mod_b = link.target_mod
+
+        link.sever()
+        linkage.remove(linkage.find(link.source_chain_id))
+
         # Move both sub-networks under new parents that has the correct COM
         transfer_network(mod_a)
         transfer_network(mod_b)
 
+    def execute(self, context):
+        mod_a, mod_b = get_selected(-1)
+        if not self.link_info:
+            self.report(
+                {'ERROR'}, 
+                {'Error: link_info is '.format(self.link_info)})
+            return {'CANCELLED'}
+        
+        link, linkage = self.link_info
+
+        # Sever mirrors if this is in a symmetric network
+        symhub = find_symmetric_hub([mod_a.parent])
+        if symhub:
+            if symhub == mod_a or symhub == mod_b:
+                arm_mod = mod_a if symhub == mod_b else mod_b
+                for m in arm_mod.elfin.mirrors:
+                    # Not making assumption that a symmetric hub's immediate
+                    # neighbours are identical, although they probably are..
+                    m_link, m_linkage = symhub.elfin.find_link(m)
+                    self.sever(m_link, m_linkage, symhub)
+            else:
+                term = link.terminus
+                src_chain_id = link.source_chain_id
+
+                to_sever = []
+                for m in mod_a.elfin.mirrors:
+                    if term == 'c':
+                        m_linkage = m.elfin.c_linkage
+                    else:
+                        m_linkage = m.elfin.n_linkage
+                    for l in m_linkage:
+                        if l.source_chain_id == src_chain_id:
+                            to_sever.append((l, m_linkage, m))
+
+                for ts in to_sever:
+                    self.sever(*ts)
+
+        else:
+            self.sever(link, linkage, mod_a)
+
+        self.link_info = None
         return {'FINISHED'}
 
     @classmethod
@@ -365,12 +389,9 @@ class SeverNetwork(bpy.types.Operator):
         if get_selection_len() == 2:
             # Check whether the two selected moduels are next to each other
             mod_a, mod_b = get_selected(-1)
-            for cl in mod_a.elfin.c_linkage:
-                if cl.target_mod == mod_b:
-                    return True
-            for nl in mod_a.elfin.n_linkage:
-                if nl.target_mod == mod_b:
-                    return True
+            SeverNetwork.link_info = mod_a.elfin.find_link(mod_b)
+            if SeverNetwork.link_info:
+                return True
         return False
 
 class SelectNetwork(bpy.types.Operator):

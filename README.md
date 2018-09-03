@@ -33,7 +33,6 @@ Next, refer to: [Tutorial With GIFs](resources/tutorial/README.md)
 ## TODO:
 
 ### Must-Haves
- * Mirror network severing
  * Export to Elfin Core format
  * Import Elfin core output into scene
 
