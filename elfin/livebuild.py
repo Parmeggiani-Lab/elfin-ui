@@ -1,3 +1,5 @@
+import itertools
+
 import bpy
 import mathutils
 from bpy_extras import view3d_utils
@@ -208,11 +210,21 @@ class JoinNetworks(bpy.types.Operator):
         if context.active_object == mod_a:
             mod_a, mod_b = mod_b, mod_a
 
+        # disable symmetric hub
+        xdb = get_xdb()
+        walker_chain = itertools.chain(
+            walk_network(mod_a), 
+            walk_network(mod_b))
+        for m in walker_chain:
+            m_name = m.elfin.module_name
+            if m_name in xdb['hub_data'] and \
+                xdb['hub_data'][m_name]['symmetric']:
+                return no_way
+
         a_mod_name = mod_a.elfin.module_name
         b_mod_name = mod_b.elfin.module_name
 
         # Don't allow pull-join on symmetric hubs (yet?)
-        xdb = get_xdb()
         if mod_a.elfin.module_type == 'hub':
             if xdb['hub_data'][a_mod_name]['symmetric']:
                 return no_way
