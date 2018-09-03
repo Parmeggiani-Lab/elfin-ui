@@ -1,6 +1,6 @@
 # elfin-ui
 
-A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s frontend user interface for building large proteins using protein modules.
+Elfin-ui is like a protein CAD. It's Blender addon that serves as [elfin](https://github.com/joy13975/elfin)'s frontend user interface for assembling large proteins using protein modules.
 
 
 <p align="center">
@@ -8,60 +8,16 @@ A Blender addon that serves [elfin](https://github.com/joy13975/elfin)'s fronten
 </p>
 
 
-## [Skip to: Getting Started](#getting-started)
+[Jump to: Getting Started](#getting-started)
+[Jump to: FAQ](#FAQ)
 
 ## Goals
 
  * Enable full assembly design through manual manipulation of modules and networks.
  * Enable partially automated (with [elfin-solver](https://github.com/joy13975/elfin-solver)) design through path guides.
 
-## Development Notes:
- * Module networks:
- 	* Each network contains a group of connected modules. A network might have multiple chains, but no floating/loose parts. All modules in a network transform together.
- 	* Each time a module is added (via `Add Module`), a new network will be automatically created as the parent object of the new module. 
- 	* Networks can be joined or severed (via `Sever Network` and `Join Network`). Deleting a module automatically severs the network on its two termini (elfin-ui assumes no loops). 
- 	* In order to preserve network integrity, elfin-ui forbids the transforming of individual modules (even though still possible if the user insists on doing so, which will break assumptions in elfin). 
- 	* The user must select the parent "network" object (displayed as axes arrows), and apply the desired transformation. The `Select Network` operator exists for this purpose.
- 
- * Symmetric hubs
- 	* There are only two symmetric hubs in the database right now. 
- 	* All "arms" of a symmetric hub must be identical, and because of this, any network can only logically have zero or one symmetric hub "core".
-    * Should a symmetric hub network be allowed to have asymmetric hubs in its arms? 
-        * This is currently allowed.
-
- * Mirror linking
- 	* Symmetric hub extrusions are automatically mirrored, so that further extrusions on any of the "arms" are also applied to the rest of the arms.
- 	* Other modules can be mirror-linked by `Link by Mirror`.
- 	* When extruding from a module that has "mirrors" to other modules of the same protoype, the newly extruded modules will also be mirror-linked together.
- 		* For inter-network simultaneous extrusion, first select one member of each mirror-link group, and then apply `Select Mirror Links`.
-
 ### Known Bugs:
  * Sometimes the deletion cleanup is not called. Not sure of the cause yet, but can be alleviated by <kbd>ctrl</kbd>+<kbd>z</kbd> then re-deleting. Probably due to the watcher being flaky.
-
-### TODO: Currently Working On:
- * Export to Elfin Core format
-
-### TODO: Must-Haves
-
-### TODO: Nice-to-Haves
- * Confirm deletion caused by collision
- 	* Collision detection using single module 3D models are not very accurate (currently each module is shrunken to 85% before checking).
- * Incremental selection
- 	 * We already have a Select Network oeprator though
-
-### TODO: Feasibility N/A
- * Select previous module upon module delete
- * Auto-seek extrusion
- 	 * List all extrudable termini of the network that the selected module belongs to.
-	 * If there are hubs in the network there might be multiple heads. In this case ask the user to choose one.
-		
-### TO-CHANGE: Once Blender gets an API upgrade
- * Hooking callback upon object deletion or entrance to scene
- 	 * In v2.79 there are no callback hooks for object deletion/entrance.
- 	 * Currently implemented using a watcher that checks the scene objects at 100ms intervals, which can be flacky under rare circumstances e.g. if the user uses a script to edit the scene at non-human speeds. For the most part this works, but is obviously not the best approach.
- * Hub symmetry enforcement
- 	 * In v2.79, we're not able to create custom modifiers in Python.
- 	 * Currently implemented using mirror-linking.
 
 ## Getting Started
 
@@ -73,6 +29,66 @@ Beware that Blender v2.8 (now beta) will probably introduce significant changes 
 
 After you've downloaded Blender, run it and go to `File` > `User Preferences` and click `Save User Settings`. This has to be done at least once to create your Blender use profile.
 
-Next, refer to:
+Next, refer to: [Tutorial With GIFs](resources/tutorial/README.md)
 
-### [Tutorial With GIFs](resources/tutorial/README.md)
+## TODO:
+
+### Must-Haves
+ * Disable joining of networks that involve symmetric hubs.
+ * Export to Elfin Core format
+ * Import Elfin core output into scene
+
+### Nice-to-Haves
+ * Mirrored severing/joining? Sounds complicated.
+ * Confirm deletion caused by collision
+ 	* Collision detection using single module 3D models are not very accurate (currently each module is shrunken to 85% before checking).
+
+### Feasibility N/A
+ * Select previous module upon module delete
+ * Auto-seek extrusion
+ 	 * List all extrudable termini of the network that the selected module belongs to.
+	 * If there are hubs in the network there might be multiple heads. In this case ask the user to choose one.
+		
+### Once Blender gets an API upgrade
+ * Hooking callback upon object deletion or entrance to scene
+ 	 * In v2.79 there are no callback hooks for object deletion/entrance.
+ 	 * Currently implemented using a watcher that checks the scene objects at 100ms intervals, which can be flacky under rare circumstances e.g. if the user uses a script to edit the scene at non-human speeds. For the most part this works, but is obviously not the best approach.
+ * Hub symmetry enforcement
+ 	 * In v2.79, we're not able to create custom modifiers in Python.
+ 	 * Currently implemented using mirror-linking.
+
+## FAQ:
+<b>1. What are networks?</b>
+
+Networks are groups of modules or groups of path guide primitives that exist so that elfin can keep track of which modules or path guides are "connected". The most important thing to keep in mind is that elfin-ui locks the transformation of individual modules - see #3. However, you can freely transform individual path guide "joints".
+
+<b>2. Why do we need networks?</b>
+
+In order to preserve the interface relationship of each connected group of modules, and to ease to processing when exporting. Creation and splitting of networks are automatic, so you don't need to worry about them. Just keep in mind that you must select the parent when attempting a transform - see #3.
+
+<b>3. Why can't I move or rotate any module?</b>
+
+It is intentionally disabled, because the transforming of individual modules break the spatial relatinoship between modules that elfin's assembly logic relies on.
+
+The correct way to transform modules is to select the parent object (i.e. via `Select Parent`) and then move or rotate the whole network. If you want to move an individual module, then by logic it must be severed from the network (i.e. via `Sever Network`) it originally belonged to and form a new, separate network with just that module. Transform that network, then join the networks back together when you're done.
+
+<b>4. Why can't I extrude into a symmetric hub or join networks that involve symmetric hub(s)?</b>
+
+It is intentionally disabled. It is technically possible, but not logical, because any network that involves a symmetric hub will have the hub as the center piece due to the "arm-symmetry".
+
+When you're creating a network that involves a symmetric hub, you should start with that symmetric hub as the first module. From there on, extrusions on each of the arms of the hub will be automatically mirrored.
+
+<b>5. What is mirror-linking?</b>
+
+It is a extrusion/deletion mirroring mechanism originally implemented for symmetric hubs. Extrude and delete operations on any one of a group of mirror-linked modules are automatically copied. Extruded modules are also automatically mirror-linked so further extrusions are also copied as expected.
+
+To manually create mirror-linkage, use `Link by Mirror`. There are a couple of related mirror linking operators.
+
+## Don't do's
+<b>Can I change module object settings?</b>
+
+No, except for the material color. Especially, if the transform settings are modified, it's very likely that you will break elfin's assumption about module spatial relationship and the result is undefined.
+
+<b>Can I scale any object?</b>
+
+No. The scale must be kept constant so that the calculation between PyMol data and Blender are correct. It's just like how you cannot just scale a lifesize protein up 100x.
