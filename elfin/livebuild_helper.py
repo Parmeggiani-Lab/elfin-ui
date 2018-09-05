@@ -50,40 +50,48 @@ class Singleton(type):
 
 class LivebuildState(metaclass=Singleton):
     def __init__(self):
-        self.n_extrudables = [empty_list_placeholder_enum_tuple]
-        self.c_extrudables = [empty_list_placeholder_enum_tuple]
-        self.placeables = [empty_list_placeholder_enum_tuple]
-        self.load_xdb(update_placeables_too=False)
-        self.load_library(update_placeables_too=False)
-        self.load_path_guide()
-        self.update_placeables()
+        self.reset()
 
-    def update_extrudables(self, sel_mod):
+    def get_all_extrudables(self, sel_mod):
         self.n_extrudables = get_extrusion_prototype_list(sel_mod, 'n')
         self.c_extrudables = get_extrusion_prototype_list(sel_mod, 'c')
+        return self.n_extrudables, self.c_extrudables
 
-    def update_placeables(self):
+    def update_derivatives(self):
         res = [color_change_placeholder_enum_tuple] + \
             [module_enum_tuple(mod_name) for mod_name in self.get_all_module_names()]
         self.placeables = res if len(res) > 1 else [empty_list_placeholder_enum_tuple]
 
+        # Find max hub termini
+        self.max_hub_branches = 0
+        hub_xdata = self.xdb['hub_data']
+        for hub_name in hub_xdata:
+            comp_xdata = hub_xdata[hub_name]['component_data']
+            hub_branches = 0
+            for term_name in comp_xdata:
+                hub_branches += \
+                    comp_xdata[term_name]['n_free'] + \
+                    comp_xdata[term_name]['c_free']
+            if hub_branches > self.max_hub_branches:
+                self.max_hub_branches = hub_branches
+
     def get_all_module_names(self):
         groups = (self.xdb['single_data'], self.xdb['hub_data'])
         xdb_mod_names = {k for group in groups for k in group.keys()}
-        return [mod_name for mod_name in self.library if mod_name in xdb_mod_names]
+        return (mod_name for mod_name in self.library if mod_name in xdb_mod_names)
 
-    def load_xdb(self, update_placeables_too=True):
+    def load_xdb(self, skip_derivatives_update=False):
         with open(addon_paths.xdb_path, 'r') as file:
             self.xdb = collections.OrderedDict(json.load(file))
-        if update_placeables_too:
-            self.update_placeables()
+        if not skip_derivatives_update:
+            self.update_derivatives()
         print('{}: Xdb loaded'.format(__class__.__name__))
 
-    def load_library(self, update_placeables_too=True):
+    def load_library(self, skip_derivatives_update=False):
         with bpy.types.BlendDataLibraries.load(addon_paths.modlib_path) as (data_from, data_to):
             self.library = data_from.objects
-        if update_placeables_too:
-            self.update_placeables()
+        if not skip_derivatives_update:
+            self.update_derivatives()
         print('{}: Module library loaded'.format(__class__.__name__))
 
     def load_path_guide(self):
@@ -92,10 +100,17 @@ class LivebuildState(metaclass=Singleton):
         print('{}: Path guide library loaded'.format(__class__.__name__))
 
     def reset(self):
-        self.load_xdb()
-        self.load_library()
+        self.n_extrudables = [empty_list_placeholder_enum_tuple]
+        self.c_extrudables = [empty_list_placeholder_enum_tuple]
+        self.placeables = [empty_list_placeholder_enum_tuple]
+        self.max_hub_branches = 0
+        self.load_all()
+
+    def load_all(self):
+        self.load_xdb(skip_derivatives_update=True)
+        self.load_library(skip_derivatives_update=True)
         self.load_path_guide()
-        self.update_placeables()
+        self.update_derivatives()
 
 random.seed()
 class ColorWheel(metaclass=Singleton):

@@ -25,9 +25,19 @@ class AddBridge(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         if get_selection_len() == 2:
-            for s in get_selected(-1):
-                if not s.elfin.is_joint():
-                    return False
+            max_hub_branches = LivebuildState().max_hub_branches
+            mod_a, mod_b = get_selected(-1)
+
+            # Ugly condition, but logically quite simple...
+            # If:
+            # either is a non joint
+            # either already at/exceeds max branches
+            # either are already neighbours
+            if not mod_a.elfin.is_joint() or not mod_b.elfin.is_joint() or \
+                len(mod_a.elfin.pg_neighbours) >= max_hub_branches or \
+                len(mod_b.elfin.pg_neighbours) >= max_hub_branches or \
+                mod_a.elfin.joint_connects_joint(mod_b):
+                return False
             return True
         return False
 
@@ -108,8 +118,10 @@ class ExtrudeJoint(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         if get_selection_len() > 0:
+            max_hub_branches = LivebuildState().max_hub_branches
             for s in get_selected(-1):
-                if not s.elfin.is_joint():
+                if not s.elfin.is_joint() or \
+                    len(s.elfin.pg_neighbours) >= max_hub_branches:
                     return False
             else:
                 return True
@@ -225,17 +237,16 @@ class JoinNetworks(bpy.types.Operator):
 
         # Plan: get n/c extrudables for both modules, then find out the
         # shared termini and let the user choose
-        LS = LivebuildState()
-        LS.update_extrudables(mod_a)
-        an_extrudables = JoinNetworks.relevant_extrudables(LS.n_extrudables, b_mod_name)
-        ac_extrudables = JoinNetworks.relevant_extrudables(LS.c_extrudables, b_mod_name)
+        n_extrudables, c_extrudables = LivebuildState().get_all_extrudables(mod_a)
+        an_extrudables = JoinNetworks.relevant_extrudables(n_extrudables, b_mod_name)
+        ac_extrudables = JoinNetworks.relevant_extrudables(c_extrudables, b_mod_name)
 
         if len(an_extrudables) == 0 and len(ac_extrudables) == 0: 
             return no_way
 
-        LS.update_extrudables(mod_b)
-        bn_extrudables = JoinNetworks.relevant_extrudables(LS.n_extrudables, a_mod_name)
-        bc_extrudables = JoinNetworks.relevant_extrudables(LS.c_extrudables, a_mod_name)
+        n_extrudables, c_extrudables = LivebuildState().get_all_extrudables(mod_b)
+        bn_extrudables = JoinNetworks.relevant_extrudables(n_extrudables, a_mod_name)
+        bc_extrudables = JoinNetworks.relevant_extrudables(c_extrudables, a_mod_name)
 
         an_chains = {ane[0].split('.')[2] for ane in an_extrudables}
         ac_chains = {ace[0].split('.')[0] for ace in ac_extrudables}
@@ -573,15 +584,13 @@ class ExtrudeModule(bpy.types.Operator):
     def get_available_termini(self, context):
         available_termini = []
 
-        LS = LivebuildState()
-
         # suitable_for_extrusion() gurantees homogeneity so we get just take
         # the first object in selection
-        LS.update_extrudables(get_selected())
-
-        if len(LS.n_extrudables) > 0:
+        sel_mod = get_selected()
+        n_extrudables, c_extrudables = LivebuildState().get_all_extrudables(sel_mod)
+        if len(n_extrudables) > 0:
             available_termini.append(('N', 'N', ''))
-        if len(LS.c_extrudables) > 0:
+        if len(c_extrudables) > 0:
             available_termini.append(('C', 'C', ''))
 
         return available_termini if len(available_termini) > 0 else [empty_list_placeholder_enum_tuple]
@@ -632,10 +641,6 @@ class ExtrudeNTerm(bpy.types.Operator):
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}
 
-    @classmethod
-    def poll(cls, context):
-        return suitable_for_extrusion(context)
-
 class ExtrudeCTerm(bpy.types.Operator):
     bl_idname = 'elfin.extrude_cterm'
     bl_label = 'Extrude C (add a module to the cterm)'
@@ -659,10 +664,6 @@ class ExtrudeCTerm(bpy.types.Operator):
         self.color = ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}
-
-    @classmethod
-    def poll(cls, context):
-        return suitable_for_extrusion(context)
 
 class CheckCollisionAndDelete(bpy.types.Operator):
     bl_idname = 'elfin.check_collision_and_delete'

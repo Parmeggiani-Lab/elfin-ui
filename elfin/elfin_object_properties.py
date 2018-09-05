@@ -42,6 +42,25 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     node_walked = bpy.props.BoolProperty(default=False)
     destroy_entered = bpy.props.BoolProperty(default=False)
 
+    def joint_connects_joint(self, other_mod):
+        if not self.is_joint() or \
+            not other_mod or not other_mod.elfin.is_joint():
+            return False
+
+        for nb in self.pg_neighbours:
+            if nb.obj.elfin.bridge_connects_joints(self.obj_ptr, other_mod):
+                return True
+
+        return False
+
+    def bridge_connects_joints(self, mod_a, mod_b):
+        if not self.is_bridge():
+            return False
+
+        return tuple((nb.obj for nb in self.pg_neighbours)) in \
+            ((mod_a, mod_b), (mod_b, mod_a))
+
+
     def find_link(self, mod_b):
         """Tries to find a link between mod_a and mod_b, or returns None if
         not found.
