@@ -101,6 +101,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             self.destroy_entered = True
 
         print('Enter destroy() of', self.obj_ptr)
+        parent = self.obj_ptr.parent
 
         if self.is_module():
             self.cleanup_module()
@@ -115,7 +116,6 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         print('Cleaned up', self.obj_ptr)
 
-        parent = self.obj_ptr.parent
         self.delete_object(self.obj_ptr)
 
         if parent and \

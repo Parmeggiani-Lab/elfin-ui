@@ -192,6 +192,39 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
+def selection_check(
+    selection=None, 
+    n_modules=0, 
+    n_joints=0, 
+    n_bridges=0, 
+    n_networks=0, 
+    n_pg_networks=0):
+    """Counts objects in all (or provided) selection and checks whether all
+    expected counts are met.
+    """
+
+    if selection is None:
+        selection = get_selected(-1)
+
+    for obj in selection:
+        if obj.elfin.is_module():
+            n_modules -= 1
+            if n_modules < 0: return False
+        elif obj.elfin.is_joint():
+            n_joints -= 1
+            if n_joints < 0: return False
+        elif obj.elfin.is_bridge():
+            n_bridges -= 1
+            if n_bridges < 0: return False
+        elif obj.elfin.is_network():
+            n_networks -= 1
+            if n_networks < 0: return False
+        elif obj.elfin.is_pg_network():
+            n_pg_networks -= 1
+            if n_pg_networks < 0: return False
+
+    return n_modules == n_joints == n_bridges == n_networks == n_pg_networks == 0
+
 def find_symmetric_hub(network_parents):
     """Returns the symmetric hub center piece if there is one, else None.
     """
@@ -205,7 +238,6 @@ def find_symmetric_hub(network_parents):
                 return m
 
     return None
-
 
 def transfer_network(mod, existing_network=None):
     """Move all modules or pguides on the same network as mod under a new

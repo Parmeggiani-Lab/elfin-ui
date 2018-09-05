@@ -9,7 +9,7 @@ from .elfin_object_properties import ElfinObjType
 # Path guide operators ---------------------------
 class AddBridge(bpy.types.Operator):
     bl_idname = 'elfin.add_bridge'
-    bl_label = 'Add a bridge between two joints'
+    bl_label = 'Add a bridge between two joints (#addb)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -43,7 +43,7 @@ class AddBridge(bpy.types.Operator):
 
 class ExtrudeJoint(bpy.types.Operator):
     bl_idname = 'elfin.extrude_joint'
-    bl_label = 'Extrude a path guide joint'
+    bl_label = 'Extrude a path guide joint (#exj)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def extrude(self):
@@ -129,7 +129,7 @@ class ExtrudeJoint(bpy.types.Operator):
 
 class JointToModule(bpy.types.Operator):
     bl_idname = 'elfin.joint_to_module'
-    bl_label = 'Move a joint to the COM of a module'
+    bl_label = 'Move a joint to the COM of a module (#jtm).'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -144,18 +144,11 @@ class JointToModule(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if get_selection_len() == 2:
-            n_joints, n_module = 0, 0
-            for s in get_selected(-1):
-                if s.elfin.is_joint(): n_joints += 1
-                elif s.elfin.is_module(): n_module += 1
-            if n_joints == 1 and n_module == 1:
-                return True
-        return False
+        return selection_check(n_modules=1, n_joints=1)
 
 class AddJoint(bpy.types.Operator):
     bl_idname = 'elfin.add_joint'
-    bl_label = 'Add a path guide joint'
+    bl_label = 'Add a path guide joint (#addj)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -196,7 +189,7 @@ class AddJoint(bpy.types.Operator):
 # Module network operators -----------------------
 class JoinNetworks(bpy.types.Operator):
     bl_idname = 'elfin.join_networks'
-    bl_label = 'Join two compatible networks'
+    bl_label = 'Join two compatible networks (#jnw)'
     bl_property = "way_selector"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -220,19 +213,20 @@ class JoinNetworks(bpy.types.Operator):
         if context.active_object == mod_a:
             mod_a, mod_b = mod_b, mod_a
 
-        # disable symmetric hub
+        # disable joining with a network containing symmetric hub
         if find_symmetric_hub([mod_a.parent, mod_b.parent]):
             return no_way
 
         a_mod_name = mod_a.elfin.module_name
         b_mod_name = mod_b.elfin.module_name
 
+        hub_xdata = get_xdb()['hub_data']
         # Don't allow pull-join on symmetric hubs (yet?)
         if mod_a.elfin.module_type == 'hub':
-            if xdb['hub_data'][a_mod_name]['symmetric']:
+            if hub_xdata[a_mod_name]['symmetric']:
                 return no_way
         if mod_b.elfin.module_type == 'hub':
-            if xdb['hub_data'][b_mod_name]['symmetric']:
+            if hub_xdata[b_mod_name]['symmetric']:
                 return no_way
 
         # Plan: get n/c extrudables for both modules, then find out the
@@ -327,17 +321,11 @@ class JoinNetworks(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if get_selection_len() == 2:
-            for s in get_selected(-1):
-                if not s.elfin.is_module(): 
-                    return False
-            else:
-                return True
-        return False
+        return selection_check(n_modules=2)
 
 class SeverNetwork(bpy.types.Operator):
     bl_idname = 'elfin.sever_network'
-    bl_label = 'Sever one network into two at the specific point'
+    bl_label = 'Sever one network into two at the specific point (#svnw)'
     bl_options = {'REGISTER', 'UNDO'}
 
     link_info = None
@@ -407,7 +395,7 @@ class SeverNetwork(bpy.types.Operator):
 
 class SelectNetwork(bpy.types.Operator):
     bl_idname = 'elfin.select_network'
-    bl_label = 'Select network (parent object)'
+    bl_label = 'Select network (parent object) (#snw)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -424,7 +412,7 @@ class SelectNetwork(bpy.types.Operator):
 # Mirror linking operators -----------------------
 class SelectMirrors(bpy.types.Operator):
     bl_idname = 'elfin.select_mirrors'
-    bl_label = 'Select mirrors (all mirror-linked modules)'
+    bl_label = 'Select mirrors (all mirror-linked modules) (#smr)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -440,7 +428,7 @@ class SelectMirrors(bpy.types.Operator):
 
 class ListMirrors(bpy.types.Operator):
     bl_idname = 'elfin.list_mirrors'
-    bl_label = 'List mirror links of one selected module'
+    bl_label = 'List mirror links of one selected module (#lmr)'
     bl_options = {'REGISTER'}
 
     def execute(self, context):
@@ -463,7 +451,7 @@ class ListMirrors(bpy.types.Operator):
 
 class UnlinkMirrors(bpy.types.Operator):
     bl_idname = 'elfin.unlink_mirrors'
-    bl_label = 'Unlink mirrors from all selected modules.'
+    bl_label = 'Unlink mirrors from all selected modules (#ulm)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def unlink_mirrors(self, mirrors, recursive):
@@ -507,7 +495,7 @@ class UnlinkMirrors(bpy.types.Operator):
 
 class LinkByMirror(bpy.types.Operator):
     bl_idname = 'elfin.link_by_mirror'
-    bl_label = 'Link multiple modules of the same prototype by mirror'
+    bl_label = 'Link multiple modules of the same prototype by mirror (#lbm)'
     bl_options = {'REGISTER', 'UNDO'}
     
     @classmethod
@@ -575,9 +563,30 @@ class LinkByMirror(bpy.types.Operator):
         return cls.can_link()
 
 # Module manipulation operators ------------------
+class ModuleToJoint(bpy.types.Operator):
+    bl_idname = 'elfin.module_to_joint'
+    bl_label = 'Move a module and its network to a joint (#mtj)'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        joint, module = get_selected(-1)
+        if joint.elfin.is_module():
+            joint, module = module, joint
+
+        trans = joint.matrix_world.translation - module.matrix_world.translation
+        trans_m = mathutils.Matrix.Translation(trans)
+
+        p_mw = module.parent.matrix_world
+        module.parent.matrix_world = trans_m * p_mw
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        return selection_check(n_modules=1, n_joints=1)
+
 class ExtrudeModule(bpy.types.Operator):
     bl_idname = 'elfin.extrude_module'
-    bl_label = 'Extrude module'
+    bl_label = 'Extrude module (#exm)'
     bl_property = "terminus_selector"
     bl_options = {'REGISTER'}
 
@@ -696,7 +705,7 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 
 class AddModule(bpy.types.Operator):
     bl_idname = 'elfin.add_module'
-    bl_label = 'Add (place) a module'
+    bl_label = 'Add (place) a module (#addm)'
     bl_property = 'module_to_place'
     bl_options = {'REGISTER', 'UNDO'}
 

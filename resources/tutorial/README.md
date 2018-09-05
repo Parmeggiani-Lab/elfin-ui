@@ -122,43 +122,78 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
 
 # Operator List
 
-Currently implemented operators:
+## Module Related
  * `Add Module` (formerly called "Place Module")
-  	* Adds a new module to the scene at origin.
-  	* Automatically creates a new network and places the newly added module under that network.
+    * Adds a new module to the scene at origin or the current selection.
+    * Short form: `addm` 
+    * Automatically creates a new network and places the newly added module under that network.
     * Only available <b>when nothing is selected</b>.
  * `Extrude Module` 
- 	* Add a module to the N- or C-Terminus of the selected module.
- 	* Only available <b>when one or more modules are selected</b>.
- * `Link by Mirror`
- 	* Link multiple modules of the same prototype by mirror.
- 	* Only available when one or more <b>homogenous modules</b> are selected (same prototype)
- * `Unlink Mirrors`
- 	* Unlink mirrors from all selected modules.
- 	* Only available <b>when one or more modules are selected</b>.
- * `List Mirrors`
- 	* List mirror links of one selected module.
- 	* Only available <b>when exactly one module is selected</b>.
+    * Add a module to the N- or C-Terminus of the selected module.
+    * Short form: `exm`
+    * Only available <b>when one or more modules are selected</b>.
+
+## Module Network Related
  * `Select Network`
- 	* Selects the network parent object (arrow axes) the selected module(s) belong to.
+    * Selects the network parent object (arrow axes) the selected module(s) belong to.
+    * Short form: `snw`
+    * Only available <b>when at least one module or joint is selected<b>.
+    * Works for path guide objects too.
  * `Sever Network`
- 	* Sever one network into two at the specific point.
- 	* Only available <b>when exactly two neighbouring modules are selected</b>.
+    * Sever one network into two at the specific point.
+    * Short form: `svnw`
+    * Only available <b>when exactly two neighbouring modules are selected</b>.
  * `Join Network`
- 	* Join two compatible networks; deletes the network that becomes empty.
- 	* Only available <b>when exactly two modules from different networks are selected</b>. In addition, they must also be compatible (both connectivity- and chain-occupancy- wise).
- * `Select Mirror`
- 	* Selects all mirror-linked modules of the selected module(s).
- 	* Only available <b>when more than zero modules are selected</b>.
+    * Join two compatible networks; deletes the network that becomes empty.
+    * Short form: `jnw`
+    * Only available <b>when exactly two modules are selected</b>. 
+    * A list containing termini join options will be displayed, which will be empty if the two modules are
+      * from the same network,
+      * incompatible,
+      * or compatible termini are already occupied by some other module.
+
+## Path Guide Related
  * `Add Joint`
- 	* Add a path guide joint
- 	* Only available <b>when the selection does not contain joints</b>.
+    * Add a path guide joint.
+    * Short form: `addj`
+    * Only available <b>when the selection does not contain joints</b>.
  * `Extrude Joint`
- 	* Extrude a path guide joint from another.
- 	* Only available <b>when the selection only contains joints</b>.
+    * Extrude a path guide joint from another.
+    * Short form: `exj`
+    * Only available <b>when the selection only contains joints</b>.
+ * `Add Bridge`
+    * Add a bridge between two joints.
+    * Short form: `addb`
+    * Only available <b>when:
+      * exactly 2 joints are selected,
+      * the two joints are not already bridged,
+      * and neither of the joints exceed the max number of branches (determined by max hub branch in `xdb.json`)</b>.
  * `Joint to Module`
-  	* Move a joint to the COM of a module.
-  	* Only available <b>when exactly one module and one joint are selected</b>.
+    * Move a joint to the COM of a module.
+    * Short form: `jtm`
+    * Only available <b>when exactly one module and one joint are selected</b>.
+ * `Module to Joint`
+    * Move a module and its network to a joint.
+    * Short form: `mtj`
+    * Only available <b>when exactly one module and one joint are selected</b>.
+
+## Mirror Related
+ * `Link by Mirror`
+    * Link multiple modules of the same prototype by mirror.
+    * Short form: `lbm`
+    * Only available when one or more <b>homogenous modules</b> are selected (same prototype)
+ * `Unlink Mirrors`
+    * Unlink mirrors from all selected modules.
+    * Short form: `ulm`
+    * Only available <b>when one or more modules are selected</b>.
+ * `List Mirrors`
+    * List mirror links of one selected module.
+    * Short form: `lmr`
+    * Only available <b>when exactly one module is selected</b>.
+ * `Select Mirror`
+    * Selects all mirror-linked modules of the selected module(s).
+    * Short form: `smr`
+    * Only available <b>when more than zero modules are selected</b>.
 
 
 You don't have to type the full name of the module. For example, "extr" will bring up the `Extrude Module` operator.
@@ -171,7 +206,9 @@ You don't have to type the full name of the module. For example, "extr" will bri
 
 `Add Module` and `Extrude Module` will prompt you with a filtered list of actionable module names - let's call them <em>filtered prototypes</em>. There could be many modules in a scene, but modules with the same module name (not Blender name) are of the same prototype (like what classes are to objects). For extrusion, prototypes are filtered by compatibility and also terminus occupancy (i.e. is the N and/or C terminus already occupied?).
 
-In the filtered prototype list, you will see that the name of a module is bounded by two period marks. These marks are sentinels which makes it easy to search the exact module one is looking for. Try typing just `D4` in `Add Module`, and see what happens when you type `.D4` or `D4.` or `.D4.`.
+For `Add Module`, you will see that the name of each module is bounded by two period marks. These marks are sentinels which makes it easy to search the exact module one is looking for. Try typing just `D4` in `Add Module`, and see what happens when you type `.D4` or `D4.` or `.D4.`.
+
+For `Extrude Module`, names are of the form `:<chain1>(<term1>) -> (<term2>)<chain2>:<name2>.`. The `chain1` and `term1` are chain ID and terminus type of the module being extruded from. The `term2`, `chain2`, and `name2` are corresponding attributes of the new module to be extruded into. For instance: when `D49` is selected and extrusion on the N terminus is chosen, one of the items in the list could be `:A(N) -> (C)A:D49_aC2_24.` This means the terminus `N` of chain `A` of `D49` can be extruded and connected to a yet-to-be-added `D49_aC2_24` hub. In the latter, terminus `C` of chain `A` would be used for this connection.
 
 The first letter, if there is one, denotes the <b>C Terminus</b> chain ID of the extrusion. This is needed because hub modules have more than one chain to extrude to and from.
 
