@@ -65,7 +65,7 @@ In order to preserve the interface relationship of each connected group of modul
 
 It is intentionally disabled, because the transforming of individual modules break the spatial relatinoship between modules that elfin's assembly logic relies on.
 
-The correct way to transform modules is to select the parent object (i.e. via `Select Parent`) and then move or rotate the whole network. If you want to move an individual module, then by logic it must be severed from the network (i.e. via `Sever Network`) it originally belonged to and form a new, separate network with just that module. Transform that network, then join the networks back together when you're done.
+The correct way to transform modules is to select the parent object (i.e. via `Select Parent` or shortcut <kbd>shift</kbd>+<kbd>G</kbd>+<kbd>P</kbd>) and then move or rotate the whole network. If you want to move an individual module, then by logic it must be severed from the network (i.e. via `Sever Network`) it originally belonged to and form a new, separate network with just that module. Transform that network, then join the networks back together when you're done.
 
 <b>4. Why can't I extrude into a symmetric hub or join networks that involve symmetric hub(s)?</b>
 
