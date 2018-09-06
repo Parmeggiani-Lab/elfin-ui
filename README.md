@@ -30,27 +30,31 @@ Next, refer to: [Tutorial With GIFs](resources/tutorial/README.md)
 ## TODO:
 
 ### Must-Haves
- * Export to Elfin Core format
- * Import Elfin core output into scene
+ * Export to elfin-solver format
+    * Goal: reduce work area for elfin.
+    * Deal with joints that collide with module: if COM equal, don’t complain and assume the module is meant to replace the joint => “occupied”. If not equal, ask/warn user.
+    * For any occupied joints, if the joint connects to more than one bridge then the occupant module shouldn’t be fully connected. If the module is, then elfin is not able to build around it so there must be a mistake(?)
+​
+ * Import elfin-solver output into scene
 
 ### Nice-to-Haves
  * Mirrored joining? Sounds complicated.
  * Confirm deletion caused by collision
- 	* Collision detection using single module 3D models are not very accurate (currently each module is shrunken to 85% before checking).
+    * Collision detection using single module 3D models are not very accurate (currently each module is shrunken to 85% before checking).
 
 ### Feasibility N/A
  * Select previous module upon module delete
  * Auto-seek extrusion
- 	 * List all extrudable termini of the network that the selected module belongs to.
-	 * If there are hubs in the network there might be multiple heads. In this case ask the user to choose one.
-		
+     * List all extrudable termini of the network that the selected module belongs to.
+     * If there are hubs in the network there might be multiple heads. In this case ask the user to choose one.
+        
 ### Once Blender gets an API upgrade
  * Hooking callback upon object deletion or entrance to scene
- 	 * In v2.79 there are no callback hooks for object deletion/entrance.
- 	 * Currently implemented using a watcher that checks the scene objects at 100ms intervals, which can be flacky under rare circumstances e.g. if the user uses a script to edit the scene at non-human speeds. For the most part this works, but is obviously not the best approach.
+     * In v2.79 there are no callback hooks for object deletion/entrance.
+     * Currently implemented using a watcher that checks the scene objects at 100ms intervals, which can be flacky under rare circumstances e.g. if the user uses a script to edit the scene at non-human speeds. For the most part this works, but is obviously not the best approach.
  * Hub symmetry enforcement
- 	 * In v2.79, we're not able to create custom modifiers in Python.
- 	 * Currently implemented using mirror-linking.
+     * In v2.79, we're not able to create custom modifiers in Python.
+     * Currently implemented using mirror-linking.
 
 ## FAQ:
 <b>1. What are networks?</b>
