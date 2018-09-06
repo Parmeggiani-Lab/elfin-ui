@@ -159,7 +159,7 @@ class AddJoint(bpy.types.Operator):
             if first_sel.elfin.is_module():
                 p = first_sel.parent
                 if not p:
-                    self.report({'ERROR'}, {'Selected module has no network parent.'})
+                    self.report({'ERROR'}, 'Selected module has no network parent.')
                     return {'CANCELLED'}
                 ploc = p.location
                 loc = ploc + (p.rotation_euler.to_matrix().to_4x4() * mathutils.Matrix.Translation(loc)).translation
@@ -345,7 +345,7 @@ class SeverNetwork(bpy.types.Operator):
         if not self.link_info:
             self.report(
                 {'ERROR'}, 
-                {'Error: link_info is '.format(self.link_info)})
+                'Error: link_info is '.format(self.link_info))
             return {'CANCELLED'}
         
         link, linkage = self.link_info
@@ -639,11 +639,11 @@ class ExtrudeNTerm(bpy.types.Operator):
                                         default=[0,0,0])
 
     def execute(self, context):
-        execute_extrusion(
+        return execute_extrusion(
             which_term='n',
             selector=self.nterm_ext_module_selector, 
-            color=self.color)
-        return {'FINISHED'}
+            color=self.color,
+            reporter=self)
 
     def invoke(self, context, event):
         self.color = ColorWheel().next_color()
@@ -663,11 +663,11 @@ class ExtrudeCTerm(bpy.types.Operator):
                                         default=[0,0,0])
 
     def execute(self, context):
-        execute_extrusion(
+        return execute_extrusion(
             which_term='c',
             selector=self.cterm_ext_module_selector, 
-            color=self.color)
-        return {'FINISHED'}
+            color=self.color,
+            reporter=self)
 
     def invoke(self, context, event):
         self.color = ColorWheel().next_color()

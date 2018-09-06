@@ -393,7 +393,8 @@ def walk_network(module, initial=True):
         if not c_obj.target_mod.elfin.node_walked:
             yield from walk_network(module=c_obj.target_mod, initial=False)
 
-def extrude_terminus(which_term, selector, sel_mod, color):
+IncompatibleModuleError = ValueError('Modules are not compatible!')
+def extrude_terminus(which_term, selector, sel_mod, color, reporter):
     """Extrudes selector module at the which_term of sel_mod"""
     assert which_term in {'n', 'c'}
 
@@ -427,10 +428,14 @@ def extrude_terminus(which_term, selector, sel_mod, color):
                 which_term, 
                 sel_ext_type_pair
                 )
+            if not tx:
+                reporter.report({'ERROR'}, str(IncompatibleModuleError))
+                raise IncompatibleModuleError
+
             ext_mod.matrix_world = tx * ext_mod.matrix_world
 
             # touch up
-            bpy.context.scene.update() # Udpate to get the correct matrices
+            bpy.context.scene.update() # Update to get the correct matrices
             change_parent_preserve_transform(ext_mod, fixed_mod.parent)
 
             give_module_new_color(ext_mod, color)
@@ -444,7 +449,6 @@ def extrude_terminus(which_term, selector, sel_mod, color):
             ext_mod.select = True
 
             return [ext_mod] # for mirror linking
-
 
         xdb = get_xdb()
         if sel_ext_type_pair in {('single', 'single'), ('single', 'hub')}:
@@ -510,17 +514,29 @@ def extrude_terminus(which_term, selector, sel_mod, color):
             ext_mod.elfin.obj_ptr = ext_mod
             ext_mod.elfin.destroy()
         sel_mod.select = True # Restore selection
-        raise e
-    return {'FINISHED'}
 
-def execute_extrusion(which_term, selector, color):
+        if e != IncompatibleModuleError:
+            raise e
+
+        return {'CANCELLED'}
+
+def execute_extrusion(which_term, selector, color, reporter):
     """Executes extrusion respecting mirror links and filers mirror selections
     """
     if selector in nop_enum_selectors: return
 
     filter_mirror_selection()
     for sel_mod in get_selected(-1): 
-        extrude_terminus(which_term, selector, sel_mod, color)
+        if {'FINISHED'} != \
+            extrude_terminus(
+                which_term, 
+                selector, 
+                sel_mod, 
+                color, 
+                reporter):
+            return {'CANCELLED'}
+
+    return {'FINISHED'}
 
 def get_extrusion_prototype_list(sel_mod, which_term):
     """Generates a prototype list appropriately filtered for extrusion.
@@ -627,52 +643,55 @@ def get_tx(
     xdb = get_xdb()
 
     tx = None
-    if rel_type == ('single', 'single'):
+    try:
+        if rel_type == ('single', 'single'):
 
-        if which_term == 'n':
-            rel = xdb['double_data'][ext_mod_name][fixed_mod_name]
-            tx = get_drop_frame_transform(rel, fixed_mod)
-        else:
-            rel = xdb['double_data'][fixed_mod_name][ext_mod_name]
-            tx = get_raise_frame_transform(rel, fixed_mod)
+            if which_term == 'n':
+                rel = xdb['double_data'][ext_mod_name][fixed_mod_name]
+                tx = get_drop_frame_transform(rel, fixed_mod)
+            else:
+                rel = xdb['double_data'][fixed_mod_name][ext_mod_name]
+                tx = get_raise_frame_transform(rel, fixed_mod)
 
-    elif rel_type == ('single', 'hub'):
+        elif rel_type == ('single', 'hub'):
 
-        chain_xdata = xdb['hub_data'][ext_mod_name]['component_data'][extrude_into]
-        if which_term == 'n':
-            rel = chain_xdata['c_connections'][fixed_mod_name]
-            # First drop to hub component frame
-            tx1 = get_drop_frame_transform(rel)
+            chain_xdata = xdb['hub_data'][ext_mod_name]['component_data'][extrude_into]
+            if which_term == 'n':
+                rel = chain_xdata['c_connections'][fixed_mod_name]
+                # First drop to hub component frame
+                tx1 = get_drop_frame_transform(rel)
 
-            rel = xdb['double_data'][chain_xdata['single_name']][fixed_mod_name]
-            # Second drop to double B frame
-            tx2 = get_drop_frame_transform(rel, fixed_mod)
+                rel = xdb['double_data'][chain_xdata['single_name']][fixed_mod_name]
+                # Second drop to double B frame
+                tx2 = get_drop_frame_transform(rel, fixed_mod)
 
-            tx = tx2 * tx1
-        else:
-            rel = chain_xdata['n_connections'][fixed_mod_name]
-            tx = get_drop_frame_transform(rel, fixed_mod)
+                tx = tx2 * tx1
+            else:
+                rel = chain_xdata['n_connections'][fixed_mod_name]
+                tx = get_drop_frame_transform(rel, fixed_mod)
 
-    elif rel_type == ('hub', 'single'):
+        elif rel_type == ('hub', 'single'):
 
-        chain_xdata = xdb['hub_data'][fixed_mod_name]['component_data'][extrude_from]
-        if which_term == 'n':
-            rel = chain_xdata['n_connections'][ext_mod_name]
-            tx = get_raise_frame_transform(rel, fixed_mod)
-        else:
-            # First raise to double B frame
-            rel = xdb['double_data'] \
-                [chain_xdata['single_name']][ext_mod_name]
-            tx1 = get_raise_frame_transform(rel)
+            chain_xdata = xdb['hub_data'][fixed_mod_name]['component_data'][extrude_from]
+            if which_term == 'n':
+                rel = chain_xdata['n_connections'][ext_mod_name]
+                tx = get_raise_frame_transform(rel, fixed_mod)
+            else:
+                # First raise to double B frame
+                rel = xdb['double_data'] \
+                    [chain_xdata['single_name']][ext_mod_name]
+                tx1 = get_raise_frame_transform(rel)
 
-            # Second raise to hub component frame
-            rel = chain_xdata['c_connections'][ext_mod_name]
-            tx2 = get_raise_frame_transform(rel, fixed_mod)
+                # Second raise to hub component frame
+                rel = chain_xdata['c_connections'][ext_mod_name]
+                tx2 = get_raise_frame_transform(rel, fixed_mod)
 
-            tx = tx2 * tx1
+                tx = tx2 * tx1
 
-    e_rot, e_tran = scaleless_rot_tran(ext_mod)
-    # tx = tx * e_rot * e_tran
+        # e_rot, e_tran = scaleless_rot_tran(ext_mod)
+        # tx = tx * e_rot * e_tran
+    except KeyError as ke:
+        tx = None
 
     return tx
 
