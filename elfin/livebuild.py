@@ -350,35 +350,30 @@ class SeverNetwork(bpy.types.Operator):
         
         link, linkage = self.link_info
 
-        # Sever mirrors if this is in a symmetric network
         symhub = find_symmetric_hub([mod_a.parent])
-        if symhub:
-            if symhub == mod_a or symhub == mod_b:
-                arm_mod = mod_a if symhub == mod_b else mod_b
-                for m in arm_mod.elfin.mirrors:
-                    # Not making assumption that a symmetric hub's immediate
-                    # neighbours are identical, although they probably are..
-                    m_link, m_linkage = symhub.elfin.find_link(m)
-                    self.sever(m_link, m_linkage, symhub)
-            else:
-                term = link.terminus
-                src_chain_id = link.source_chain_id
-
-                to_sever = []
-                for m in mod_a.elfin.mirrors:
-                    if term == 'c':
-                        m_linkage = m.elfin.c_linkage
-                    else:
-                        m_linkage = m.elfin.n_linkage
-                    for l in m_linkage:
-                        if l.source_chain_id == src_chain_id:
-                            to_sever.append((l, m_linkage, m))
-
-                for ts in to_sever:
-                    self.sever(*ts)
-
+        if symhub and symhub == mod_a or symhub == mod_b:
+            arm_mod = mod_a if symhub == mod_b else mod_b
+            for m in arm_mod.elfin.mirrors:
+                # Not making assumption that a symmetric hub's immediate
+                # neighbours are identical, although they probably are..
+                m_link, m_linkage = symhub.elfin.find_link(m)
+                self.sever(m_link, m_linkage, symhub)
         else:
-            self.sever(link, linkage, mod_a)
+            term = link.terminus
+            src_chain_id = link.source_chain_id
+
+            to_sever = []
+            for m in mod_a.elfin.mirrors:
+                if term == 'c':
+                    m_linkage = m.elfin.c_linkage
+                else:
+                    m_linkage = m.elfin.n_linkage
+                for l in m_linkage:
+                    if l.source_chain_id == src_chain_id:
+                        to_sever.append((l, m_linkage, m))
+
+            for ts in to_sever:
+                self.sever(*ts)
 
         self.link_info = None
         return {'FINISHED'}
