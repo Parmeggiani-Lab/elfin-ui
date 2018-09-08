@@ -1,14 +1,13 @@
 # Tutotial Content
 1. [Installing](#installing)
 2. [Updating](#updating)
-3. [Warnings Before Use](#warnings-before-use)
-4. [Usage](#usage)
-5. [Operator List](#operator-list)
-6. [Prototype Naming Convention](#prototype-naming-convention)
-7. [Coloring](#coloring)
-8. [Mirror-Linking](#mirror-linking)
-9. [Useful Blender Shortcuts](#useful-blender-shortcuts)
-10. [Collision Detection](#collision-detection)
+3. [Usage](#usage)
+4. [Operator List](#operator-list)
+5. [Prototype Naming Convention](#prototype-naming-convention)
+6. [Coloring](#coloring)
+7. [Mirror-Linking](#mirror-linking)
+8. [Useful Blender Shortcuts](#useful-blender-shortcuts)
+9. [Collision Detection](#collision-detection)
 
 # Installing
 
@@ -51,13 +50,6 @@ To update to the latest elfin-ui, simply pull (inside elfin-ui root folder):
 The module library files are automatically fetched by `./install` but if in any case the module library was lost, modified, or became outdated, do:
 
 `./fetch_library`
-
-# Warnings Before Use
-Any design created as of now may or may not be exportable to elfin's internal data format when the export function gets implemented. This is because Blender objects created using an old version of the addon will not get new properties even if the addon is updated. The protein design will need to be re-created.
-
-We could possibly make future changes backword compatible by implementing a remove-all, re-add all function but right now this does not exist yet so be warned nonetheless.
-
-There does not seem to be a clean way to detect whether a file was created by an older version of elfin-ui, and whether or not the older version is incompatible.
 
 # Usage
 The design paradigm of elfin-ui revolves around module assembly. This means the user is expected to creat modules, extrude from modules, move/rotate networks around, and draw path guides (upcoming feature which calls into elfin-solver for automatic segment creation).

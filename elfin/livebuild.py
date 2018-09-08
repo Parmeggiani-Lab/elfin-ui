@@ -744,6 +744,36 @@ class AddModule(bpy.types.Operator):
         return {'FINISHED'}
 
 # Utility operators ------------------------------
+class ErrorToleranceSetting(bpy.types.Operator):
+    bl_idname = 'elfin.error_tolerance_setting'
+    bl_label = 'Set elfin-solver error tolerance'
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    title = bpy.props.StringProperty(default='Error Tolerance Setting')
+    icon = bpy.props.StringProperty(default='QUESTION')
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        row = self.layout
+        row.label(self.title, icon=self.icon)
+
+        sel_obj = context.selected_objects[0]
+        for i in range(len(sel_obj.elfin.err_tols)):
+            row.prop(sel_obj.elfin.err_tols[i], 
+                'value',
+                text=sel_obj.elfin.err_tols[i].name)
+
+    @classmethod
+    def poll(cls, context):
+        return get_selection_len() == 1 and \
+            (context.selected_objects[0].elfin.is_module() or \
+            context.selected_objects[0].elfin.is_bridge())
+
 class LoadXdb(bpy.types.Operator):
     bl_idname = 'elfin.load_xdb'
     bl_label = '(Re)load xdb'

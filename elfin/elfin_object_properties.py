@@ -28,6 +28,9 @@ class Link(bpy.types.PropertyGroup):
 class ObjectPointerWrapper(bpy.types.PropertyGroup):
     obj = bpy.props.PointerProperty(type=bpy.types.Object)
 
+class ErrorWrapper(bpy.types.PropertyGroup):
+    value = bpy.props.FloatProperty(min=0.0, default=10.0)
+
 class ElfinObjectProperties(bpy.types.PropertyGroup):
     """Represents an elfin object (module/joint/bridge)."""
     obj_type = bpy.props.IntProperty(default=ElfinObjType.NONE.value)
@@ -38,6 +41,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     c_linkage = bpy.props.CollectionProperty(type=Link)
     n_linkage = bpy.props.CollectionProperty(type=Link)
     pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
+    err_tols = bpy.props.CollectionProperty(type=ErrorWrapper)
 
     node_walked = bpy.props.BoolProperty(default=False)
     destroy_entered = bpy.props.BoolProperty(default=False)
@@ -59,7 +63,6 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         return tuple((nb.obj for nb in self.pg_neighbours)) in \
             ((mod_a, mod_b), (mod_b, mod_a))
-
 
     def find_link(self, mod_b):
         """Tries to find a link between mod_a and mod_b, or returns None if
@@ -277,6 +280,10 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         # Always trigger dirty exit so we can clean up
         obj.use_fake_user = True
 
+        # Add error setting
+        err = self.err_tols.add()
+        err.name = 'bridge'
+
     def init_joint(self, obj):
         self.obj_ptr = obj
         self.obj_type = ElfinObjType.JOINT.value
@@ -292,10 +299,22 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         single_xdata = xdb['single_data'].get(mod_name, None)
         if single_xdata:
             self.module_type = 'single'
+            err_n = self.err_tols.add()
+            err_n.name = 'A:N'
+            err_c = self.err_tols.add()
+            err_c.name = 'A:C'
         else:
             hub_xdata = xdb['hub_data'].get(mod_name, None)
             if hub_xdata:
                 self.module_type = 'hub'
+                comp_xdata = hub_xdata['component_data']
+                for chain in comp_xdata:
+                    if comp_xdata[chain]['n_free']:
+                        err_n = self.err_tols.add()
+                        err_n.name = chain +':N'
+                    if comp_xdata[chain]['c_free']:
+                        err_c = self.err_tols.add()
+                        err_c.name = chain +':C'
             else:
                 print('Warning: user is trying to link a module that is neither single or hub type')
                 single_a_name, single_b_name = mod_name.split('-')

@@ -64,14 +64,13 @@ class LivebuildState(metaclass=Singleton):
 
         # Find max hub termini
         self.max_hub_branches = 0
-        hub_xdata = self.xdb['hub_data']
-        for hub_name in hub_xdata:
-            comp_xdata = hub_xdata[hub_name]['component_data']
+        for hub_name in self.xdb['hub_data']:
+            comp_xdata = self.xdb['hub_data'][hub_name]['component_data']
             hub_branches = 0
-            for term_name in comp_xdata:
+            for chain in comp_xdata:
                 hub_branches += \
-                    comp_xdata[term_name]['n_free'] + \
-                    comp_xdata[term_name]['c_free']
+                    comp_xdata[chain]['n_free'] + \
+                    comp_xdata[chain]['c_free']
             if hub_branches > self.max_hub_branches:
                 self.max_hub_branches = hub_branches
 
