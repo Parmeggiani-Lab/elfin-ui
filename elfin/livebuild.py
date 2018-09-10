@@ -758,8 +758,18 @@ class AddModule(bpy.types.Operator):
         lmod.parent = network_parent
 
         # Select only the newly placed module
-        for s in get_selected(-1): s.select = False
+        selection = get_selected(-1)
+        last_obj_loc = selection[-1].location.copy() 
+        for s in selection: 
+            s.select = False
+
         lmod.select = True
+        # If not set to lmod, it would be the parent, which will lead to
+        # failure when trying to select parent via Shift-G + P
+        context.scene.objects.active = lmod
+
+        # Move new module to last selected object location
+        lmod.location = last_obj_loc
 
         self.ask_prototype = True
         return {'FINISHED'}
