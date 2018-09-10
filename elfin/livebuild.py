@@ -759,7 +759,7 @@ class AddModule(bpy.types.Operator):
 
         # Select only the newly placed module
         selection = get_selected(-1)
-        last_obj_loc = selection[-1].location.copy() 
+        last_obj_loc = selection[-1].location.copy()
         for s in selection: 
             s.select = False
 
@@ -769,7 +769,7 @@ class AddModule(bpy.types.Operator):
         context.scene.objects.active = lmod
 
         # Move new module to last selected object location
-        lmod.location = last_obj_loc
+        lmod.parent.location = last_obj_loc
 
         self.ask_prototype = True
         return {'FINISHED'}
