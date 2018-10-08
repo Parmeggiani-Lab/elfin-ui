@@ -1,4 +1,5 @@
 import enum
+import collections
 
 import bpy
 import mathutils
@@ -16,6 +17,14 @@ class Link(bpy.types.PropertyGroup):
     def __repr__(self):
         return 'Link => (Src CID={}, Tgt={}, Tgt CID={})'.format(
             self.source_chain_id, self.target_mod, self.target_chain_id)
+
+    def as_dict(self):
+        return {
+            'terminus': self.terminus,
+            'source_chain_id': self.source_chain_id,
+            'target_mod': self.target_mod.name,
+            'target_chain_id': self.target_chain_id
+        }
 
     def sever(self):
         if self.target_mod:
@@ -43,6 +52,33 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
     node_walked = bpy.props.BoolProperty(default=False)
     destroy_entered = bpy.props.BoolProperty(default=False)
+
+    def as_dict(self):
+        data = collections.OrderedDict()
+
+        if self.is_module():
+            data['module_name'] = self.module_name
+            data['module_type'] = self.module_type
+            data['c_linkage'] = [cl.as_dict() for cl in self.c_linkage]
+            data['n_linkage'] = [nl.as_dict() for nl in self.n_linkage]
+        elif self.is_joint():
+            nbs = []
+            for pgn in self.pg_neighbours:
+                bridge = pgn.obj
+                for other_end_nb in bridge.elfin.pg_neighbours:
+                    other_end = other_end_nb.obj
+                    if other_end != self.obj_ptr:
+                        nbs.append(other_end.name)
+                        
+            data['neighbours'] = nbs
+        else:
+            raise ValueError('Should not convert this elfin object to dict: {}'.format(self.obj_type))
+        
+        data['matrix_world'] = list([list(v) for v in self.obj_ptr.matrix_world])
+        data['rotation_euler'] = list(self.obj_ptr.rotation_euler)
+        data['rotation_order'] = self.obj_ptr.rotation_euler.order
+
+        return data
 
     def joint_connects_joint(self, other_mod):
         if not self.is_joint() or \
