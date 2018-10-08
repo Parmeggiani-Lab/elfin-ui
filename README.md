@@ -8,7 +8,8 @@ Elfin-ui is like a protein CAD. It's a Blender addon that serves as [elfin](http
 
 
 [Jump to: Getting Started](#getting-started)
-[Jump to: FAQ](#FAQ)
+
+[Jump to: FAQ](#faq)
 
 ## Goals
 
@@ -79,15 +80,15 @@ When you're creating a network that involves a symmetric hub, you should start w
 
 <b>5. What is mirror-linking?</b>
 
-It is a extrusion/deletion mirroring mechanism originally implemented for symmetric hubs. Extrude and delete operations on any one of a group of mirror-linked modules are automatically copied across. Extruded modules are also automatically mirror-linked so further extrusions are also copied as expected.
+It is an extrusion/deletion mirroring mechanism originally implemented for symmetric hubs. Extrude and delete operations on any one of a group of mirror-linked modules are automatically copied across. Extruded modules are also automatically mirror-linked so further extrusions are also copied as expected.
 
 It's sometimes useful to manually create mirror-linked groups that extrude together. To do so, use `Link by Mirror`. There are also a couple of other mirror linking operators - see [tutorial](resources/tutorial/README.md).
 
 ## Don't do's
 <b>Can I change module object settings?</b>
 
-No, except for the material color. Especially, if the transform settings are modified, it's very likely that you will break elfin's assumption about module spatial relationship and the result is undefined.
+You can change the material color, but please don't change other object settings. Especially, if the transform settings are modified, elfin's assumption about module spatial relationship might be violated, causing computation errors downstream.
 
 <b>Can I scale any object?</b>
 
-No. The scale must be kept constant so that the calculation between PyMol data and Blender are correct. It's just like how you cannot just scale a lifesize protein up 100x.
+No. The scale must be kept constant so that the calculation between PyMol data and Blender are correct.

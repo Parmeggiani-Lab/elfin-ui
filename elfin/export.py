@@ -1,3 +1,6 @@
+import os
+import json
+
 import bpy
 
 
@@ -21,17 +24,22 @@ class ExportPanel(bpy.types.Panel):
 class ExportOperator(bpy.types.Operator):
     bl_idname = 'elfin.export'
     bl_label = 'Export as Elfin input'
+    filepath = bpy.props.StringProperty(subtype="FILE_PATH")
+
+    def invoke(self, context, event):
+        self.filepath = os.path.splitext(bpy.data.filepath)[0] + '.json'
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
     def execute(self, context):
         """Export to a JSON that specifies work areas for elfin-solver to
-        solve. This format is not meant to fully specify the design in the
+        solve. This format may or may not fully characterise the design in the
         current Blender file. The format is merely a work contract between
-        elfin-ui and elfin-solver.
-        
+        elfin-ui and elfin-solver.        
         """
+        output = {}
 
-        # Should we just export the selection?
-        # For now let's do entire scene
+        # Maybe we can limit export to seleced pg_network in the future.
         networks, pg_networks = [], []
         for obj in context.scene.objects:
             if obj.elfin.is_network():
@@ -39,6 +47,19 @@ class ExportOperator(bpy.types.Operator):
             elif obj.elfin.is_pg_network():
                 pg_networks.append(obj)
        
+        """
+        User errors to check:
+        
+        Joints that collide with module: 
+            A) COM equal: assume the module is meant to replace the joint =>
+               “occupied”. For each occupied joint, if the joint connects to
+               more than one bridge then the occupant module shouldn’t be
+               fully connected. If the module is fully connected, then elfin
+               would not be able to build around it so there must be a
+               mistake. Error out as invalid occupant joint.
+            B) COM not equal: error out as unintentional collision.
+        """
+
         """
         Format guide:
         {
@@ -98,5 +119,10 @@ class ExportOperator(bpy.types.Operator):
         # Parse path guides
         
         # Save where?
+        json.dump(output,
+            open(self.filepath, 'w'),
+            separators=(',', ':'),
+            ensure_ascii=False,
+            indent=4)
 
         return {'FINISHED'}
