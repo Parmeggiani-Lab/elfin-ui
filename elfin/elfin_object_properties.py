@@ -69,7 +69,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
                     other_end = other_end_nb.obj
                     if other_end != self.obj_ptr:
                         nbs.append(other_end.name)
-                        
+            data['occupant'] = ''
             data['neighbours'] = nbs
         else:
             raise ValueError('Should not convert this elfin object to dict: {}'.format(self.obj_type))

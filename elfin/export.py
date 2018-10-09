@@ -3,6 +3,7 @@ import json
 
 import bpy
 
+from . import livebuild_helper as lh
 
 # Operators --------------------------------------
 
@@ -46,13 +47,14 @@ class ExportOperator(bpy.types.Operator):
             elif obj.elfin.is_pg_network():
                 pg_networks.append(obj)
 
-        valid, msg = validate_pathguides(networks, pg_networks)
+        output = create_output(networks, pg_networks)
+
+        valid, msg = validate_pathguides(networks, pg_networks, output)
         if not valid:
             self.report({'ERROR'}, msg)
             return {'CANCELLED'}
 
-        output = create_output(networks, pg_networks)
-        output = annotate_output(output)
+        annotate_output(output)
         
         json.dump(output,
             open(self.filepath, 'w'),
@@ -64,15 +66,21 @@ class ExportOperator(bpy.types.Operator):
 
 # Helpers ----------------------------------------
 
-def validate_pathguides(networks, pg_networks):
-    """Checks through modules and joints for unintended collisions.
+def coms_approximately_equal(com1, com2, tolerance=1e-5):
+    return all(abs(x) < tolerance for x in a - b)
+
+def validate_pathguides(networks, pg_networks, output):
+    """Checks through modules and joints for unintended collisions. Modifies
+    output dictionary to mark occupancy.
     """
     validity, msg = True, ''
        
     """
     User errors to check:
     
-    Joints that collide with module: 
+    1. Module collisions
+
+    2. Joints that collide with module: 
         A) COM equal: assume the module is meant to replace the joint =>
            “occupied”. For each occupied joint, if the joint connects to
            more than one bridge then the occupant module shouldn’t be
@@ -82,7 +90,27 @@ def validate_pathguides(networks, pg_networks):
         B) COM not equal: error out as unintentional collision.
     """
     try:
-        ...
+        if lh.overlapping_module_exists():
+            validity = False
+            msg = 'There are overlapping modules. Remove them first (try deleting colliding modules with #ccd).'
+        else:
+            for pg_nw in pg_networks:
+                for jt in pg_nw.children:
+                    jt_com = jt.matrix_world.translation
+
+                    for nw in networks:
+                        for mod in nw:
+
+                            # if collide
+                            if False:
+                                mod_com = mod.matrix_world.translation
+                                # A)
+                                if coms_approximately_equal(jt_com, mod_com):
+                                    ...
+                                else:
+                                    ...
+                                # B)
+
     except Exception as e:
         validity, msg = False, str(e)
 
@@ -155,7 +183,7 @@ def network_to_dict(network):
 
 def annotate_output(output):
     """Analyses output content to see if we can make inference and limit
-    module selection.
+    module selection. Modifies output dictionary.
     """
 
     print('Not yet implemented')

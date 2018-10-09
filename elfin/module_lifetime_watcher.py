@@ -55,12 +55,16 @@ class ModuleLifetimeWatcher(object):
 
     def on_module_enter(self, object_name):
         """Entrance conditioned on absence of collision"""
-        ob = bpy.data.objects[object_name]
-        # New objects should never generate a KeyError, as opposed to
-        # deleted objects.
-        if ob.elfin.is_module():
-            print('Module enter: {}'.format(ob))
-            bpy.ops.elfin.check_collision_and_delete(object_name=ob.name)
+        try:
+            ob = bpy.data.objects[object_name]
+            # New objects should never generate a KeyError, as opposed to
+            # deleted objects.
+            if ob.elfin.is_module():
+                print('Module enter: {}'.format(ob))
+                if not bpy.context.scene.elfin.disable_auto_collision_check:
+                    bpy.ops.elfin.check_collision_and_delete(object_name=ob.name)
+        except KeyError:
+            print('Couldn\'t find entering object named', object_name, ' - probably a network parent?')
 
     def on_module_exit(self, object_name):
         if object_name in bpy.data.objects:

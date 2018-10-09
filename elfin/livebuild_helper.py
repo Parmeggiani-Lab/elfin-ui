@@ -759,20 +759,27 @@ def give_module_new_color(mod, new_color=None):
     mod.data.materials.append(mat)
     mod.active_material = mat
 
+def overlapping_module_exists():
+    """Determines whether there is any overlapping module.
+    """
+    bpy.context.scene.update()
+    for obj in bpy.context.scene.objects:
+        if obj.elfin.is_module() and check_module_overlap(obj):
+            return True
+            
+    return False
+
 def delete_if_overlap(obj, obj_list=None):
     """
     Delete obj if it is a module and it overlaps with any object in obj_list.
-
-    This function is conditioned on the disable_collision_check toggle.
     """
 
     # Update must be called first because operations like extrude will first
     # transform the object.
-    if not bpy.context.scene.elfin.disable_collision_check:
-        bpy.context.scene.update()
-        if obj.elfin.is_module() and check_module_overlap(obj, obj_list=obj_list):
-            obj.elfin.destroy()
-            return True
+    bpy.context.scene.update()
+    if obj.elfin.is_module() and check_module_overlap(obj, obj_list=obj_list):
+        obj.elfin.destroy()
+        return True
     return False
 
 def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
@@ -796,7 +803,7 @@ def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
     mod_bm.transform(mod_obj.matrix_world * scale)
     mod_bvh_tree = mathutils.bvhtree.BVHTree.FromBMesh(mod_bm)
     for ob in obj_list:
-        if ob == mod_obj:
+        if not ob.elfin.is_module() or ob == mod_obj:
             continue
 
         ob_bm = bmesh.new()

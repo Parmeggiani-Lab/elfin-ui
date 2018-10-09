@@ -702,7 +702,7 @@ class ExtrudeCTerm(bpy.types.Operator):
 
 class CheckCollisionAndDelete(bpy.types.Operator):
     bl_idname = 'elfin.check_collision_and_delete'
-    bl_label = 'Check collision and delete if positive'
+    bl_label = 'Check collision and delete if positive (#ccd)'
 
     # Allow keyword specification
     object_name = bpy.props.StringProperty(default='__unset__')
@@ -711,15 +711,23 @@ class CheckCollisionAndDelete(bpy.types.Operator):
         found_overlap = False
 
         try:
+            object_is_valid = True
             ob = bpy.data.objects[self.object_name]
             found_overlap |= delete_if_overlap(ob)
         except KeyError:
-            # No valid object_name specified - use selection
-            for ob in get_selected(-1):
+            object_is_valid = False
+
+        if not object_is_valid:
+            # No valid object_name specified - try using selection
+            objs = get_selected(-1)
+
+            # Nothing selected - use all objects
+            if len(objs) == 0:
+                objs = context.scene.objects
+
+            for ob in objs:
                 if ob.elfin.is_module():
                     found_overlap |= delete_if_overlap(ob)
-                else:
-                    print('No overlap: {}'.format(ob.name))
 
         if found_overlap:
             MessagePrompt.message_lines=['Collision was detected and modules were deleted.']
@@ -728,6 +736,7 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.object_name = ''
+        return self.execute(context)
 
 class AddModule(bpy.types.Operator):
     bl_idname = 'elfin.add_module'
@@ -759,19 +768,24 @@ class AddModule(bpy.types.Operator):
 
         # Select only the newly placed module
         selection = get_selected(-1)
-        last_obj_loc = selection[-1].location.copy()
-        for s in selection: 
-            s.select = False
 
-        lmod.select = True
-        # If not set to lmod, it would be the parent, which will lead to
-        # failure when trying to select parent via Shift-G + P
-        context.scene.objects.active = lmod
+        if not selection:
+            print('New module was probably deleted by watcher - selection became', selection)
+        else:
+            last_obj_loc = selection[-1].location.copy()
+            for s in selection: 
+                s.select = False
 
-        # Move new module to last selected object location
-        lmod.parent.location = last_obj_loc
+            lmod.select = True
+            # If not set to lmod, it would be the parent, which will lead to
+            # failure when trying to select parent via Shift-G + P
+            context.scene.objects.active = lmod
 
-        self.ask_prototype = True
+            # Move new module to last selected object location
+            lmod.parent.location = last_obj_loc
+
+            self.ask_prototype = True
+            
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -896,7 +910,7 @@ class LivebuildPanel(bpy.types.Panel):
         layout = self.layout
         row = layout.row(align=True)
         col = row.column()
-        col.prop(context.scene.elfin, 'disable_collision_check', text='Disable Collision Check')
+        col.prop(context.scene.elfin, 'disable_auto_collision_check', text='Disable Auto Collision Check')
         col.operator('elfin.add_module', text='Place a module into scene')
         col.operator('elfin.extrude_module', text='Extrude Module')
         col.operator('elfin.select_mirrors', text='Select Mirrors')
