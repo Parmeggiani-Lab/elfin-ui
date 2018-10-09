@@ -763,47 +763,53 @@ def overlapping_module_exists():
     """Determines whether there is any overlapping module.
     """
     bpy.context.scene.update()
-    for obj in bpy.context.scene.objects:
-        if obj.elfin.is_module() and check_module_overlap(obj):
+    mods = [o for o in bpy.context.scene.objects if o.elfin.is_module()]
+
+    for mod in mods:
+        if find_overlap(mod, mods):
             return True
             
     return False
 
-def delete_if_overlap(obj, obj_list=None):
+def delete_if_overlap(obj, obj_list):
     """
-    Delete obj if it is a module and it overlaps with any object in obj_list.
+    Delete obj if it overlaps with any object in obj_list.
+
+    Caller is responsible for providing the right object and list. No module
+    check is done.
     """
 
     # Update must be called first because operations like extrude will first
     # transform the object.
     bpy.context.scene.update()
-    if obj.elfin.is_module() and check_module_overlap(obj, obj_list=obj_list):
+    if find_overlap(obj, obj_list):
         obj.elfin.destroy()
         return True
     return False
 
-def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
+def find_overlap(test_obj, obj_list, scale_factor=0.85):
     """
     Tests whether an object's mesh overlaps with any mesh in obj_list.
 
+    Caller is responsible for providing the right object and list. No module
+    check is done.
+
     Args: 
-     - mod_obj - the object under test.
+     - test_obj - the object under test.
      - obj_list - optional; the list of objects to test against.
      - scale_factor - optional; the scale to apply before testing.
 
     Returns:
      - bool - whether or not a collision (overlap) was found.
     """
-    if not obj_list:
-        obj_list = bpy.context.scene.objects
     scale = mathutils.Matrix.Scale(scale_factor, 4)
 
     mod_bm = bmesh.new()
-    mod_bm.from_mesh(mod_obj.data)
-    mod_bm.transform(mod_obj.matrix_world * scale)
+    mod_bm.from_mesh(test_obj.data)
+    mod_bm.transform(test_obj.matrix_world * scale)
     mod_bvh_tree = mathutils.bvhtree.BVHTree.FromBMesh(mod_bm)
     for ob in obj_list:
-        if not ob.elfin.is_module() or ob == mod_obj:
+        if ob == test_obj:
             continue
 
         ob_bm = bmesh.new()
@@ -814,9 +820,9 @@ def check_module_overlap(mod_obj, obj_list=None, scale_factor=0.85):
         overlaps = mod_bvh_tree.overlap(ob_bvh_tree)
 
         if len(overlaps) > 0:
-            return True
+            return ob
 
-    return False
+    return None
 
 def get_raise_frame_transform(rel, fixed_mod=None):
     tx = mathutils.Matrix()

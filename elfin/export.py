@@ -1,5 +1,6 @@
 import os
 import json
+import traceback
 
 import bpy
 
@@ -50,6 +51,7 @@ class ExportOperator(bpy.types.Operator):
         output = create_output(networks, pg_networks)
 
         valid, msg = validate_pathguides(networks, pg_networks, output)
+
         if not valid:
             self.report({'ERROR'}, msg)
             return {'CANCELLED'}
@@ -66,55 +68,11 @@ class ExportOperator(bpy.types.Operator):
 
 # Helpers ----------------------------------------
 
-def coms_approximately_equal(com1, com2, tolerance=1e-5):
+def coms_approximately_equal(a, b, tolerance=1e-5):
     return all(abs(x) < tolerance for x in a - b)
 
-def validate_pathguides(networks, pg_networks, output):
-    """Checks through modules and joints for unintended collisions. Modifies
-    output dictionary to mark occupancy.
-    """
-    validity, msg = True, ''
-       
-    """
-    User errors to check:
-    
-    1. Module collisions
-
-    2. Joints that collide with module: 
-        A) COM equal: assume the module is meant to replace the joint =>
-           “occupied”. For each occupied joint, if the joint connects to
-           more than one bridge then the occupant module shouldn’t be
-           fully connected. If the module is fully connected, then elfin
-           would not be able to build around it so there must be a
-           mistake. Error out as invalid occupant joint.
-        B) COM not equal: error out as unintentional collision.
-    """
-    try:
-        if lh.overlapping_module_exists():
-            validity = False
-            msg = 'There are overlapping modules. Remove them first (try deleting colliding modules with #ccd).'
-        else:
-            for pg_nw in pg_networks:
-                for jt in pg_nw.children:
-                    jt_com = jt.matrix_world.translation
-
-                    for nw in networks:
-                        for mod in nw:
-
-                            # if collide
-                            if False:
-                                mod_com = mod.matrix_world.translation
-                                # A)
-                                if coms_approximately_equal(jt_com, mod_com):
-                                    ...
-                                else:
-                                    ...
-                                # B)
-
-    except Exception as e:
-        validity, msg = False, str(e)
-
-    return validity, msg
+def produce(networks):
+    return (c for nw in networks for c in nw.children)
 
 def create_output(networks, pg_networks):
     """Blends module objects and path guide into an output dictionary.
@@ -177,6 +135,70 @@ def create_output(networks, pg_networks):
     """
 
     return output
+
+def validate_pathguides(networks, pg_networks, output):
+    """Checks through modules and joints for unintended collisions. Modifies
+    output dictionary to mark occupancy.
+    """
+    validity, msg = True, ''
+       
+    """
+    User errors to check:
+    
+    1. Module collisions
+
+    2. Joints that collide with module: 
+        A) COM equal: assume the module is meant to replace the joint: "joint
+           occupied by module". For any occupied joint, num of bridges must <=
+           free termini in the ocucpant module. Otherwise error out as invalid
+           occupancy.
+        B) COM not equal: error out as unintentional collision.
+    """
+    try:
+        if lh.overlapping_module_exists():
+            validity = False
+            msg = ('There are overlapping modules. '
+                    'Remove them first '
+                    '(try deleting colliding modules with #ccd).')
+        else:
+            for jt in produce(pg_networks):
+                mod = lh.find_overlap(jt, produce(networks))
+                if mod:
+                    jt_com = jt.matrix_world.translation
+                    mod_com = mod.matrix_world.translation
+                    if coms_approximately_equal(jt_com, mod_com):
+                        # A)
+                        n_extrudables, c_extrudables = \
+                            lh.LivebuildState().get_all_extrudables(mod)
+                        if len(n_extrudables) + len(c_extrudables) < \
+                            len(jt.elfin.pg_neighbours):
+
+                            validity = False
+                            msg = ('Module {} is occupies (same COM) '
+                                    'joint {}, which has more bridges than '
+                                    'available termini in the module.').format(
+                                    mod.name, jt.name)
+                            break
+                        else:
+                            # Mark occupancy
+                            output['pg_networks'][jt.parent.name][jt.name]\
+                                ['occupant'] = mod.name
+                    else:
+                        # B)
+                        validity = False
+                        msg = ('Joint {} overlaps with module {}, but '
+                            'their COMs are not close enough to be '
+                            'considered as an occupancy. Try using '
+                            '#jtm or #mtj if an occupancy is your intention.').format(
+                            jt.name, mod.name)
+                        break
+
+    except Exception as e:
+        # If there's any other weird error, we don't want to proceed to
+        # export.
+        validity, msg = False, ''.join((str(e), '\n', traceback.format_exc()))
+
+    return validity, msg
 
 def network_to_dict(network):
     return {mod.name: mod.elfin.as_dict() for mod in network.children}

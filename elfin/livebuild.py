@@ -709,11 +709,13 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 
     def execute(self, context):
         found_overlap = False
+        check_against = [o for o in context.scene.objects if o.elfin.is_module()]
 
         try:
             object_is_valid = True
             ob = bpy.data.objects[self.object_name]
-            found_overlap |= delete_if_overlap(ob)
+            if ob.elfin.is_module():
+                found_overlap |= delete_if_overlap(ob, check_against)
         except KeyError:
             object_is_valid = False
 
@@ -727,11 +729,12 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 
             for ob in objs:
                 if ob.elfin.is_module():
-                    found_overlap |= delete_if_overlap(ob)
+                    found_overlap |= delete_if_overlap(ob, check_against)
 
         if found_overlap:
             MessagePrompt.message_lines=['Collision was detected and modules were deleted.']
             bpy.ops.elfin.message_prompt('INVOKE_DEFAULT')
+            
         return {'FINISHED'}
 
     def invoke(self, context, event):
