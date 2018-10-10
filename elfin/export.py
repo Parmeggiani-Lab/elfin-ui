@@ -40,7 +40,7 @@ class ExportOperator(bpy.types.Operator):
         Blender file.
         """
 
-        # Maybe we can limit export to seleced pg_network in the future.
+        # Maybe limit export to seleced pg_network in the future?
         networks, pg_networks = [], []
         for obj in context.scene.objects:
             if obj.elfin.is_network():
@@ -77,62 +77,12 @@ def produce(networks):
 def create_output(networks, pg_networks):
     """Blends module objects and path guide into an output dictionary.
     """
+
+    # Empty networks won't be included
     output = {
-        'networks': {nw.name: network_to_dict(nw) for nw in networks}, 
-        'pg_networks': {nw.name: network_to_dict(nw) for nw in pg_networks}
+        'networks': {nw.name: network_to_dict(nw) for nw in networks if nw.children}, 
+        'pg_networks': {nw.name: network_to_dict(nw) for nw in pg_networks if nw.children}
     }
-    """
-    Format guide:
-    {
-        "networks": {
-            "network": {
-                ...
-            },
-            "network.001": {
-                ...
-            },
-            "network.002": {
-                "D14.005": { // object name as key
-                    "module_type": "single/hub/??",
-                    "module_name": "D14",
-                    "location": [...],
-                    "rotation_euler": [...],
-                    "n_linkage": [
-                        {
-                            "terminus": "n/c",
-                            "source_chain_id": "A",
-                            "target_mod_name": "D14.006", // converts to obj when parsed
-                            "target_chain_id": "A"
-                        }
-                    ]
-                    "c_linkage": [
-                        ...
-                    ]
-                },
-                ...
-            }
-        },
-        "pg_networks": {
-            "pg_network": {
-                ...
-            },
-            "pg_network.001": {
-                "joint.007": {
-                    "location": [...],
-                    "rotation_euler": [...],
-                    "joint_neighbours": [ // converts to bridges between joints
-                        {
-                            "joint.006",
-                            "joint.008",
-                            ...
-                        }
-                    ]
-                },
-                ...
-            }
-        }
-    }
-    """
 
     return output
 
@@ -208,7 +158,7 @@ def annotate_output(output):
     module selection. Modifies output dictionary.
     """
 
-    print('Not yet implemented')
+    """
+    """
     
     return output
-
