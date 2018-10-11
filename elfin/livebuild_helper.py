@@ -65,14 +65,8 @@ class LivebuildState(metaclass=Singleton):
         # Find max hub termini
         self.max_hub_branches = 0
         for hub_name in self.xdb['hub_data']:
-            comp_xdata = self.xdb['hub_data'][hub_name]['component_data']
-            hub_branches = 0
-            for chain in comp_xdata:
-                hub_branches += \
-                    comp_xdata[chain]['n_free'] + \
-                    comp_xdata[chain]['c_free']
-            if hub_branches > self.max_hub_branches:
-                self.max_hub_branches = hub_branches
+            hub_branches = max_hub_free_termini(hub_name, self.xdb)
+            self.max_hub_branches = max(hub_branches, self.max_hub_branches)
 
     def get_all_module_names(self):
         groups = (self.xdb['single_data'], self.xdb['hub_data'])
@@ -190,6 +184,18 @@ def get_selected(n=1):
         return []
 
 # Helpers ----------------------------------------
+
+def max_hub_free_termini(mod_name, xdb=None):
+    free_termini = 0
+    if not xdb:
+        xdb = get_xdb()
+    hub_xdata = xdb['hub_data'][mod_name]
+    comp_xdata = hub_xdata['component_data']
+    for chain in comp_xdata:
+        free_termini += \
+            comp_xdata[chain]['n_free'] + \
+            comp_xdata[chain]['c_free']
+    return free_termini
 
 def selection_check(
     selection=None, 

@@ -67,12 +67,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             if self.module_type == 'single':
                 max_links = 2
             elif self.module_type == 'hub':
-                hub_xdata = lh.get_xdb()['hub_data'][self.module_name]
-                comp_xdata = hub_xdata['component_data']
-                for chain in comp_xdata:
-                    max_links += \
-                        comp_xdata[chain]['n_free'] + \
-                        comp_xdata[chain]['c_free']
+                max_links = lh.max_hub_free_termini(self.module_name)
 
         return max_links
 

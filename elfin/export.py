@@ -104,11 +104,13 @@ def validate_and_annotate(networks, pg_networks, output):
     """
     try:
         if lh.overlapping_module_exists():
+            # 1.
             validity = False
             msg = ('There are overlapping modules. '
                     'Remove them first '
                     '(try deleting colliding modules with #ccd).')
         else:
+            # 2.
             for jt in produce(pg_networks):
                 mod = lh.find_overlap(jt, produce(networks))
                 if mod:
