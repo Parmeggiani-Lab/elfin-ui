@@ -6,7 +6,9 @@ import mathutils
 from . import livebuild_helper as lh
 
 ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK PG_NETWORK')
-bridge_default_tolerance = 5.0 # in Angstroms; independent of conversion scale
+
+# translation tolerance in Angstroms - independent of conversion scale
+bridge_default_tx_tol = 5.0
 
 class Link(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
@@ -48,10 +50,20 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     c_linkage = bpy.props.CollectionProperty(type=Link)
     n_linkage = bpy.props.CollectionProperty(type=Link)
     pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
-    tolerance = bpy.props.FloatProperty(min=0.0, default=0.0)
+    tx_tol = bpy.props.FloatProperty(min=0.0, default=0.0)
 
     node_walked = bpy.props.BoolProperty(default=False)
     destroy_entered = bpy.props.BoolProperty(default=False)
+
+    def get_neighbour_joint_names(self):
+        nbs = []
+        for pgn in self.pg_neighbours:
+            bridge = pgn.obj
+            for other_end_nb in bridge.elfin.pg_neighbours:
+                other_end = other_end_nb.obj
+                if other_end != self.obj_ptr:
+                    nbs.append(other_end.name)
+        return nbs
 
     def as_dict(self):
         data = collections.OrderedDict()
@@ -62,15 +74,27 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             data['c_linkage'] = [cl.as_dict() for cl in self.c_linkage]
             data['n_linkage'] = [nl.as_dict() for nl in self.n_linkage]
         elif self.is_joint():
-            nbs = []
-            for pgn in self.pg_neighbours:
-                bridge = pgn.obj
-                for other_end_nb in bridge.elfin.pg_neighbours:
-                    other_end = other_end_nb.obj
-                    if other_end != self.obj_ptr:
-                        nbs.append(other_end.name)
-            data['occupant'] = ''
-            data['neighbours'] = nbs
+            data['occupant'] = '' # a module that has the same COM as this joint
+            data['hinge'] = '' # refers to the neighbour that has an occupant
+            data['tx_tol'] = 0.0 # translation tolerance in Angstroms
+
+            """
+            Rotation tolerance example:
+            {
+                vector: [v.a, v.b, v.c],
+                angle: 10
+            }
+
+            This should set up a vector going in the specified direction,
+            using the hinge as origin. The bridge is allowed to swing +/- 10
+            degrees around this vector.
+
+            This is meant to be entered by the user manually in the exported
+            JSON file. In the future a UI might be implemented to better
+            facilitate this control.
+            """
+            data['rt_tol'] = []
+            data['neighbours'] = self.get_neighbour_joint_names()
         else:
             raise ValueError('Should not convert this elfin object to dict: {}'.format(self.obj_type))
         
@@ -315,7 +339,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         obj.use_fake_user = True
 
         # Give some default tolerance to each bridge
-        self.tolerance = bridge_default_tolerance
+        self.tx_tol = bridge_default_tx_tol
 
     def init_joint(self, obj):
         self.obj_ptr = obj

@@ -25,7 +25,7 @@ class ExportPanel(bpy.types.Panel):
 
 class ExportOperator(bpy.types.Operator):
     bl_idname = 'elfin.export'
-    bl_label = 'Export as Elfin input (#xpel)'
+    bl_label = 'Export as Elfin input (#exp)'
     filepath = bpy.props.StringProperty(subtype="FILE_PATH")
 
     def invoke(self, context, event):
@@ -56,8 +56,6 @@ class ExportOperator(bpy.types.Operator):
             self.report({'ERROR'}, msg)
             return {'CANCELLED'}
 
-        annotate_output(output)
-        
         json.dump(output,
             open(self.filepath, 'w'),
             separators=(',', ':'),
@@ -131,8 +129,21 @@ def validate_pathguides(networks, pg_networks, output):
                             break
                         else:
                             # Mark occupancy
-                            output['pg_networks'][jt.parent.name][jt.name]\
-                                ['occupant'] = mod.name
+                            output_jt = output['pg_networks'][jt.parent.name][jt.name]
+                            output_jt['occupant'] = mod.name
+
+                            # Set translation tolerance for the immediate
+                            # neighbour of the hinge joint
+                            for pgn in jt.elfin.pg_neighbours:
+                                bridge = pgn.obj
+                                for other_end_nb in bridge.elfin.pg_neighbours:
+                                    other_end = other_end_nb.obj
+                                    if other_end != jt:
+                                        output_oe = output['pg_networks'][jt.parent.name]\
+                                            [other_end.name]
+                                        output_oe['hinge'] = jt.name
+                                        output_oe['tx_tol'] = bridge.elfin.tx_tol
+                                        break
                     else:
                         # B)
                         validity = False
@@ -152,13 +163,3 @@ def validate_pathguides(networks, pg_networks, output):
 
 def network_to_dict(network):
     return {mod.name: mod.elfin.as_dict() for mod in network.children}
-
-def annotate_output(output):
-    """Analyses output content to see if we can make inference and limit
-    module selection. Modifies output dictionary.
-    """
-
-    """
-    """
-    
-    return output

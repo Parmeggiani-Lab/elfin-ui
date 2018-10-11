@@ -114,30 +114,35 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
 
 # Operator List
 
+## Export
+ * `Export`
+    * Exports the networks in the current scene to a elfin-core readable input file.
+    * Short form: `#exp`
+
 ## Module Related
  * `Add Module` (formerly called "Place Module")
     * Adds a new module to the scene at origin or the current selection.
-    * Short form: `addm` 
+    * Short form: `#addm` 
     * Automatically creates a new network and places the newly added module under that network.
     * Only available <b>when nothing is selected</b>.
  * `Extrude Module` 
     * Add a module to the N- or C-Terminus of the selected module.
-    * Short form: `exm`
+    * Short form: `#exm`
     * Only available <b>when one or more modules are selected</b>.
 
 ## Module Network Related
  * `Select Network`
     * Selects the network parent object (arrow axes) the selected module(s) belong to.
-    * Short form: `snw`
+    * Short form: `#snw`
     * Only available <b>when at least one module or joint is selected<b>.
     * Works for path guide objects too.
  * `Sever Network`
     * Sever one network into two at the specific point.
-    * Short form: `svnw`
+    * Short form: `#svnw`
     * Only available <b>when exactly two neighbouring modules are selected</b>.
  * `Join Network`
     * Join two compatible networks; deletes the network that becomes empty.
-    * Short form: `jnw`
+    * Short form: `#jnw`
     * Only available <b>when exactly two modules are selected</b>. 
     * A list containing termini join options will be displayed, which will be empty if the two modules are
       * from the same network,
@@ -147,49 +152,49 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
 ## Path Guide Related
  * `Add Joint`
     * Add a path guide joint.
-    * Short form: `addj`
+    * Short form: `#addj`
     * Only available <b>when the selection does not contain joints</b>.
  * `Extrude Joint`
     * Extrude a path guide joint from another.
-    * Short form: `exj`
+    * Short form: `#exj`
     * Only available <b>when the selection only contains joints</b>.
  * `Add Bridge`
     * Add a bridge between two joints.
-    * Short form: `addb`
+    * Short form: `#addb`
     * Only available <b>when:
       * exactly 2 joints are selected,
       * the two joints are not already bridged,
       * and neither of the joints exceed the max number of branches (determined by max hub branch in `xdb.json`)</b>.
  * `Joint to Module`
     * Move a joint to the COM of a module.
-    * Short form: `jtm`
+    * Short form: `#jtm`
     * Only available <b>when exactly one module and one joint are selected</b>.
  * `Module to Joint`
     * Move a module and its network to a joint.
-    * Short form: `mtj`
+    * Short form: `#mtj`
     * Only available <b>when exactly one module and one joint are selected</b>.
  * `Set Translation Tolerance`
     * Set bridge translation tolerance.
-    * Short form: `bxt`
+    * Short form: `#bxt`
     * Only available <b>when exactly one bridge is selected</b>.
     * Tolerance is only considered if this bridge connects to a hinge.
 
 ## Mirror Related
  * `Link by Mirror`
     * Link multiple modules of the same prototype by mirror.
-    * Short form: `lbm`
+    * Short form: `#lbm`
     * Only available when one or more <b>homogenous modules</b> are selected (same prototype)
  * `Unlink Mirrors`
     * Unlink mirrors from all selected modules.
-    * Short form: `ulm`
+    * Short form: `#ulm`
     * Only available <b>when one or more modules are selected</b>.
  * `List Mirrors`
     * List mirror links of one selected module.
-    * Short form: `lmr`
+    * Short form: `#lmr`
     * Only available <b>when exactly one module is selected</b>.
  * `Select Mirror`
     * Selects all mirror-linked modules of the selected module(s).
-    * Short form: `smr`
+    * Short form: `#smr`
     * Only available <b>when more than zero modules are selected</b>.
 
 

@@ -26,7 +26,7 @@ class SetTranslationToleranceSetting(bpy.types.Operator):
         row.label(self.title, icon=self.icon)
 
         sel_obj = context.selected_objects[0]
-        row.prop(sel_obj.elfin, 'tolerance', text='Mobility (Å)')
+        row.prop(sel_obj.elfin, 'tx_tol', text='Mobility (Å)')
 
     @classmethod
     def poll(cls, context):

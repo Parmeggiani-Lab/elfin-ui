@@ -1,5 +1,5 @@
 # elfin-ui export files
- elfin/testbed/benchmarks/*.json
+elfin/testbed/benchmarks/*.json
 
 # Files from elfin-library
 **/library.blend
