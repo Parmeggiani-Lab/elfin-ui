@@ -55,6 +55,27 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
     node_walked = bpy.props.BoolProperty(default=False)
     destroy_entered = bpy.props.BoolProperty(default=False)
 
+    def get_available_links(self):
+        busy_links = len(self.n_linkage) + len(self.c_linkage)
+        return self.get_max_links() - busy_links
+
+    def get_max_links(self):
+        """Returns the maximum number of links supported by this module
+        """
+        max_links = 0
+        if self.is_module():
+            if self.module_type == 'single':
+                max_links = 2
+            elif self.module_type == 'hub':
+                hub_xdata = lh.get_xdb()['hub_data'][self.module_name]
+                comp_xdata = hub_xdata['component_data']
+                for chain in comp_xdata:
+                    max_links += \
+                        comp_xdata[chain]['n_free'] + \
+                        comp_xdata[chain]['c_free']
+
+        return max_links
+
     def get_neighbour_joint_names(self):
         nbs = []
         for pgn in self.pg_neighbours:
@@ -160,6 +181,10 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             return
         else:
             self.destroy_entered = True
+
+        if not self.obj_ptr:
+            print('elfin.destroy() called with self.obj_ptr == None')
+            return
 
         print('Enter destroy() of', self.obj_ptr)
         parent = self.obj_ptr.parent
@@ -352,7 +377,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         self.obj_ptr = obj
         self.module_name = mod_name
 
-        xdb = lh.LivebuildState().xdb
+        xdb = lh.get_xdb()
         single_xdata = xdb['single_data'].get(mod_name, None)
         if single_xdata:
             self.module_type = 'single'

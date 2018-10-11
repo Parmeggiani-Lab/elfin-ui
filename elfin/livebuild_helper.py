@@ -891,8 +891,7 @@ def transform_object(
 def get_compatible_hub_components(hub_name, which_term, single_name):
     assert which_term in {'n', 'c'}
 
-    comp_data = LivebuildState().xdb \
-                ['hub_data'][hub_name]['component_data']
+    comp_data = get_xdb()['hub_data'][hub_name]['component_data']
 
     component_names = []
     for comp_name in comp_data:

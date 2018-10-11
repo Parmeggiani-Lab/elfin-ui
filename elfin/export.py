@@ -50,7 +50,7 @@ class ExportOperator(bpy.types.Operator):
 
         output = create_output(networks, pg_networks)
 
-        valid, msg = validate_pathguides(networks, pg_networks, output)
+        valid, msg = validate_and_annotate(networks, pg_networks, output)
 
         if not valid:
             self.report({'ERROR'}, msg)
@@ -84,7 +84,7 @@ def create_output(networks, pg_networks):
 
     return output
 
-def validate_pathguides(networks, pg_networks, output):
+def validate_and_annotate(networks, pg_networks, output):
     """Checks through modules and joints for unintended collisions. Modifies
     output dictionary to mark occupancy.
     """
@@ -116,34 +116,15 @@ def validate_pathguides(networks, pg_networks, output):
                     mod_com = mod.matrix_world.translation
                     if coms_approximately_equal(jt_com, mod_com):
                         # A)
-                        n_extrudables, c_extrudables = \
-                            lh.LivebuildState().get_all_extrudables(mod)
-                        if len(n_extrudables) + len(c_extrudables) < \
-                            len(jt.elfin.pg_neighbours):
-
+                        if mod.elfin.get_available_links() < len(jt.elfin.pg_neighbours):
                             validity = False
-                            msg = ('Module {} is occupies (same COM) '
-                                    'joint {}, which has more bridges than '
+                            msg = ('Module \"{}\" occupies (has the same COM as) '
+                                    '\"{}\", but bridges exceed number of '
                                     'available termini in the module.').format(
                                     mod.name, jt.name)
                             break
                         else:
-                            # Mark occupancy
-                            output_jt = output['pg_networks'][jt.parent.name][jt.name]
-                            output_jt['occupant'] = mod.name
-
-                            # Set translation tolerance for the immediate
-                            # neighbour of the hinge joint
-                            for pgn in jt.elfin.pg_neighbours:
-                                bridge = pgn.obj
-                                for other_end_nb in bridge.elfin.pg_neighbours:
-                                    other_end = other_end_nb.obj
-                                    if other_end != jt:
-                                        output_oe = output['pg_networks'][jt.parent.name]\
-                                            [other_end.name]
-                                        output_oe['hinge'] = jt.name
-                                        output_oe['tx_tol'] = bridge.elfin.tx_tol
-                                        break
+                            annotate_hinge(output, jt, mod)
                     else:
                         # B)
                         validity = False
@@ -163,3 +144,22 @@ def validate_pathguides(networks, pg_networks, output):
 
 def network_to_dict(network):
     return {mod.name: mod.elfin.as_dict() for mod in network.children}
+
+def annotate_hinge(output, jt, mod):
+    """Writes information about a hinge (jt occupied by mod) into output.
+    """
+    # Mark occupancy
+    output_jt = output['pg_networks'][jt.parent.name][jt.name]
+    output_jt['occupant'] = mod.name
+
+    # Set translation tolerance for the immediate neighbour of the hinge joint
+    for pgn in jt.elfin.pg_neighbours:
+        bridge = pgn.obj
+        for other_end_nb in bridge.elfin.pg_neighbours:
+            other_end = other_end_nb.obj
+            if other_end != jt:
+                output_oe = output['pg_networks'][jt.parent.name]\
+                    [other_end.name]
+                output_oe['hinge'] = jt.name
+                output_oe['tx_tol'] = bridge.elfin.tx_tol
+                break
