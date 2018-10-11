@@ -168,6 +168,11 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
     * Move a module and its network to a joint.
     * Short form: `mtj`
     * Only available <b>when exactly one module and one joint are selected</b>.
+ * `Set Translation Tolerance`
+    * Set bridge translation tolerance.
+    * Short form: `bxt`
+    * Only available <b>when exactly one bridge is selected</b>.
+    * Tolerance is only considered if this bridge connects to a hinge.
 
 ## Mirror Related
  * `Link by Mirror`

@@ -7,12 +7,12 @@ from .livebuild_helper import *
 from .elfin_object_properties import ElfinObjType
 
 # Path guide operators ---------------------------
-class ErrorToleranceSetting(bpy.types.Operator):
-    bl_idname = 'elfin.error_tolerance_setting'
-    bl_label = 'Set elfin-solver error tolerance'
+class SetTranslationToleranceSetting(bpy.types.Operator):
+    bl_idname = 'elfin.translation_tolerance_setting'
+    bl_label = 'Set bridge translation tolerance (#bxt)'
     bl_options = {'REGISTER', 'UNDO'}
     
-    title = bpy.props.StringProperty(default='Error Tolerance Setting')
+    title = bpy.props.StringProperty(default='Bridge Translation Tolerance')
     icon = bpy.props.StringProperty(default='QUESTION')
 
     def execute(self, context):
