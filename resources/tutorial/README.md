@@ -161,10 +161,9 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
  * `Add Bridge`
     * Add a bridge between two joints.
     * Short form: `#addb`
-    * Only available <b>when:
-      * exactly 2 joints are selected,
-      * the two joints are not already bridged,
-      * and neither of the joints exceed the max number of branches (determined by max hub branch in `xdb.json`)</b>.
+    * Launches a modal operator that bridges any two selected joints (remember to hold shift between selections).
+    * The modal operator will intelligently deselect the oldest selection after creating a bridge so that the newest joint does not need to be re-selected by the user.
+    * The modal operator is active if the cursor is a "hand" cursor. Press <kbd>esc</kbd> to cancel (will delete any bridges created) or the mouse right button to complete the operation.
  * `Joint to Module`
     * Move a joint to the COM of a module.
     * Short form: `#jtm`

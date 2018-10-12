@@ -44,7 +44,9 @@ class AddBridge(bpy.types.Operator):
     already_bridged_error = 'Joints {} and {} are already bridged.'
 
     def clean_up(self):
-        self.last_selected = None
+        for b in self.bridges:
+            if b:
+                b.elfin.destroy()
 
     def add_bridge(self, jt_a, jt_b):
         msg = None
@@ -59,7 +61,7 @@ class AddBridge(bpy.types.Operator):
         elif len(jt_b.elfin.pg_neighbours) >= max_hub_branches:
             msg = self.max_branch_error.format(jt_b.name)
         elif jt_a.elfin.joint_connects_joint(jt_b):
-            msg = self.already_bridged_error.format(jt_a.name, mod_b.name)
+            msg = self.already_bridged_error.format(jt_a.name, jt_b.name)
         else:
             transfer_network(jt_a, jt_b.parent)
             bridge = import_bridge(jt_a, jt_b)
@@ -70,34 +72,43 @@ class AddBridge(bpy.types.Operator):
     def modal(self, context, event):
         # allow selection events from mouse to pass through
         ret = {'PASS_THROUGH'} 
-        aobj = context.active_object
-        if get_selection_len() >= 2 and \
-            aobj != self.last_selected:
+        if get_selection_len() >= 2:
             jt_a, jt_b = get_selected(-1)
-            msg = self.add_bridge(jt_a, jt_b)
+            if jt_a not in self.last_selected or \
+                jt_b not in self.last_selected:
 
-            if msg:
-                self.report({'ERROR'}, msg)
-                ret = {'CANCELLED'}
-            else:
-                if jt_a == aobj:
-                    jt_b.select = False
+                msg = self.add_bridge(jt_a, jt_b)
+
+                if msg:
+                    self.report({'ERROR'}, msg)
+                    ret = {'CANCELLED'}
                 else:
-                    jt_a.select = False
-                self.last_selected = aobj
+                    if jt_a in self.last_selected:
+                        jt_b.select = False
+                    elif jt_b in self.last_selected:
+                        jt_a.select = False
+                    else:
+                        if jt_a == context.active_object:
+                            jt_b.select = False
+                        else:
+                            jt_a.select = False
+                    self.last_selected = {jt_a, jt_b}
 
         elif event.type == 'RIGHTMOUSE':
             ret = {'FINISHED'}
         elif event.type == 'ESC':
-            for b in self.bridges:
-                b.elfin.destroy()
+            self.clean_up()
             ret = {'CANCELLED'}
+
+        if 'CANCELLED' in ret or 'FINISHED' in ret:
+            bpy.context.window.cursor_modal_restore()
 
         return ret
 
     def invoke(self, context, event):
-        self.last_selected = None
+        self.last_selected = {}
         self.bridges = []
+        bpy.context.window.cursor_modal_set('HAND')
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
