@@ -38,34 +38,68 @@ class AddBridge(bpy.types.Operator):
     bl_label = 'Add a bridge between two joints (#addb)'
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
-        joint_a, joint_b = get_selected(-1)
-        # Always make bridge parent of non active selection (second joint)
-        if joint_a == context.active_object:
-            joint_a, joint_b = joint_b, joint_a
-        transfer_network(joint_a, joint_b.parent)
+    not_a_joint_error = 'Could not bridge because {} is not a joint.'
+    max_branch_error = ('Could not bridge because {} already has or '
+                    'exceeds the maximum number of bridges possible.')
+    already_bridged_error = 'Joints {} and {} are already bridged.'
 
-        bridge = import_bridge(joint_a, joint_b)
-        return {'FINISHED'}
+    def clean_up(self):
+        self.last_selected = None
 
-    @classmethod
-    def poll(cls, context):
-        if get_selection_len() == 2:
-            max_hub_branches = LivebuildState().max_hub_branches
-            mod_a, mod_b = get_selected(-1)
+    def add_bridge(self, jt_a, jt_b):
+        msg = None
 
-            # Ugly condition, but logically quite simple...
-            # If:
-            # either is a non joint
-            # either already at/exceeds max branches
-            # either are already neighbours
-            if not mod_a.elfin.is_joint() or not mod_b.elfin.is_joint() or \
-                len(mod_a.elfin.pg_neighbours) >= max_hub_branches or \
-                len(mod_b.elfin.pg_neighbours) >= max_hub_branches or \
-                mod_a.elfin.joint_connects_joint(mod_b):
-                return False
-            return True
-        return False
+        max_hub_branches = LivebuildState().max_hub_branches
+        if not jt_a.elfin.is_joint():
+            msg = self.not_a_joint_error.format(jt_a.name)
+        elif not jt_b.elfin.is_joint():
+            msg = self.not_a_joint_error.format(jt_b.name)
+        elif len(jt_a.elfin.pg_neighbours) >= max_hub_branches:
+            msg = self.max_branch_error.format(jt_a.name)
+        elif len(jt_b.elfin.pg_neighbours) >= max_hub_branches:
+            msg = self.max_branch_error.format(jt_b.name)
+        elif jt_a.elfin.joint_connects_joint(jt_b):
+            msg = self.already_bridged_error.format(jt_a.name, mod_b.name)
+        else:
+            transfer_network(jt_a, jt_b.parent)
+            bridge = import_bridge(jt_a, jt_b)
+            self.bridges.append(bridge)
+
+        return msg
+
+    def modal(self, context, event):
+        # allow selection events from mouse to pass through
+        ret = {'PASS_THROUGH'} 
+        aobj = context.active_object
+        if get_selection_len() >= 2 and \
+            aobj != self.last_selected:
+            jt_a, jt_b = get_selected(-1)
+            msg = self.add_bridge(jt_a, jt_b)
+
+            if msg:
+                self.report({'ERROR'}, msg)
+                ret = {'CANCELLED'}
+            else:
+                if jt_a == aobj:
+                    jt_b.select = False
+                else:
+                    jt_a.select = False
+                self.last_selected = aobj
+
+        elif event.type == 'RIGHTMOUSE':
+            ret = {'FINISHED'}
+        elif event.type == 'ESC':
+            for b in self.bridges:
+                b.elfin.destroy()
+            ret = {'CANCELLED'}
+
+        return ret
+
+    def invoke(self, context, event):
+        self.last_selected = None
+        self.bridges = []
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
 class ExtrudeJoint(bpy.types.Operator):
     bl_idname = 'elfin.extrude_joint'
@@ -87,10 +121,6 @@ class ExtrudeJoint(bpy.types.Operator):
                 )
             )
 
-    def clean_up(self):
-        self.joints = []
-        self.active_joint = None
-
     def execute(self, context):
         #Contextual active object, 2D and 3D regions
         region = bpy.context.region
@@ -111,8 +141,7 @@ class ExtrudeJoint(bpy.types.Operator):
         return {'FINISHED'}
 
     def modal(self, context, event):
-        done = False
-        ret = None
+        ret = {'RUNNING_MODAL'}
         if event.type == 'MOUSEMOVE':
             self.mouse = (event.mouse_region_x, event.mouse_region_y)
             self.execute(context)
@@ -128,13 +157,11 @@ class ExtrudeJoint(bpy.types.Operator):
                 jb.elfin.destroy()
             ret = {'CANCELLED'}
 
-        if ret:
-            self.clean_up()
-            return ret
-        else:
-            return {'RUNNING_MODAL'}
+        return ret
 
     def invoke(self, context, event):
+        self.joints = []
+
         self.extrude()
         self.mouse_origin = (event.mouse_region_x, event.mouse_region_y)
 
