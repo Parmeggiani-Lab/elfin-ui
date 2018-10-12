@@ -326,6 +326,9 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         # Want to shift focus to new module, not network
         obj.select = False
 
+        # Don't let user click on this object in viewport
+        obj.hide_select = True
+
         # Always trigger dirty exit so we can clean up
         obj.use_fake_user = True
 

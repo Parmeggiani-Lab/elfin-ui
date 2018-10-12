@@ -182,19 +182,11 @@ class AddJoint(bpy.types.Operator):
     bl_label = 'Add a path guide joint (#addj)'
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    def add_joint(self, at_mod=None):
         loc = [0, 0, 0]
-        if get_selection_len() > 0:
-            first_sel = get_selected()
-            loc = first_sel.location
-            if first_sel.elfin.is_module():
-                p = first_sel.parent
-                if not p:
-                    self.report({'ERROR'}, 'Selected module has no network parent.')
-                    return {'CANCELLED'}
-                ploc = p.location
-                loc = ploc + (p.rotation_euler.to_matrix().to_4x4() * mathutils.Matrix.Translation(loc)).translation
-        
+        if at_mod:
+            loc = at_mod.matrix_world.translation
+
         network = create_network('pguide')
         joint = import_joint()
         joint.parent = network
@@ -205,6 +197,19 @@ class AddJoint(bpy.types.Operator):
             for s in get_selected(-1):
                 s.select = False
         joint.select = True
+
+    def execute(self, context):
+        # Put a joint on each of the selected modules
+        sel = get_selected(-1)
+        for o in sel:
+            o.select = False
+
+        for o in sel:
+            if o.elfin.is_module():
+                o.select = True
+                bpy.context.scene.update() # Required to reflect new selection
+                self.add_joint(o)
+                bpy.ops.object.select_all(action='DESELECT')
 
         return {'FINISHED'}
 
