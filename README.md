@@ -41,7 +41,8 @@ Next, refer to: [Tutorial With GIFs](resources/tutorial/README.md)
  * Import elfin-solver output into scene
 
 ### Nice-to-Haves
- * Mirrored joining? Sounds complicated.
+ * Disolve joint (if there are 2 bridges - merge them)
+ * Mirrored joining
  * Confirm deletion caused by collision
     * Collision detection using single module 3D models are not very accurate (currently each module is shrunken to 85% before checking).
 

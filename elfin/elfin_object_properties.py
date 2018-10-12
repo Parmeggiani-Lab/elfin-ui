@@ -1,6 +1,8 @@
 import enum
 import collections
 
+import inspect
+
 import bpy
 import mathutils
 from . import livebuild_helper as lh
@@ -171,6 +173,10 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         associated object.
         """
 
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        print('Destroy caller name:', calframe[1][3])
+
         # Prevent parent calling child destroy infinite loop
         if self.destroy_entered:
             return
@@ -179,6 +185,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         if not self.obj_ptr:
             print('elfin.destroy() called with self.obj_ptr == None')
+            print('Type:', ElfinObjType(self.obj_type).name)
             return
 
         print('Enter destroy() of', self.obj_ptr)

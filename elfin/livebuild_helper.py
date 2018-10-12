@@ -283,9 +283,13 @@ def transfer_network(mod, existing_network=None):
         change_parent_preserve_transform(m, new_network)
 
     if not old_network.children:
+        print('---First network destroy:', old_network.name)
         old_network.elfin.destroy()
 
-    if existing_network and not existing_network.children:
+    if existing_network and \
+        existing_network != old_network and \
+        not existing_network.children:
+        print('---Second network destroy:', existing_network.name)
         existing_network.elfin.destroy()
 
 def create_network(network_type):
