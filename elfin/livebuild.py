@@ -123,7 +123,7 @@ class ExtrudeJoint(bpy.types.Operator):
     bl_label = 'Extrude a path guide joint (#exj)'
     bl_options = {'REGISTER', 'UNDO'}
 
-    def extrude(self):
+    def create_new_joint(self):
         self.joints = []
         for joint_a in get_selected(-1):
             joint_b = import_joint()
@@ -155,6 +155,11 @@ class ExtrudeJoint(bpy.types.Operator):
         for ja, jb in self.joints:
             jb.location = ja.location + mouse_offset_from_first_ja
 
+        # Update active object so the next #exj will get the correct cursor
+        # offset
+        if jb:
+            bpy.context.scene.objects.active = jb
+
         return {'FINISHED'}
 
     def modal(self, context, event):
@@ -179,7 +184,7 @@ class ExtrudeJoint(bpy.types.Operator):
     def invoke(self, context, event):
         self.joints = []
 
-        self.extrude()
+        self.create_new_joint()
         self.mouse_origin = (event.mouse_region_x, event.mouse_region_y)
 
         # Redirect active object (which might not be in selection)
