@@ -68,7 +68,8 @@ class ModuleLifetimeWatcher(object):
 
     def on_module_exit(self, object_name):
         if object_name in bpy.data.objects:
-            bpy.data.objects[object_name].elfin.destroy()
+            # bpy.data.objects[object_name].elfin.destroy()
+            bpy.ops.elfin.destroy_object(name=object_name)
 
         # If not existing in bpy.data.objects, then the object is either
         # non-elfin or its destroy() has been called by other elfin objects.

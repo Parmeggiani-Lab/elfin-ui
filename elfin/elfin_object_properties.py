@@ -226,11 +226,14 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         # Delete using default operator
         obj.hide = False
+        obj.hide_select = False
         obj.select = True
+        obj.use_fake_user = False
+
         bpy.ops.object.delete(use_global=False)
 
-        if obj and obj.name in bpy.data.objects:
-            bpy.data.objects.remove(obj)
+        # if obj and obj.name in bpy.data.objects:
+        #     bpy.data.objects.remove(obj)
 
         # Restore selection
         for ob in selection:

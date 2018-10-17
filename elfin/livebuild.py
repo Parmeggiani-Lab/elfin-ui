@@ -856,6 +856,17 @@ class AddModule(bpy.types.Operator):
         return {'FINISHED'}
 
 # Utility operators ------------------------------
+class DestroyObject(bpy.types.Operator):
+    bl_idname = 'elfin.destroy_object'
+    bl_label = 'Destroys an elfin object gracefully'
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    
+    name = bpy.props.StringProperty()
+
+    def execute(self, context):
+        bpy.data.objects[self.name].elfin.destroy()
+        return {'FINISHED'}
+
 class LoadXdb(bpy.types.Operator):
     bl_idname = 'elfin.load_xdb'
     bl_label = '(Re)load xdb'
