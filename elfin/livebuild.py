@@ -73,25 +73,31 @@ class AddBridge(bpy.types.Operator):
         # allow selection events from mouse to pass through
         ret = {'PASS_THROUGH'} 
         if get_selection_len() >= 2:
-            jt_a, jt_b = get_selected(-1)
+            jt_a, jt_b = get_selected(2)
             if jt_a not in self.last_selected or \
                 jt_b not in self.last_selected:
 
+                # need to save active object identity because bridging shifts
+                # active object to pg network
+                active_object = context.active_object
                 msg = self.add_bridge(jt_a, jt_b)
 
                 if msg:
                     self.report({'ERROR'}, msg)
                     ret = {'CANCELLED'}
                 else:
-                    if jt_a in self.last_selected:
+                    print('active:', active_object)
+                    if jt_a == active_object:
                         jt_b.select = False
-                    elif jt_b in self.last_selected:
+                    elif jt_b == active_object:
                         jt_a.select = False
                     else:
-                        if jt_a == context.active_object:
+                        if jt_a in self.last_selected:
                             jt_b.select = False
-                        else:
+                        elif jt_b in self.last_selected:
                             jt_a.select = False
+                    while len(context.selected_objects) > 1:
+                        context.selected_objects[-1].select = False
                     self.last_selected = {jt_a, jt_b}
 
         elif event.type == 'RIGHTMOUSE':
