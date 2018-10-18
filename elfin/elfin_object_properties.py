@@ -116,10 +116,14 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         else:
             raise ValueError('Should not convert this elfin object to dict: {}'.format(self.obj_type))
         
-        data['matrix_world'] = list([list(v) for v in self.obj_ptr.matrix_world])
-        data['rotation_euler'] = list(self.obj_ptr.rotation_euler)
-        data['rotation_order'] = self.obj_ptr.rotation_euler.order
+        wm = self.obj_ptr.matrix_world
+        
+        factor = lh.blender_pymol_unit_conversion
+        data['trans'] = list(n * factor for n in wm.translation)
 
+        rot_mat = wm.to_quaternion().to_matrix()
+        data['rot'] = list(list(row) for row in rot_mat)
+        
         return data
 
     def joint_connects_joint(self, other_mod):
