@@ -153,6 +153,7 @@ def annotate_hinge(output, jt, mod):
     # Mark occupancy
     output_jt = output['pg_networks'][jt.parent.name][jt.name]
     output_jt['occupant'] = mod.name
+    output_jt['occupant_parent'] = mod.parent.name
 
     # Set translation tolerance for the immediate neighbour of the hinge joint
     for pgn in jt.elfin.pg_neighbours:

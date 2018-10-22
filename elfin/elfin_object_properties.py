@@ -93,6 +93,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             data['n_linkage'] = [nl.as_dict() for nl in self.n_linkage]
         elif self.is_joint():
             data['occupant'] = '' # a module that has the same COM as this joint
+            data['occupant_parent'] = '' # occupant network name
             data['hinge'] = '' # refers to the neighbour that has an occupant
             data['tx_tol'] = 0.0 # translation tolerance in Angstroms
 
