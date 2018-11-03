@@ -878,26 +878,6 @@ def rel_to_matrices(rel):
 
     return rot, scaled_trans
 
-# Deprecated
-def transform_object(
-        obj, 
-        tran_before=[0,0,0],
-        rot=[[1,0,0],[0,1,0],[0,0,1]],
-        tran_after=[0,0,0]
-    ):
-    """
-    Transforms an object with the given translation vetors and rotation matrix.
-    """
-    tran_before_vec = mathutils.Vector(tran_before)
-    rot_mat = mathutils.Matrix(rot)
-    tran_after_vec = mathutils.Vector(tran_after)
-
-    obj.location = (rot_mat * (obj.location + tran_before_vec)) + tran_after_vec
-
-    # rotation around object center
-    obj.rotation_euler = \
-        (rot_mat * obj.rotation_euler.to_matrix()).to_euler()
-
 def get_compatible_hub_components(hub_name, which_term, single_name):
     assert which_term in {'n', 'c'}
 

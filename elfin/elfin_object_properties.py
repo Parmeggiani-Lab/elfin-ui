@@ -312,11 +312,17 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
                 m.elfin.mirrors = []
                 m.elfin.destroy()
 
+        # Remove self from parent
+        self.obj_ptr.parent = None
+
         # Separate networks
         while neighbours:
             name, mod = neighbours.popitem()
 
-            # Could become None is some weird situations, such as a deleted mirrors, etc.
+            print('[][][] Transfering ', name)
+
+            # Could become None in some situations, 
+            # such as a deleted mirrors
             if mod and mod.parent == old_network:
                 lh.transfer_network(mod)
 
