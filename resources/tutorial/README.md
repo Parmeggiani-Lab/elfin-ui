@@ -131,9 +131,14 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
     * Only available <b>when one or more modules are selected</b>.
 
 ## Module Network Related
- * `Select Network`
+ * `Select Network Parent`
     * Selects the network parent object (arrow axes) the selected module(s) belong to.
-    * Short form: `#snw`
+    * Short form: `#snp`
+    * Only available <b>when at least one module or joint is selected<b>.
+    * Works for path guide objects too.
+ * `Select Network Objects`
+    * Selects all objects belonging to the same network as the selected objects.
+    * Short form: `#sno`
     * Only available <b>when at least one module or joint is selected<b>.
     * Works for path guide objects too.
  * `Sever Network`

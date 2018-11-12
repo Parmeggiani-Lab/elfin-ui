@@ -473,15 +473,36 @@ class SeverNetwork(bpy.types.Operator):
                 return True
         return False
 
-class SelectNetwork(bpy.types.Operator):
-    bl_idname = 'elfin.select_network'
-    bl_label = 'Select network (parent object) (#snw)'
+class SelectNetworkParent(bpy.types.Operator):
+    bl_idname = 'elfin.select_network_parent'
+    bl_label = 'Select network parent (#snp)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         for s in get_selected(-1):
             s.select = False
             s.parent.select = True
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        """This is intended to work for both module and pguide networks"""
+        return get_selection_len() > 0
+
+class SelectNetworkObjects(bpy.types.Operator):
+    bl_idname = 'elfin.select_network_objects'
+    bl_label = 'Select all objects in network (#sno)'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        for s in get_selected(-1):
+            walker = walk_pg_network \
+                    if s.elfin.is_joint() or s.elfin.is_bridge() else \
+                    walk_network
+
+            for mod in walker(s):
+                mod.select = True
+                
         return {'FINISHED'}
 
     @classmethod

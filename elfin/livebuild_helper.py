@@ -361,7 +361,7 @@ def walk_pg_network(joint, initial=True):
     yields each object on the way, without repeating.
     """
     if not joint.elfin.is_joint():
-        return
+        joint = joint.elfin.pg_neighbours[0].obj;
 
     if initial:
         for pg in joint.parent.children:
