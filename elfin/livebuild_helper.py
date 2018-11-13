@@ -838,6 +838,7 @@ def get_raise_frame_transform(rel, fixed_mod=None):
     tx = mathutils.Matrix()
     rot, scaled_trans = rel_to_matrices(rel)
     rot.transpose()
+    scaled_trans.translation *= -1
 
     # Order DOES matter
     tx = rot * scaled_trans * tx
@@ -849,7 +850,6 @@ def get_raise_frame_transform(rel, fixed_mod=None):
 def get_drop_frame_transform(rel, fixed_mod=None):
     tx = mathutils.Matrix()
     rot, scaled_trans = rel_to_matrices(rel)
-    scaled_trans.translation *= -1
 
     # Order DOES matter
     tx = scaled_trans * rot * tx
@@ -874,7 +874,7 @@ def scaleless_rot_tran(obj):
 def rel_to_matrices(rel):
     rot = mathutils.Matrix(rel['rot']).to_4x4()
     scaled_trans = mathutils.Matrix.Translation(
-        [-t/blender_pymol_unit_conversion for t in rel['tran']])
+        [t/blender_pymol_unit_conversion for t in rel['tran']])
 
     return rot, scaled_trans
 
