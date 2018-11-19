@@ -397,24 +397,13 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         self.obj_ptr = obj
         self.module_name = mod_name
 
-        xdb = lh.get_xdb()
-        single_xdata = xdb['single_data'].get(mod_name, None)
-        if single_xdata:
+        if lh.mod_is_single(mod_name):
             self.module_type = 'single'
         else:
-            hub_xdata = xdb['hub_data'].get(mod_name, None)
-            if hub_xdata:
+            if lh.mod_is_hub(mod_name):
                 self.module_type = 'hub'
             else:
-                print('Warning: user is trying to link a module that is neither single or hub type')
-                single_a_name, single_b_name = mod_name.split('-')
-                double_xdata = xdb['double_data'].get(
-                    single_a_name, {}).get(
-                    single_b_name, None)
-                if double_xdata:
-                    self.module_type = 'double'
-                else:
-                    raise ValueError('Module name not found in xdb: ', mod_name)
+                raise ValueError('Attempting link a module that is neither single or hub type\n')
         self.obj_type = ElfinObjType.MODULE.value
 
         # Lock all transformation - only allow network parent to transform

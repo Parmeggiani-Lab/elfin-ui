@@ -64,12 +64,12 @@ class LivebuildState(metaclass=Singleton):
 
         # Find max hub termini
         self.max_hub_branches = 0
-        for hub_name in self.xdb['hub_data']:
+        for hub_name in self.xdb['modules']['hubs']:
             hub_branches = max_hub_free_termini(hub_name, self.xdb)
             self.max_hub_branches = max(hub_branches, self.max_hub_branches)
 
     def get_all_module_names(self):
-        groups = (self.xdb['single_data'], self.xdb['hub_data'])
+        groups = (self.xdb['modules']['singles'], self.xdb['modules']['hubs'])
         xdb_mod_names = {k for group in groups for k in group.keys()}
         return (mod_name for mod_name in self.library if mod_name in xdb_mod_names)
 
@@ -165,6 +165,25 @@ def count_obj():
 def get_xdb():
     return LivebuildState().xdb
 
+def hub_is_symmetric(hub_name):
+    return LivebuildState().xdb['modules']['hubs'][hub_name]['symmetric']
+
+def get_n_to_c_tx(mod_a, chain_a, mod_b):
+    xdb = get_xdb()
+    if mod_is_single(mod_a):
+        meta_a = xdb['modules']['singles'][mod_a]
+    elif mod_is_hub(mod_a):
+        meta_a = xdb['modules']['hubs'][mod_a]
+
+    tx_id = meta_a['chains'][chain_a]['c'][mod_b]
+    return xdb['n_to_c_tx'][tx_id]['tx']
+
+def mod_is_hub(mod_name):
+    return mod_name in get_xdb()['modules']['hubs']
+
+def mod_is_single(mod_name):
+    return mod_name in get_xdb()['modules']['singles']
+
 def get_selection_len():
     return len(bpy.context.selected_objects)
 
@@ -189,12 +208,10 @@ def max_hub_free_termini(mod_name, xdb=None):
     free_termini = 0
     if not xdb:
         xdb = get_xdb()
-    hub_xdata = xdb['hub_data'][mod_name]
-    comp_xdata = hub_xdata['component_data']
-    for chain in comp_xdata:
+    hub_meta = xdb['modules']['hubs'][mod_name]
+    for chain_id, termini_meta in hub_meta['chains'].items():
         free_termini += \
-            comp_xdata[chain]['n_free'] + \
-            comp_xdata[chain]['c_free']
+            (len(termini_meta['n']) > 0) + (len(termini_meta['c']) > 0)
     return free_termini
 
 def selection_check(
@@ -238,8 +255,7 @@ def find_symmetric_hub(network_parents):
     for walker in walkers:
         for m in walker:
             m_name = m.elfin.module_name
-            if m_name in xdb['hub_data'] and \
-                xdb['hub_data'][m_name]['symmetric']:
+            if m_name in xdb['modules']['hubs'] and hub_is_symmetric(m_name):
                 return m
 
     return None
@@ -473,13 +489,13 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
             #
             # Extrude from hub to single.
             #
-            hub_xdata = xdb['hub_data'][sel_mod_name]
+            hub_meta = xdb['modules']['hubs'][sel_mod_name]
             def extrude_hub_single(sel_mod, new_mod):
                 _extrude(sel_mod, new_mod, src_chain=extrude_from)
 
-                if hub_xdata['symmetric']:
+                if hub_meta['symmetric']:
                     # Calculate non-occupied chain IDs
-                    hub_all_chains = set(hub_xdata['component_data'].keys())
+                    hub_all_chains = set(hub_meta['chains'].keys())
                     if which_term == 'n':
                         hub_busy_chains = set(sel_mod.elfin.n_linkage.keys()) 
                     else:
@@ -560,18 +576,17 @@ def get_extrusion_prototype_list(sel_mod, which_term):
 
     xdb = get_xdb()
     if sel_mod_type == 'hub':
-        hub_xdata = xdb['hub_data'][sel_mod_name]
+        hub_meta = xdb['modules']['hubs'][sel_mod_name]
         if which_term == 'n':
             occupied_termini = sel_mod.elfin.n_linkage.keys()
-            conn_name = 'n_connections'
         else:
             occupied_termini = sel_mod.elfin.c_linkage.keys()
-            conn_name = 'c_connections'
 
-        for chain_id, chain_xdata in hub_xdata['component_data'].items():
-            if chain_id in occupied_termini: continue
+        for chain_id, chain_meta in hub_meta['chains'].items():
+            if chain_id in occupied_termini: 
+                continue
 
-            for single_name in chain_xdata[conn_name]:
+            for single_name in chain_meta[which_term]:
                 enum_tuples.append(
                     module_enum_tuple(
                         single_name, 
@@ -581,7 +596,8 @@ def get_extrusion_prototype_list(sel_mod, which_term):
 
             # Only allow one chain to be extruded because other
             # "mirrors" will be generated automatically
-            if hub_xdata['symmetric']: break
+            if hub_meta['symmetric']: 
+                break
     elif sel_mod_type == 'single':
         # Checks for occupancy by counting n/c termini links
         if which_term == 'n':
@@ -590,38 +606,37 @@ def get_extrusion_prototype_list(sel_mod, which_term):
             link_len = len(sel_mod.elfin.c_linkage)
 
         if link_len == 0:
-            if which_term == 'n':
-                name_gen = (single_a_name \
-                    for single_a_name in xdb['single_data'] \
-                    if sel_mod_name in xdb['double_data'][single_a_name])
-            else:
-                name_gen = (single_b_name \
-                    for single_b_name in xdb['double_data'][sel_mod_name])
+            single_meta = xdb['modules']['singles'][sel_mod_name]
+            chain_meta = single_meta['chains']
+            chain_id_list = list(chain_meta.keys())
+            assert len(chain_id_list) == 1
 
-            for single_name in name_gen:
+            single_chain_name = chain_id_list[0]
+            for single_name in chain_meta[single_chain_name][which_term]:
                     enum_tuples.append(
                         module_enum_tuple(
                             single_name,
-                            extrude_from='A',
-                            extrude_into='A',
+                            extrude_from=single_chain_name,
+                            extrude_into=single_chain_name,
                             direction=which_term))
 
-            for hub_name in xdb['hub_data']:
+            for hub_name in xdb['modules']['hubs']:
                 # Logically one can never extrude a symmetric hub
                 # See README development notes
-                if xdb['hub_data'][hub_name]['symmetric']: continue
+                if hub_is_symmetric(hub_name): 
+                    continue
 
-                compatible_hub_comps = \
-                    get_compatible_hub_components(
+                compat_hub_chains = \
+                    get_compatible_hub_chains(
                         hub_name, 
-                        'c' if which_term == 'n' else 'n', 
+                        which_term, 
                         sel_mod_name)
-                for hub_comp_name in compatible_hub_comps:
+                for hub_chain_name in compat_hub_chains:
                     enum_tuples.append(
                         module_enum_tuple(
                             hub_name, 
-                            extrude_from='A',
-                            extrude_into=hub_comp_name,
+                            extrude_from=single_chain_name,
+                            extrude_into=hub_chain_name,
                             direction=which_term))
     else:
         raise ValueError('Unknown module type: ', sel_mod_type)
@@ -640,7 +655,7 @@ def get_tx(
     extrude_into,
     ext_mod, 
     which_term, 
-    rel_type
+    mod_types
     ):
     """Returns the transformation matrix for when ext_mod is extruded from
     fixed_mod's which_term.
@@ -653,54 +668,61 @@ def get_tx(
 
     tx = None
     try:
-        if rel_type == ('single', 'single'):
+        if mod_types == ('single', 'single'):
 
             if which_term == 'n':
-                rel = xdb['double_data'][ext_mod_name][fixed_mod_name]
-                tx = get_drop_frame_transform(rel, fixed_mod)
+                mod_info = (ext_mod_name, extrude_into, fixed_mod_name)
+                frame_func = get_drop_frame_transform
             else:
-                rel = xdb['double_data'][fixed_mod_name][ext_mod_name]
-                tx = get_raise_frame_transform(rel, fixed_mod)
+                mod_info = (fixed_mod_name, extrude_from, ext_mod_name)
+                frame_func = get_raise_frame_transform
 
-        elif rel_type == ('single', 'hub'):
+            n_to_c_tx = get_n_to_c_tx(*mod_info)
+            tx = frame_func(n_to_c_tx, fixed_mod)
 
-            chain_xdata = xdb['hub_data'][ext_mod_name]['component_data'][extrude_into]
+        elif mod_types == ('single', 'hub'):
+
             if which_term == 'n':
-                rel = chain_xdata['c_connections'][fixed_mod_name]
                 # First drop to hub component frame
-                tx1 = get_drop_frame_transform(rel)
+                n_to_c_tx = get_n_to_c_tx(ext_mod_name, extrude_into, fixed_mod_name)
+                tx1 = get_drop_frame_transform(n_to_c_tx)
 
-                rel = xdb['double_data'][chain_xdata['single_name']][fixed_mod_name]
                 # Second drop to double B frame
-                tx2 = get_drop_frame_transform(rel, fixed_mod)
+                hub_single_name = xdb['modules']['hubs'] \
+                    [ext_mod_name]['chains'][extrude_into]['single_name']
+                hub_single_chain_name = \
+                    list(xdb['modules']['singles'][hub_single_name]['chains'].keys())[0]
+                n_to_c_tx = get_n_to_c_tx(hub_single_name, hub_single_chain_name, fixed_mod_name)
+                tx2 = get_drop_frame_transform(n_to_c_tx, fixed_mod)
 
                 tx = tx2 * tx1
             else:
-                rel = chain_xdata['n_connections'][fixed_mod_name]
-                tx = get_drop_frame_transform(rel, fixed_mod)
+                n_to_c_tx = get_n_to_c_tx(fixed_mod_name, extrude_from, ext_mod_name)
+                tx = get_drop_frame_transform(n_to_c_tx, fixed_mod)
 
-        elif rel_type == ('hub', 'single'):
+        elif mod_types == ('hub', 'single'):
 
-            chain_xdata = xdb['hub_data'][fixed_mod_name]['component_data'][extrude_from]
             if which_term == 'n':
-                rel = chain_xdata['n_connections'][ext_mod_name]
-                tx = get_raise_frame_transform(rel, fixed_mod)
+                n_to_c_tx = get_n_to_c_tx(ext_mod_name, extrude_into, fixed_mod_name)
+                tx = get_raise_frame_transform(n_to_c_tx, fixed_mod)
             else:
                 # First raise to double B frame
-                rel = xdb['double_data'] \
-                    [chain_xdata['single_name']][ext_mod_name]
-                tx1 = get_raise_frame_transform(rel)
+                hub_single_name = xdb['modules']['hubs'] \
+                    [fixed_mod_name]['chains'][extrude_from]['single_name']
+                hub_single_chain_name = \
+                    list(xdb['modules']['singles'][hub_single_name]['chains'].keys())[0]
+                n_to_c_tx = get_n_to_c_tx(hub_single_name, hub_chain_name, ext_mod_name)
+                tx1 = get_raise_frame_transform(n_to_c_tx)
 
                 # Second raise to hub component frame
-                rel = chain_xdata['c_connections'][ext_mod_name]
-                tx2 = get_raise_frame_transform(rel, fixed_mod)
+                n_to_c_tx = get_n_to_c_tx(fixed_mod_name, extrude_from, ext_mod_name)
+                tx2 = get_raise_frame_transform(n_to_c_tx, fixed_mod)
 
                 tx = tx2 * tx1
 
-        # e_rot, e_tran = scaleless_rot_tran(ext_mod)
-        # tx = tx * e_rot * e_tran
     except KeyError as ke:
         tx = None
+        raise ke
 
     return tx
 
@@ -834,61 +856,48 @@ def find_overlap(test_obj, obj_list, scale_factor=0.85):
 
     return None
 
-def get_raise_frame_transform(rel, fixed_mod=None):
-    tx = mathutils.Matrix()
-    rot, scaled_trans = rel_to_matrices(rel)
-    rot.transpose()
-    scaled_trans.translation *= -1
-
-    # Order DOES matter
-    tx = rot * scaled_trans * tx
+def get_raise_frame_transform(n_to_c_tx, fixed_mod=None):
+    tx = convert_xdb_tx_scale(n_to_c_tx)
+    tran = tx.translation.copy()
+    tx.translation = [0, 0, 0]
+    tx.transpose()
+    tx.translation = tx * -tran
 
     if fixed_mod != None:
         tx = equalize_frame(tx, fixed_mod)
     return tx
 
-def get_drop_frame_transform(rel, fixed_mod=None):
-    tx = mathutils.Matrix()
-    rot, scaled_trans = rel_to_matrices(rel)
-
-    # Order DOES matter
-    tx = scaled_trans * rot * tx
+def get_drop_frame_transform(n_to_c_tx, fixed_mod=None):
+    tx = convert_xdb_tx_scale(n_to_c_tx)
 
     if fixed_mod != None:
         tx = equalize_frame(tx, fixed_mod)
     return tx
 
 def equalize_frame(tx, fixed_mod):
-    rot, tran = scaleless_rot_tran(fixed_mod)
-    return tran * rot * tx
+    trans, rot, _ = fixed_mod.matrix_world.decompose()
+    delta = rot.to_matrix().to_4x4()
+    delta.translation = trans
+    return delta * tx
 
-def scaleless_rot_tran(obj):
-    mw = obj.matrix_world
+def convert_xdb_tx_scale(n_to_c_tx):
+    tx = mathutils.Matrix(n_to_c_tx)
+    for i in range(0, 3):
+        tx[i][3] /= blender_pymol_unit_conversion
+    return tx
 
-    # Decompose matrix_world to remove 0.1 scale
-    tran = mathutils.Matrix.Translation(mw.translation)
-    rot = mw.to_euler().to_matrix().to_4x4()
+def get_compatible_hub_chains(hub_name, single_term, single_name):
+    assert single_term in {'n', 'c'}
 
-    return rot, tran
+    hub_term = { 'n': 'c', 'c': 'n' }[single_term]
 
-def rel_to_matrices(rel):
-    rot = mathutils.Matrix(rel['rot']).to_4x4()
-    scaled_trans = mathutils.Matrix.Translation(
-        [t/blender_pymol_unit_conversion for t in rel['tran']])
+    chain_meta = get_xdb()['modules']['hubs'][hub_name]['chains']
 
-    return rot, scaled_trans
-
-def get_compatible_hub_components(hub_name, which_term, single_name):
-    assert which_term in {'n', 'c'}
-
-    comp_data = get_xdb()['hub_data'][hub_name]['component_data']
-
-    component_names = []
-    for comp_name in comp_data:
-        if single_name in comp_data \
-            [comp_name][which_term+'_connections'].keys():
-            component_names.append(comp_name)
-    return component_names
+    compat_hub_chains = []
+    for chain_name in chain_meta:
+        if single_name in chain_meta[chain_name][hub_term].keys():
+            compat_hub_chains.append(chain_name)
+    return compat_hub_chains
 
 def module_enum_tuple(mod_name, extrude_from=None, extrude_into=None, direction=None):
     """Creates an enum tuple storing the single module selector, prefixed or

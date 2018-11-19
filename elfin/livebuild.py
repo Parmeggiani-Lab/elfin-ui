@@ -305,13 +305,12 @@ class JoinNetworks(bpy.types.Operator):
         a_mod_name = mod_a.elfin.module_name
         b_mod_name = mod_b.elfin.module_name
 
-        hub_xdata = get_xdb()['hub_data']
         # Don't allow pull-join on symmetric hubs (yet?)
         if mod_a.elfin.module_type == 'hub':
-            if hub_xdata[a_mod_name]['symmetric']:
+            if hub_is_symmetric(a_mod_name):
                 return no_way
         if mod_b.elfin.module_type == 'hub':
-            if hub_xdata[b_mod_name]['symmetric']:
+            if hub_is_symmetric(b_mod_name):
                 return no_way
 
         # Plan: get n/c extrudables for both modules, then find out the
