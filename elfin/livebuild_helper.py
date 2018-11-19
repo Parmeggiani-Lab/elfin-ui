@@ -168,14 +168,14 @@ def get_xdb():
 def hub_is_symmetric(hub_name):
     return LivebuildState().xdb['modules']['hubs'][hub_name]['symmetric']
 
-def get_n_to_c_tx(mod_a, chain_a, mod_b):
+def get_n_to_c_tx(mod_a, chain_a, mod_b, chain_b):
     xdb = get_xdb()
     if mod_is_single(mod_a):
         meta_a = xdb['modules']['singles'][mod_a]
     elif mod_is_hub(mod_a):
         meta_a = xdb['modules']['hubs'][mod_a]
 
-    tx_id = meta_a['chains'][chain_a]['c'][mod_b]
+    tx_id = meta_a['chains'][chain_a]['c'][mod_b][chain_b]
     return xdb['n_to_c_tx'][tx_id]['tx']
 
 def mod_is_hub(mod_name):
@@ -668,23 +668,26 @@ def get_tx(
 
     tx = None
     try:
+        if which_term == 'n':
+            mod_params = (ext_mod_name, extrude_into, fixed_mod_name, extrude_from)
+        else:
+            mod_params = (fixed_mod_name, extrude_from, ext_mod_name, extrude_into)
+
         if mod_types == ('single', 'single'):
 
             if which_term == 'n':
-                mod_info = (ext_mod_name, extrude_into, fixed_mod_name)
                 frame_func = get_drop_frame_transform
             else:
-                mod_info = (fixed_mod_name, extrude_from, ext_mod_name)
                 frame_func = get_raise_frame_transform
 
-            n_to_c_tx = get_n_to_c_tx(*mod_info)
+            n_to_c_tx = get_n_to_c_tx(*mod_params)
             tx = frame_func(n_to_c_tx, fixed_mod)
 
         elif mod_types == ('single', 'hub'):
 
             if which_term == 'n':
                 # First drop to hub component frame
-                n_to_c_tx = get_n_to_c_tx(ext_mod_name, extrude_into, fixed_mod_name)
+                n_to_c_tx = get_n_to_c_tx(*mod_params)
                 tx1 = get_drop_frame_transform(n_to_c_tx)
 
                 # Second drop to double B frame
@@ -692,18 +695,19 @@ def get_tx(
                     [ext_mod_name]['chains'][extrude_into]['single_name']
                 hub_single_chain_name = \
                     list(xdb['modules']['singles'][hub_single_name]['chains'].keys())[0]
-                n_to_c_tx = get_n_to_c_tx(hub_single_name, hub_single_chain_name, fixed_mod_name)
+                n_to_c_tx = get_n_to_c_tx(
+                    hub_single_name, hub_single_chain_name, fixed_mod_name, extrude_from)
                 tx2 = get_drop_frame_transform(n_to_c_tx, fixed_mod)
 
                 tx = tx2 * tx1
             else:
-                n_to_c_tx = get_n_to_c_tx(fixed_mod_name, extrude_from, ext_mod_name)
+                n_to_c_tx = get_n_to_c_tx(*mod_params)
                 tx = get_drop_frame_transform(n_to_c_tx, fixed_mod)
 
         elif mod_types == ('hub', 'single'):
 
             if which_term == 'n':
-                n_to_c_tx = get_n_to_c_tx(ext_mod_name, extrude_into, fixed_mod_name)
+                n_to_c_tx = get_n_to_c_tx(*mod_params)
                 tx = get_raise_frame_transform(n_to_c_tx, fixed_mod)
             else:
                 # First raise to double B frame
@@ -711,11 +715,12 @@ def get_tx(
                     [fixed_mod_name]['chains'][extrude_from]['single_name']
                 hub_single_chain_name = \
                     list(xdb['modules']['singles'][hub_single_name]['chains'].keys())[0]
-                n_to_c_tx = get_n_to_c_tx(hub_single_name, hub_chain_name, ext_mod_name)
+                n_to_c_tx = get_n_to_c_tx(
+                    hub_single_name, hub_chain_name, ext_mod_name, extrude_into)
                 tx1 = get_raise_frame_transform(n_to_c_tx)
 
                 # Second raise to hub component frame
-                n_to_c_tx = get_n_to_c_tx(fixed_mod_name, extrude_from, ext_mod_name)
+                n_to_c_tx = get_n_to_c_tx(*mod_params)
                 tx2 = get_raise_frame_transform(n_to_c_tx, fixed_mod)
 
                 tx = tx2 * tx1

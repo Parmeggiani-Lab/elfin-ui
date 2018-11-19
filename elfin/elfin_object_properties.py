@@ -319,8 +319,6 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         while neighbours:
             name, mod = neighbours.popitem()
 
-            print('[][][] Transfering ', name)
-
             # Could become None in some situations, 
             # such as a deleted mirrors
             if mod and mod.parent == old_network:
