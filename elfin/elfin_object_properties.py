@@ -119,10 +119,10 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         
         wm = self.obj_ptr.matrix_world
         
-        trans, rot, _ = wm.decompose()
-        tx = rot.to_matrix().to_4x4()
-        tx.translation = trans * lh.blender_pymol_unit_conversion
-        data['tx'] = list(list(row) for row in tx)
+        tran, rot, _ = wm.decompose()
+        tran = tran * lh.blender_pymol_unit_conversion
+        data['rot'] = list(list(vec) for vec in rot.to_matrix())
+        data['tran'] = list(tran)
         
         return data
 
