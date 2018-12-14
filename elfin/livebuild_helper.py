@@ -865,7 +865,6 @@ def find_overlap(test_obj, obj_list, scale_factor=0.85):
 
     return None
 
-
 def get_raise_frame_transform(n_to_c_tx, fixed_mod=None):
     tx = pymol_to_blender_scale(n_to_c_tx)
     tran = tx.translation.copy()
