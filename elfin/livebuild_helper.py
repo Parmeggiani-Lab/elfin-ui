@@ -176,7 +176,11 @@ def get_n_to_c_tx(mod_a, chain_a, mod_b, chain_b):
         meta_a = xdb['modules']['hubs'][mod_a]
 
     tx_id = meta_a['chains'][chain_a]['c'][mod_b][chain_b]
-    return xdb['n_to_c_tx'][tx_id]['tx']
+    tx_json = xdb['n_to_c_tx'][tx_id]
+
+    tx = mathutils.Matrix(tx_json['rot']).to_4x4()
+    tx.translation = tx_json['tran']
+    return tx
 
 def mod_is_hub(mod_name):
     return mod_name in get_xdb()['modules']['hubs']
@@ -861,8 +865,9 @@ def find_overlap(test_obj, obj_list, scale_factor=0.85):
 
     return None
 
+
 def get_raise_frame_transform(n_to_c_tx, fixed_mod=None):
-    tx = convert_xdb_tx_scale(n_to_c_tx)
+    tx = pymol_to_blender_scale(n_to_c_tx)
     tran = tx.translation.copy()
     tx.translation = [0, 0, 0]
     tx.transpose()
@@ -873,7 +878,7 @@ def get_raise_frame_transform(n_to_c_tx, fixed_mod=None):
     return tx
 
 def get_drop_frame_transform(n_to_c_tx, fixed_mod=None):
-    tx = convert_xdb_tx_scale(n_to_c_tx)
+    tx = pymol_to_blender_scale(n_to_c_tx)
 
     if fixed_mod != None:
         tx = equalize_frame(tx, fixed_mod)
@@ -885,7 +890,7 @@ def equalize_frame(tx, fixed_mod):
     delta.translation = trans
     return delta * tx
 
-def convert_xdb_tx_scale(n_to_c_tx):
+def pymol_to_blender_scale(n_to_c_tx):
     tx = mathutils.Matrix(n_to_c_tx)
     for i in range(0, 3):
         tx[i][3] /= blender_pymol_unit_conversion
