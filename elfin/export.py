@@ -118,7 +118,7 @@ def validate_and_annotate(networks, pg_networks, output):
                     mod_com = mod.matrix_world.translation
                     if coms_approximately_equal(jt_com, mod_com):
                         # A)
-                        if mod.elfin.get_available_links() < len(jt.elfin.pg_neighbours):
+                        if mod.elfin.get_available_links() < len(jt.elfin.pg_neighbors):
                             validity = False
                             msg = ('Module \"{}\" occupies (has the same COM as) '
                                     '\"{}\", but bridges exceed number of '
@@ -155,10 +155,10 @@ def annotate_hinge(output, jt, mod):
     output_jt['occupant'] = mod.name
     output_jt['occupant_parent'] = mod.parent.name
 
-    # Set translation tolerance for the immediate neighbour of the hinge joint
-    for pgn in jt.elfin.pg_neighbours:
+    # Set translation tolerance for the immediate neighbor of the hinge joint
+    for pgn in jt.elfin.pg_neighbors:
         bridge = pgn.obj
-        for other_end_nb in bridge.elfin.pg_neighbours:
+        for other_end_nb in bridge.elfin.pg_neighbors:
             other_end = other_end_nb.obj
             if other_end != jt:
                 output_oe = output['pg_networks'][jt.parent.name]\

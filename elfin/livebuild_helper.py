@@ -381,7 +381,7 @@ def walk_pg_network(joint, initial=True):
     yields each object on the way, without repeating.
     """
     if not joint.elfin.is_joint():
-        joint = joint.elfin.pg_neighbours[0].obj;
+        joint = joint.elfin.pg_neighbors[0].obj;
 
     if initial:
         for pg in joint.parent.children:
@@ -390,9 +390,9 @@ def walk_pg_network(joint, initial=True):
     yield joint
     joint.elfin.node_walked = True
 
-    for bridge_nb in joint.elfin.pg_neighbours:
+    for bridge_nb in joint.elfin.pg_neighbors:
         bridge = bridge_nb.obj
-        for other_end_nb in bridge.elfin.pg_neighbours:
+        for other_end_nb in bridge.elfin.pg_neighbors:
             other_end = other_end_nb.obj
             if not other_end.elfin.node_walked:
                 yield from walk_pg_network(other_end, initial=False)

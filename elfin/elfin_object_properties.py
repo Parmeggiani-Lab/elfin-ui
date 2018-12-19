@@ -51,7 +51,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
     c_linkage = bpy.props.CollectionProperty(type=Link)
     n_linkage = bpy.props.CollectionProperty(type=Link)
-    pg_neighbours = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
+    pg_neighbors = bpy.props.CollectionProperty(type=ObjectPointerWrapper)
     tx_tol = bpy.props.FloatProperty(min=0.0, default=0.0)
 
     node_walked = bpy.props.BoolProperty(default=False)
@@ -73,11 +73,11 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         return max_links
 
-    def get_neighbour_joint_names(self):
+    def get_neighbor_joint_names(self):
         nbs = []
-        for pgn in self.pg_neighbours:
+        for pgn in self.pg_neighbors:
             bridge = pgn.obj
-            for other_end_nb in bridge.elfin.pg_neighbours:
+            for other_end_nb in bridge.elfin.pg_neighbors:
                 other_end = other_end_nb.obj
                 if other_end != self.obj_ptr:
                     nbs.append(other_end.name)
@@ -94,7 +94,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         elif self.is_joint():
             data['occupant'] = '' # a module that has the same COM as this joint
             data['occupant_parent'] = '' # occupant network name
-            data['hinge'] = '' # refers to the neighbour that has an occupant
+            data['hinge'] = '' # refers to the neighbor that has an occupant
             data['tx_tol'] = 0.0 # translation tolerance in Angstroms
 
             """
@@ -113,7 +113,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             facilitate this control.
             """
             data['rt_tol'] = []
-            data['neighbours'] = self.get_neighbour_joint_names()
+            data['neighbors'] = self.get_neighbor_joint_names()
         else:
             raise ValueError('Should not convert this elfin object to dict: {}'.format(self.obj_type))
         
@@ -131,7 +131,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             not other_mod or not other_mod.elfin.is_joint():
             return False
 
-        for nb in self.pg_neighbours:
+        for nb in self.pg_neighbors:
             if nb.obj.elfin.bridge_connects_joints(self.obj_ptr, other_mod):
                 return True
 
@@ -141,7 +141,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         if not self.is_bridge():
             return False
 
-        return tuple((nb.obj for nb in self.pg_neighbours)) in \
+        return tuple((nb.obj for nb in self.pg_neighbors)) in \
             ((mod_a, mod_b), (mod_b, mod_a))
 
     def find_link(self, mod_b):
@@ -252,18 +252,18 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
     def cleanup_bridge(self):
         """Remove references of self object and also pointer to joints."""
-        # Preserve neighbour joints for pg-network separation
+        # Preserve neighbor joints for pg-network separation
         nb_joints = {}
-        for joint_nb in self.pg_neighbours:
+        for joint_nb in self.pg_neighbors:
             joint = joint_nb.obj
             nb_joints[joint.name] = joint
 
         # Detach self from parent joint
         self.obj_ptr.parent = None
-        for opw in self.pg_neighbours:
+        for opw in self.pg_neighbors:
             if opw.obj:
                 rem_idx = -1
-                jnb = opw.obj.elfin.pg_neighbours
+                jnb = opw.obj.elfin.pg_neighbors
                 for i in range(len(jnb)):
                     if jnb[i].obj == self.obj_ptr:
                         rem_idx = i
@@ -281,9 +281,9 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         # Detach from pg-network
         self.obj_ptr.parent = None
-        for nb in self.pg_neighbours:
+        for nb in self.pg_neighbors:
             bridge = nb.obj
-            bridge_nbs = bridge.elfin.pg_neighbours
+            bridge_nbs = bridge.elfin.pg_neighbors
 
             # Dereference current joint
             for i in range(len(bridge_nbs)):
@@ -294,14 +294,14 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             bridge.elfin.destroy()
 
     def cleanup_module(self):
-        # Preserve neighbours for network separation
-        neighbours = {}
+        # Preserve neighbors for network separation
+        neighbors = {}
         for lk in self.c_linkage:
             if lk.target_mod:
-                neighbours[lk.target_mod.name] = lk.target_mod
+                neighbors[lk.target_mod.name] = lk.target_mod
         for lk in self.n_linkage:
             if lk.target_mod:
-                neighbours[lk.target_mod.name] = lk.target_mod
+                neighbors[lk.target_mod.name] = lk.target_mod
         old_network = self.obj_ptr.parent
         self.sever_links()
 
@@ -315,8 +315,8 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         self.obj_ptr.parent = None
 
         # Separate networks
-        while neighbours:
-            name, mod = neighbours.popitem()
+        while neighbors:
+            name, mod = neighbors.popitem()
 
             # Could become None in some situations, 
             # such as a deleted mirrors
@@ -364,10 +364,10 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         stretch_cons.target = joint_b
         stretch_cons.bulge = 0.0
 
-        bridge.elfin.pg_neighbours.add().obj = joint_a
-        bridge.elfin.pg_neighbours.add().obj = joint_b
-        joint_a.elfin.pg_neighbours.add().obj = bridge
-        joint_b.elfin.pg_neighbours.add().obj = bridge
+        bridge.elfin.pg_neighbors.add().obj = joint_a
+        bridge.elfin.pg_neighbors.add().obj = joint_b
+        joint_a.elfin.pg_neighbors.add().obj = bridge
+        joint_b.elfin.pg_neighbors.add().obj = bridge
 
         # Restore joint_b location 
         # 

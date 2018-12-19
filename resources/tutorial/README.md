@@ -144,7 +144,7 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
  * `Sever Network`
     * Sever one network into two at the specific point.
     * Short form: `#svnw`
-    * Only available <b>when exactly two neighbouring modules are selected</b>.
+    * Only available <b>when exactly two neighboring modules are selected</b>.
  * `Join Network`
     * Join two compatible networks; deletes the network that becomes empty.
     * Short form: `#jnw`

@@ -56,9 +56,9 @@ class AddBridge(bpy.types.Operator):
             msg = self.not_a_joint_error.format(jt_a.name)
         elif not jt_b.elfin.is_joint():
             msg = self.not_a_joint_error.format(jt_b.name)
-        elif len(jt_a.elfin.pg_neighbours) >= max_hub_branches:
+        elif len(jt_a.elfin.pg_neighbors) >= max_hub_branches:
             msg = self.max_branch_error.format(jt_a.name)
-        elif len(jt_b.elfin.pg_neighbours) >= max_hub_branches:
+        elif len(jt_b.elfin.pg_neighbors) >= max_hub_branches:
             msg = self.max_branch_error.format(jt_b.name)
         elif jt_a.elfin.joint_connects_joint(jt_b):
             msg = self.already_bridged_error.format(jt_a.name, jt_b.name)
@@ -201,7 +201,7 @@ class ExtrudeJoint(bpy.types.Operator):
             max_hub_branches = LivebuildState().max_hub_branches
             for s in get_selected(-1):
                 if not s.elfin.is_joint() or \
-                    len(s.elfin.pg_neighbours) >= max_hub_branches:
+                    len(s.elfin.pg_neighbors) >= max_hub_branches:
                     return False
             else:
                 return True
@@ -439,7 +439,7 @@ class SeverNetwork(bpy.types.Operator):
             arm_mod = mod_a if symhub == mod_b else mod_b
             for m in arm_mod.elfin.mirrors:
                 # Not making assumption that a symmetric hub's immediate
-                # neighbours are identical, although they probably are..
+                # neighbors are identical, although they probably are..
                 m_link, m_linkage = symhub.elfin.find_link(m)
                 self.sever(m_link, m_linkage, symhub)
         else:
