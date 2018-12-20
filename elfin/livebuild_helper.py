@@ -889,6 +889,15 @@ def equalize_frame(tx, fixed_mod):
     delta.translation = trans
     return delta * tx
 
+def scaleless_rot_tran(obj):
+    mw = obj.matrix_world.copy()
+
+    # Decompose matrix_world to remove 0.1 scale
+    tran = mathutils.Matrix.Translation(mw.translation)
+    rot = mw.to_euler().to_matrix().to_4x4()
+
+    return rot, tran
+
 def pymol_to_blender_scale(n_to_c_tx):
     tx = mathutils.Matrix(n_to_c_tx)
     for i in range(0, 3):

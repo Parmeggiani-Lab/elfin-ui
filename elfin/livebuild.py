@@ -384,7 +384,7 @@ class JoinNetworks(bpy.types.Operator):
                 extrude_into=moving_mod_chain,
                 ext_mod=mod_a, 
                 which_term=which_term, 
-                rel_type=rel_type
+                mod_types=rel_type
                 )
 
             old_network.matrix_world = tx * a_tx * old_network.matrix_world
