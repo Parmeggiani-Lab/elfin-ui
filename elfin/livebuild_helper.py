@@ -591,11 +591,14 @@ def get_extrusion_prototype_list(sel_mod, which_term):
                 continue
 
             for single_name in chain_meta[which_term]:
+                single_chains = chain_meta[which_term][single_name]
+                assert(len(single_chains) == 1)
+
                 enum_tuples.append(
                     module_enum_tuple(
                         single_name, 
                         extrude_from=chain_id, 
-                        extrude_into='A',
+                        extrude_into=single_chains[0],
                         direction=which_term))
 
             # Only allow one chain to be extruded because other
