@@ -720,7 +720,7 @@ def get_tx(
                 hub_single_chain_name = \
                     list(xdb['modules']['singles'][hub_single_name]['chains'].keys())[0]
                 n_to_c_tx = get_n_to_c_tx(
-                    hub_single_name, hub_chain_name, ext_mod_name, extrude_into)
+                    hub_single_name, hub_single_chain_name, ext_mod_name, extrude_into)
                 tx1 = get_raise_frame_transform(n_to_c_tx)
 
                 # Second raise to hub component frame
