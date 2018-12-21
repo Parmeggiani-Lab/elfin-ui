@@ -436,6 +436,7 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
     """Extrudes selector module at the which_term of sel_mod"""
     assert which_term in {'n', 'c'}
 
+    all_ext_mods = []
     ext_mod = None
     try:
         sel_mod_name = sel_mod.elfin.module_name
@@ -457,7 +458,7 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
             terminus=which_term.upper(),
             from_chain=extrude_from))
 
-        def _extrude(fixed_mod, ext_mod, src_chain=extrude_from):
+        def project_extruded_mod(fixed_mod, ext_mod, src_chain=extrude_from):
             tx = get_tx(
                 fixed_mod, 
                 src_chain,
@@ -490,21 +491,23 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
 
         xdb = get_xdb()
         if sel_ext_type_pair in {('single', 'single'), ('single', 'hub')}:
-            _extrude(sel_mod, ext_mod)
+            project_extruded_mod(sel_mod, ext_mod)
 
             if sel_mod.elfin.mirrors:
-                create_module_mirrors(
-                    sel_mod, 
-                    [ext_mod], 
-                    ext_mod_name, 
-                    _extrude)
+                mirrored_extrude(
+                    root_mod=sel_mod, 
+                    new_mirrors=[ext_mod], 
+                    link_mod_name=ext_mod_name, 
+                    extrude_func=project_extruded_mod)
         elif sel_ext_type_pair == ('hub', 'single'):
             #
             # Extrude from hub to single.
             #
             hub_meta = xdb['modules']['hubs'][sel_mod_name]
             def extrude_hub_single(sel_mod, new_mod):
-                _extrude(sel_mod, new_mod, src_chain=extrude_from)
+                project_extruded_mod(sel_mod, new_mod, src_chain=extrude_from)
+
+                mirrors = [new_mod]
 
                 if hub_meta['symmetric']:
                     # Calculate non-occupied chain IDs
@@ -514,29 +517,25 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
                     else:
                         hub_busy_chains = set(sel_mod.elfin.c_linkage.keys())
                     hub_free_chains = hub_all_chains - hub_busy_chains
-                       
-                    mirrors = [new_mod]
-                    for src_chain_id in hub_free_chains:
-                        mirror_mod = import_module(ext_mod_name)
-                        mirror_mod.parent = sel_mod.parent # Same network
-                        _extrude(sel_mod, mirror_mod, src_chain_id)
-                        mirrors.append(mirror_mod)
 
-                    for m in mirrors:
-                        m.elfin.mirrors = mirrors
-
-                    return mirrors # Mirrers are taken care of here already
-                else:
-                    return [new_mod]
+                    mirrored_symhub_extrude(
+                        sel_mod,
+                        mirrors,
+                        hub_free_chains,
+                        ext_mod_name,
+                        project_extruded_mod)
+                
+                return [new_mod]
 
             first_mirror_group = extrude_hub_single(sel_mod, ext_mod)
 
             if sel_mod.elfin.mirrors:
-                create_module_mirrors(
+                mirrored_extrude(
                     sel_mod,
                     first_mirror_group,
                     ext_mod_name,
-                    extrude_hub_single)
+                    extrude_func=extrude_hub_single)
+
         elif sel_ext_type_pair == ('hub', 'hub'):
             #
             # Extrude from hub to hub is NOT allowed.
@@ -561,7 +560,8 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
 def execute_extrusion(which_term, selector, color, reporter):
     """Executes extrusion respecting mirror links and filers mirror selections
     """
-    if selector in nop_enum_selectors: return
+    if selector in nop_enum_selectors:
+        return {'FINISHED'}
 
     filter_mirror_selection()
     for sel_mod in get_selected(-1): 
@@ -595,19 +595,20 @@ def get_extrusion_prototype_list(sel_mod, which_term):
         else:
             occupied_termini = sel_mod.elfin.c_linkage.keys()
 
-        for chain_id, chain_meta in hub_meta['chains'].items():
-            if chain_id in occupied_termini: 
+        for src_chain_id, chain_meta in hub_meta['chains'].items():
+            if src_chain_id in occupied_termini: 
                 continue
 
             for single_name in chain_meta[which_term]:
                 single_chains = chain_meta[which_term][single_name]
                 assert(len(single_chains) == 1)
+                dst_chain_id = list(single_chains.keys())[0]
 
                 enum_tuples.append(
                     module_enum_tuple(
                         single_name, 
-                        extrude_from=chain_id, 
-                        extrude_into=single_chains[0],
+                        extrude_from=src_chain_id, 
+                        extrude_into=dst_chain_id,
                         direction=which_term))
 
             # Only allow one chain to be extruded because other
@@ -764,21 +765,48 @@ def link_by_mirror(modules=None):
     for m in mirrors:
         m.elfin.mirrors = mirrors[:]
 
-def create_module_mirrors(
-    root_mod, 
-    new_mirrors, 
-    link_mod_name,
+def mirrored_symhub_extrude(
+    root_symhub,
+    new_mirrors,
+    hub_free_chains,
+    ext_mod_name,
     extrude_func):
-    for m in root_mod.elfin.mirrors:
-        if m != root_mod:
-            mirror_mod = import_module(link_mod_name)
-            mirror_mod.parent = m.parent # same parent as m
-            to_be_mirrored = extrude_func(m, mirror_mod)
-            for tbm in to_be_mirrored:
-                new_mirrors.append(tbm)
+    imported = []
+
+    for src_chain_id in hub_free_chains:
+        mirror_mod = import_module(ext_mod_name)
+        imported.append(mirror_mod)
+
+        # Assign to the same network.
+        mirror_mod.parent = root_symhub.parent
+        extrude_func(root_symhub, mirror_mod, src_chain_id)
+        new_mirrors.append(mirror_mod)
 
     for m in new_mirrors:
         m.elfin.mirrors = new_mirrors
+
+    return imported
+
+def mirrored_extrude(
+    root_mod, 
+    new_mirrors, 
+    ext_mod_name,
+    extrude_func):
+    imported = []
+
+    for m in root_mod.elfin.mirrors:
+        if m != root_mod:
+            mirror_mod = import_module(ext_mod_name)
+            imported.append(mirror_mod)
+
+            # Assign to the same network.
+            mirror_mod.parent = m.parent
+            new_mirrors += extrude_func(m, mirror_mod)
+
+    for m in new_mirrors:
+        m.elfin.mirrors = new_mirrors
+
+    return imported
 
 def filter_mirror_selection():
     for s in bpy.context.selected_objects:
