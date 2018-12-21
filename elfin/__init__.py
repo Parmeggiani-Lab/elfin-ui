@@ -52,6 +52,7 @@ modules_to_import = [
     'elfin_scene_properties',
     'elfin_object_properties',
     'export',
+    'import',
 ]
 root_module = sys.modules[__name__]
 

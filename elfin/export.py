@@ -40,7 +40,7 @@ class ExportOperator(bpy.types.Operator):
         Blender file.
         """
 
-        # Maybe limit export to seleced pg_network in the future?
+        # Maybe limit export to selected pg_network in the future?
         networks, pg_networks = [], []
         for obj in context.scene.objects:
             if obj.elfin.is_network():

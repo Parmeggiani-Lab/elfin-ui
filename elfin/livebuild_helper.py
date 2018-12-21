@@ -208,6 +208,15 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
+def get_ordered_selection():
+    # Returns objects such that obj_a was selected before obj_b.
+    obj_a, obj_b = None, None
+    if get_selection_len() == 2:
+        obj_a, obj_b = get_selected(-1)
+        if bpy.context.active_object == obj_a:
+            obj_a, obj_b = obj_b, obj_a
+    return obj_a, obj_b
+
 def max_hub_free_termini(mod_name, xdb=None):
     free_termini = 0
     if not xdb:
@@ -457,7 +466,7 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
                 which_term, 
                 sel_ext_type_pair
                 )
-            if not tx:
+            if not tx and reporter is not None:
                 reporter.report({'ERROR'}, str(IncompatibleModuleError))
                 raise IncompatibleModuleError
 

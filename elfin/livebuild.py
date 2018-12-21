@@ -413,6 +413,7 @@ class SeverNetwork(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     link_info = None
+    ordered_selection = (None, None)
 
     def sever(self, link, linkage, mod_a):
         mod_b = link.target_mod
@@ -425,7 +426,14 @@ class SeverNetwork(bpy.types.Operator):
         transfer_network(mod_b)
 
     def execute(self, context):
-        mod_a, mod_b = get_selected(-1)
+        # mod_b is always the fixed module
+        mod_a, mod_b = self.ordered_selection
+        if not mod_a:
+            self.report(
+                {'ERROR'}, 
+                'Error: selection lost')
+            return {'CANCELLED'}
+
         if not self.link_info:
             self.report(
                 {'ERROR'}, 
@@ -434,12 +442,15 @@ class SeverNetwork(bpy.types.Operator):
         
         link, linkage = self.link_info
 
+        should_warn_mirrors = False
+
         symhub = find_symmetric_hub([mod_a.parent])
         if symhub and symhub == mod_a or symhub == mod_b:
             arm_mod = mod_a if symhub == mod_b else mod_b
             for m in arm_mod.elfin.mirrors:
                 # Not making assumption that a symmetric hub's immediate
-                # neighbors are identical, although they probably are..
+                # neighbors are identical, although they should be probably
+                # are..
                 m_link, m_linkage = symhub.elfin.find_link(m)
                 self.sever(m_link, m_linkage, symhub)
         else:
@@ -447,29 +458,58 @@ class SeverNetwork(bpy.types.Operator):
             src_chain_id = link.source_chain_id
 
             to_sever = []
-            for m in mod_a.elfin.mirrors:
-                if term == 'c':
-                    m_linkage = m.elfin.c_linkage
-                else:
-                    m_linkage = m.elfin.n_linkage
-                for l in m_linkage:
+            if mod_a.elfin.mirrors:
+                for m in mod_a.elfin.mirrors:
+                    if term == 'c':
+                        m_linkage = m.elfin.c_linkage
+                    else:
+                        m_linkage = m.elfin.n_linkage
+                    for l in m_linkage:
+                        if l.source_chain_id == src_chain_id:
+                            to_sever.append((l, m_linkage, m))
+            else:
+                for l in linkage:
                     if l.source_chain_id == src_chain_id:
-                        to_sever.append((l, m_linkage, m))
+                        to_sever.append((l, linkage, mod_a))
+
+            if mod_b.elfin.mirrors:
+                # Warn user.
+                should_warn_mirrors = True
 
             for ts in to_sever:
                 self.sever(*ts)
 
+        self.ordered_selection = (None, None)
         self.link_info = None
-        return {'FINISHED'}
+
+        if should_warn_mirrors:
+            # Could use WARNING, but it doesn't pop (shows at the top-right corner).
+            self.report(
+                {'ERROR'},
+                ('Warning (not an error): second module ({}) has mirrors.\n\n'
+                    'This operator only considers mirrors in the first selected module.')
+                .format(mod_b.name))
+            return {'FINISHED'}
+        else:
+            MessagePrompt.message_lines=['Operation successful']
+            bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
+                title='Sever network',
+                icon='INFO')
+
+            return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
-        if get_selection_len() == 2:
-            # Check whether the two selected moduels are next to each other
-            mod_a, mod_b = get_selected(-1)
-            SeverNetwork.link_info = mod_a.elfin.find_link(mod_b)
+        # Objects don't really need to be ordered but it's convenient.
+        objs = get_ordered_selection()
+
+        # Check whether the two selected moduels are next to each other in network.
+        if objs[0] is not None:
+            SeverNetwork.ordered_selection = objs
+            SeverNetwork.link_info = objs[0].elfin.find_link(objs[1])
             if SeverNetwork.link_info:
                 return True
+
         return False
 
 class SelectNetworkParent(bpy.types.Operator):
@@ -846,23 +886,24 @@ class AddModule(bpy.types.Operator):
         # Select only the newly placed module
         selection = get_selected(-1)
 
-        if not selection:
-            print('New module was probably deleted by watcher - selection became', selection)
-        else:
+        if selection:
             last_obj_loc = selection[-1].location.copy()
-            for s in selection: 
-                s.select = False
-
-            lmod.select = True
-            # If not set to lmod, it would be the parent, which will lead to
-            # failure when trying to select parent via Shift-G + P
-            context.scene.objects.active = lmod
 
             # Move new module to last selected object location
             lmod.parent.location = last_obj_loc
 
-            self.ask_prototype = True
+        # De-select everything
+        for s in selection: 
+            s.select = False
+        lmod.select = True # Select new obj
+
+        # If not set to lmod, it would be the parent, which will lead to
+        # failure when trying to select parent via Shift-G + P
+        context.scene.objects.active = lmod
+
+        self.ask_prototype = True
             
+        # Gurantees newly added module is both selected and active.
         return {'FINISHED'}
 
     def invoke(self, context, event):
