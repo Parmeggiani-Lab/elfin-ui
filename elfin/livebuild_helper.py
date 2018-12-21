@@ -208,6 +208,40 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
+def add_module(mod_name, color):
+    lmod = import_module(mod_name)
+
+    give_module_new_color(lmod, color)
+
+    # Imported objects are hidden by default.
+    lmod.hide = False
+
+    # Create a new empty object as network parent.
+    network_parent = create_network('module')
+    lmod.parent = network_parent
+
+    # Find active object.
+    selection = get_selected(-1)
+
+    if selection:
+        # Move new module to active object location.
+        ao = bpy.context.active_object
+        ao_loc = ao.location.copy()
+        lmod.parent.location = ao_loc
+
+    # De-select everything.
+    for s in selection: 
+        s.select = False
+
+    # Select new object.
+    lmod.select = True
+
+    # If not set to lmod, it would be the parent, which will lead to
+    # failure when trying to select parent via Shift-G + P
+    bpy.context.scene.objects.active = lmod
+
+    return lmod
+
 def get_ordered_selection():
     # Returns objects such that obj_a was selected before obj_b.
     obj_a, obj_b = None, None
@@ -437,6 +471,7 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
     assert which_term in {'n', 'c'}
 
     all_ext_mods = []
+    result_signal = {'FINISHED'}
     ext_mod = None
     try:
         sel_mod_name = sel_mod.elfin.module_name
@@ -446,6 +481,8 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
         c_chain, ext_mod_name, n_chain = \
             selector.split('.')
         ext_mod = import_module(ext_mod_name)
+        all_ext_mods.append(ext_mod)
+
         extrude_from = n_chain if which_term == 'n' else c_chain
         extrude_into = c_chain if which_term == 'n' else n_chain
         sel_ext_type_pair = (sel_mod.elfin.module_type, ext_mod.elfin.module_type)
@@ -494,7 +531,7 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
             project_extruded_mod(sel_mod, ext_mod)
 
             if sel_mod.elfin.mirrors:
-                mirrored_extrude(
+                all_ext_mods += mirrored_extrude(
                     root_mod=sel_mod, 
                     new_mirrors=[ext_mod], 
                     link_mod_name=ext_mod_name, 
@@ -518,19 +555,21 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
                         hub_busy_chains = set(sel_mod.elfin.c_linkage.keys())
                     hub_free_chains = hub_all_chains - hub_busy_chains
 
-                    mirrored_symhub_extrude(
+                    imported = mirrored_symhub_extrude(
                         sel_mod,
                         mirrors,
                         hub_free_chains,
                         ext_mod_name,
                         project_extruded_mod)
+
+                    all_ext_mods.extend(imported)
                 
-                return [new_mod]
+                return mirrors
 
             first_mirror_group = extrude_hub_single(sel_mod, ext_mod)
 
             if sel_mod.elfin.mirrors:
-                mirrored_extrude(
+                all_ext_mods += mirrored_extrude(
                     sel_mod,
                     first_mirror_group,
                     ext_mod_name,
@@ -544,7 +583,6 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
         else:
             raise ValueError('Invalid sel_ext_type_pair: {}'.format(sel_ext_type_pair))
 
-        return {'FINISHED'}
     except Exception as e:
         if ext_mod:
             # In case something went wrong before this line in try
@@ -555,7 +593,9 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
         if e != IncompatibleModuleError:
             raise e
 
-        return {'CANCELLED'}
+        result_signal = {'CANCELLED'}
+
+    return all_ext_mods, result_signal
 
 def execute_extrusion(which_term, selector, color, reporter):
     """Executes extrusion respecting mirror links and filers mirror selections
@@ -565,14 +605,13 @@ def execute_extrusion(which_term, selector, color, reporter):
 
     filter_mirror_selection()
     for sel_mod in get_selected(-1): 
-        if {'FINISHED'} != \
-            extrude_terminus(
+        _, signal = extrude_terminus(
                 which_term, 
                 selector, 
                 sel_mod, 
                 color, 
-                reporter):
-            return {'CANCELLED'}
+                reporter)
+        return signal
 
     return {'FINISHED'}
 
@@ -780,8 +819,8 @@ def mirrored_symhub_extrude(
         # Assign to the same network.
         mirror_mod.parent = root_symhub.parent
         extrude_func(root_symhub, mirror_mod, src_chain_id)
-        new_mirrors.append(mirror_mod)
 
+    new_mirrors += imported
     for m in new_mirrors:
         m.elfin.mirrors = new_mirrors
 

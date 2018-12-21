@@ -874,32 +874,8 @@ class AddModule(bpy.types.Operator):
         print('Placing module {}'.format(self.module_to_place))
         
         sel_mod_name = self.module_to_place.split('.')[1]
-        lmod = import_module(sel_mod_name)
 
-        give_module_new_color(lmod, self.color)
-        lmod.hide = False # By default the obj is hidden
-
-        # Create a new empty object as network parent
-        network_parent = create_network('module')
-        lmod.parent = network_parent
-
-        # Select only the newly placed module
-        selection = get_selected(-1)
-
-        if selection:
-            last_obj_loc = selection[-1].location.copy()
-
-            # Move new module to last selected object location
-            lmod.parent.location = last_obj_loc
-
-        # De-select everything
-        for s in selection: 
-            s.select = False
-        lmod.select = True # Select new obj
-
-        # If not set to lmod, it would be the parent, which will lead to
-        # failure when trying to select parent via Shift-G + P
-        context.scene.objects.active = lmod
+        add_module(sel_mod_name)
 
         self.ask_prototype = True
             

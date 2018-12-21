@@ -54,21 +54,21 @@ def materialize(es_out):
         pg_network = es_out[pgn_name]
         for solution in pg_network:
             first_node = True
+            solution_nodes = []
             for node in solution['nodes']:
                 print('Materialize: ', node['name'])
 
                 if first_node:
                     first_node = False
 
-                    # Add first module
-                    bpy.ops.elfin.add_module(
-                        module_to_place='.{}.'.format(node['name']),
-                        ask_prototype=False,
+                    # Add first module.
+                    new_mod = lh.add_module(
+                        node['name'],
                         color=lh.ColorWheel().next_color())
 
-                    new_mod = lh.get_selected()
+                    solution_nodes.append(new_mod)
 
-                    # Project
+                    # Project node.
                     tx = mathutils.Matrix(node['rot']).to_4x4()
                     tx.translation = [f/lh.blender_pymol_unit_conversion for f in node['tran']]
                     new_mod.matrix_world = tx * new_mod.matrix_world
@@ -84,14 +84,19 @@ def materialize(es_out):
                         extrude_into=dst_chain_name,
                         direction=src_term)[0]
 
-                    lh.extrude_terminus(
-                        src_term, 
-                        selector, 
-                        new_mod, 
-                        lh.ColorWheel().next_color(), 
+                    imported, _ = lh.extrude_terminus(
+                        which_term=src_term,
+                        selector=selector,
+                        sel_mod=new_mod,
+                        color=lh.ColorWheel().next_color(),
                         reporter=None)
 
-                    print("Selection: ", lh.get_selected(-1))
-                    break
+                    assert(len(imported) == 1)
+
+                    new_mod = imported[0]
+                    solution_nodes.append(new_mod)
 
                 prev_node = node
+
+            for node in solution_nodes:
+                node.select = True
