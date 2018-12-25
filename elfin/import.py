@@ -52,51 +52,64 @@ def materialize(es_out):
 
     for pgn_name in es_out:
         pg_network = es_out[pgn_name]
-        for solution in pg_network:
-            first_node = True
-            solution_nodes = []
-            for node in solution['nodes']:
-                print('Materialize: ', node['name'])
 
-                if first_node:
-                    first_node = False
+        # for solution in pg_network:
+        print('------------------------------------------')
+        print('---------------IMPORT LOGS----------------')
+        print('------------------------------------------')
 
-                    # Add first module.
-                    new_mod = lh.add_module(
-                        node['name'],
-                        color=lh.ColorWheel().next_color())
+        if len(pg_network) == 0:
+            print('ERROR: {} has no solutions!'
+                .format(pgn_name))
+            break
 
-                    solution_nodes.append(new_mod)
+        print('Displaying best solution for {}'.format(pgn_name));
+        solution = pg_network[0]
 
-                    # Project node.
-                    tx = mathutils.Matrix(node['rot']).to_4x4()
-                    tx.translation = [f/lh.blender_pymol_unit_conversion for f in node['tran']]
-                    new_mod.matrix_world = tx * new_mod.matrix_world
+        first_node = True
+        solution_nodes = []
+        for node in solution['nodes']:
+            print('Materialize: ', node['name'])
 
-                else:
-                    src_term = prev_node['src_term'].lower()
-                    src_chain_name = prev_node['src_chain_name']
-                    dst_chain_name = prev_node['dst_chain_name']
+            if first_node:
+                first_node = False
 
-                    selector = lh.module_enum_tuple(
-                        node['name'], 
-                        extrude_from=src_chain_name, 
-                        extrude_into=dst_chain_name,
-                        direction=src_term)[0]
+                # Add first module.
+                new_mod = lh.add_module(
+                    node['name'],
+                    color=lh.ColorWheel().next_color())
 
-                    imported, _ = lh.extrude_terminus(
-                        which_term=src_term,
-                        selector=selector,
-                        sel_mod=new_mod,
-                        color=lh.ColorWheel().next_color(),
-                        reporter=None)
+                solution_nodes.append(new_mod)
 
-                    assert(len(imported) == 1)
+                # Project node.
+                tx = mathutils.Matrix(node['rot']).to_4x4()
+                tx.translation = [f/lh.blender_pymol_unit_conversion for f in node['tran']]
+                new_mod.matrix_world = tx * new_mod.matrix_world
 
-                    new_mod = imported[0]
-                    solution_nodes.append(new_mod)
+            else:
+                src_term = prev_node['src_term'].lower()
+                src_chain_name = prev_node['src_chain_name']
+                dst_chain_name = prev_node['dst_chain_name']
 
-                prev_node = node
+                selector = lh.module_enum_tuple(
+                    node['name'], 
+                    extrude_from=src_chain_name, 
+                    extrude_into=dst_chain_name,
+                    direction=src_term)[0]
 
-            for node in solution_nodes:
-                node.select = True
+                imported, _ = lh.extrude_terminus(
+                    which_term=src_term,
+                    selector=selector,
+                    sel_mod=new_mod,
+                    color=lh.ColorWheel().next_color(),
+                    reporter=None)
+
+                assert(len(imported) == 1)
+
+                new_mod = imported[0]
+                solution_nodes.append(new_mod)
+
+            prev_node = node
+
+        for node in solution_nodes:
+            node.select = True
