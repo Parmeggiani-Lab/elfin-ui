@@ -208,7 +208,7 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
-def add_module(mod_name, color):
+def add_module(mod_name, color, follow_selection=True):
     lmod = import_module(mod_name)
 
     give_module_new_color(lmod, color)
@@ -220,18 +220,18 @@ def add_module(mod_name, color):
     network_parent = create_network('module')
     lmod.parent = network_parent
 
-    # Find active object.
-    selection = get_selected(-1)
-
-    if selection:
+    if follow_selection:
         # Move new module to active object location.
-        ao = bpy.context.active_object
-        ao_loc = ao.location.copy()
-        lmod.parent.location = ao_loc
+        selection = get_selected(-1)
 
-    # De-select everything.
-    for s in selection: 
-        s.select = False
+        if selection:
+            ao = bpy.context.active_object
+            ao_loc = ao.location.copy()
+            lmod.parent.location = ao_loc
+
+        # De-select everything.
+        for s in selection: 
+            s.select = False
 
     # Select new object.
     lmod.select = True

@@ -77,7 +77,8 @@ def materialize(es_out):
                 # Add first module.
                 new_mod = lh.add_module(
                     node['name'],
-                    color=lh.ColorWheel().next_color())
+                    color=lh.ColorWheel().next_color(),
+                    follow_selection=False)
 
                 solution_nodes.append(new_mod)
 
