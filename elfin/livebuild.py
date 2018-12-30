@@ -875,7 +875,7 @@ class AddModule(bpy.types.Operator):
         
         sel_mod_name = self.module_to_place.split('.')[1]
 
-        add_module(sel_mod_name)
+        add_module(sel_mod_name, color=self.color)
 
         self.ask_prototype = True
             
