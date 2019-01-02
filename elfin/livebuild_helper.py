@@ -668,31 +668,14 @@ def get_extrusion_prototype_list(sel_mod, which_term):
             assert len(chain_id_list) == 1
 
             single_chain_name = chain_id_list[0]
-            for single_name in chain_meta[single_chain_name][which_term]:
+            term_meta = chain_meta[single_chain_name][which_term]
+            for ext_mod_name in term_meta:
+                for ext_mod_chain_name in term_meta[ext_mod_name]:
                     enum_tuples.append(
                         module_enum_tuple(
-                            single_name,
+                            ext_mod_name,
                             extrude_from=single_chain_name,
-                            extrude_into=single_chain_name,
-                            direction=which_term))
-
-            for hub_name in xdb['modules']['hubs']:
-                # Logically one can never extrude a symmetric hub
-                # See README development notes
-                if hub_is_symmetric(hub_name): 
-                    continue
-
-                compat_hub_chains = \
-                    get_compatible_hub_chains(
-                        hub_name, 
-                        which_term, 
-                        sel_mod_name)
-                for hub_chain_name in compat_hub_chains:
-                    enum_tuples.append(
-                        module_enum_tuple(
-                            hub_name, 
-                            extrude_from=single_chain_name,
-                            extrude_into=hub_chain_name,
+                            extrude_into=ext_mod_chain_name,
                             direction=which_term))
     else:
         raise ValueError('Unknown module type: ', sel_mod_type)
