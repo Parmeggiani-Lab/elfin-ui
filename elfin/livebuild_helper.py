@@ -98,6 +98,7 @@ class LivebuildState(metaclass=Singleton):
         self.placeables = [empty_list_placeholder_enum_tuple]
         self.max_hub_branches = 0
         self.load_all()
+        self.num = 3
 
     def load_all(self):
         self.load_xdb(skip_derivatives_update=True)
@@ -712,57 +713,21 @@ def get_tx(
         else:
             mod_params = (fixed_mod_name, extrude_from, ext_mod_name, extrude_into)
 
+        n_to_c_tx = get_n_to_c_tx(*mod_params)
+
         if mod_types == ('single', 'single'):
-
-            if which_term == 'n':
-                frame_func = get_drop_frame_transform
-            else:
-                frame_func = get_raise_frame_transform
-
-            n_to_c_tx = get_n_to_c_tx(*mod_params)
-            tx = frame_func(n_to_c_tx, fixed_mod)
+            tx = scale_and_shift(n_to_c_tx, which_term == 'n', fixed_mod)
 
         elif mod_types == ('single', 'hub'):
-
-            if which_term == 'n':
-                # First drop to hub component frame
-                n_to_c_tx = get_n_to_c_tx(*mod_params)
-                tx1 = get_drop_frame_transform(n_to_c_tx)
-
-                # Second drop to double B frame
-                hub_single_name = xdb['modules']['hubs'] \
-                    [ext_mod_name]['chains'][extrude_into]['single_name']
-                hub_single_chain_name = \
-                    list(xdb['modules']['singles'][hub_single_name]['chains'].keys())[0]
-                n_to_c_tx = get_n_to_c_tx(
-                    hub_single_name, hub_single_chain_name, fixed_mod_name, extrude_from)
-                tx2 = get_drop_frame_transform(n_to_c_tx, fixed_mod)
-
-                tx = tx2 * tx1
-            else:
-                n_to_c_tx = get_n_to_c_tx(*mod_params)
-                tx = get_drop_frame_transform(n_to_c_tx, fixed_mod)
+            # dbgen.py only creates Hub-to-Single transforms. Single-to-Hub is
+            # therefore always the inverse.
+            tx = scale_and_shift(n_to_c_tx, True, fixed_mod)
 
         elif mod_types == ('hub', 'single'):
+            tx = scale_and_shift(n_to_c_tx, False, fixed_mod)
 
-            if which_term == 'n':
-                n_to_c_tx = get_n_to_c_tx(*mod_params)
-                tx = get_raise_frame_transform(n_to_c_tx, fixed_mod)
-            else:
-                # First raise to double B frame
-                hub_single_name = xdb['modules']['hubs'] \
-                    [fixed_mod_name]['chains'][extrude_from]['single_name']
-                hub_single_chain_name = \
-                    list(xdb['modules']['singles'][hub_single_name]['chains'].keys())[0]
-                n_to_c_tx = get_n_to_c_tx(
-                    hub_single_name, hub_single_chain_name, ext_mod_name, extrude_into)
-                tx1 = get_raise_frame_transform(n_to_c_tx)
-
-                # Second raise to hub component frame
-                n_to_c_tx = get_n_to_c_tx(*mod_params)
-                tx2 = get_raise_frame_transform(n_to_c_tx, fixed_mod)
-
-                tx = tx2 * tx1
+        else:
+            raise ValueError('Invalid mod_types: ({}, {})'.format(*mod_types))
 
     except KeyError as ke:
         tx = None
@@ -927,19 +892,14 @@ def find_overlap(test_obj, obj_list, scale_factor=0.85):
 
     return None
 
-def get_raise_frame_transform(n_to_c_tx, fixed_mod=None):
+def scale_and_shift(n_to_c_tx, invert=False, fixed_mod=None):
     tx = pymol_to_blender_scale(n_to_c_tx)
-    tran = tx.translation.copy()
-    tx.translation = [0, 0, 0]
-    tx.transpose()
-    tx.translation = tx * -tran
 
-    if fixed_mod != None:
-        tx = equalize_frame(tx, fixed_mod)
-    return tx
-
-def get_drop_frame_transform(n_to_c_tx, fixed_mod=None):
-    tx = pymol_to_blender_scale(n_to_c_tx)
+    if invert:
+        tran = tx.translation.copy()
+        tx.translation = [0, 0, 0]
+        tx.transpose()
+        tx.translation = tx * -tran
 
     if fixed_mod != None:
         tx = equalize_frame(tx, fixed_mod)
