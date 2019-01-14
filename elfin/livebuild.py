@@ -259,16 +259,17 @@ class AddJoint(bpy.types.Operator):
                 bpy.context.scene.update() # Required to reflect new selection
                 self.add_joint(o)
                 bpy.ops.object.select_all(action='DESELECT')
+        else:
+            self.add_joint()
 
         return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
         # Forbid adding joint on top of existing joint
-        if get_selection_len() > 0:
-            for s in get_selected(-1):
-                if s.elfin.is_joint():
-                    return False
+        for s in get_selected(-1):
+            if s.elfin.is_joint():
+                return False
         return True
 
 # Module network operators -----------------------
