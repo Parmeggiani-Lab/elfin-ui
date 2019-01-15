@@ -232,33 +232,26 @@ class AddJoint(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def add_joint(self, at_mod=None):
-        loc = [0, 0, 0]
-        if at_mod:
-            loc = at_mod.matrix_world.translation
-
         network = create_network('pguide')
         joint = import_joint()
         joint.parent = network
 
-        network.location = loc
+        network.location = [0, 0, 0]
 
-        if get_selection_len() > 0:
-            for s in get_selected(-1):
-                s.select = False
+        if at_mod:
+            network.location = at_mod.matrix_world.translation.copy()
+
         joint.select = True
 
     def execute(self, context):
         # Put a joint on each of the selected modules
         sel = get_selected(-1)
-        for o in sel:
-            o.select = False
 
-        for o in sel:
-            if o.elfin.is_module():
-                o.select = True
-                bpy.context.scene.update() # Required to reflect new selection
-                self.add_joint(o)
-                bpy.ops.object.select_all(action='DESELECT')
+        if sel:
+            for o in sel:
+                o.select = False
+                if o.elfin.is_module():
+                    self.add_joint(o)
         else:
             self.add_joint()
 
