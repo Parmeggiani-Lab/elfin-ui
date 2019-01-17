@@ -27,6 +27,8 @@ class ImportPanel(bpy.types.Panel):
 class ImportOperator(bpy.types.Operator):
     bl_idname = 'elfin.import'
     bl_label = 'Import elfin-solver output (#imp)'
+    bl_options = {'REGISTER', 'UNDO'}
+
     filepath = bpy.props.StringProperty(subtype="FILE_PATH")
 
     def invoke(self, context, event):
@@ -40,16 +42,19 @@ class ImportOperator(bpy.types.Operator):
         with open(self.filepath, 'r') as file:
             es_out = json.load(file)
 
-        materialize(es_out)
+        err_msg = materialize(es_out)
 
-        print('Input loaded from', self.filepath)
-
-        return {'FINISHED'}
+        if len(err_msg) > 0:
+            self.report({'ERROR'}, err_msg);
+            return {'FINISHED'}
+        else:
+            return {'FINISHED'}
 
 # Helpers ----------------------------------------
 def materialize(es_out):
     # Reads elfin-solver output JSON and projects modules into the scene.
 
+    err_msg = ""
     for pgn_name in es_out:
         pg_network = es_out[pgn_name]
 
@@ -59,58 +64,70 @@ def materialize(es_out):
         print('------------------------------------------')
 
         if len(pg_network) == 0:
-            print('ERROR: {} has no solutions!'
-                .format(pgn_name))
-            break
+            err_msg += 'ERROR: {} has no decimated parts.\n'.format(pgn_name)
+            continue
 
-        print('Displaying best solution for {}'.format(pgn_name));
-        solution = pg_network[0]
+        for dec_name, dec_solutions in pg_network.items():
+            first_node = True
+            solution_nodes = []
 
-        first_node = True
-        solution_nodes = []
-        for node in solution['nodes']:
-            print('Materialize: ', node['name'])
+            print('Displaying best solution for {}:{}' \
+                .format(pgn_name, dec_name));
+            if not dec_solutions:
+                err_msg += 'ERROR: {}:{} has no solutions.\n' \
+                    .format(pgn_name, dec_name)
+                continue
 
-            if first_node:
-                first_node = False
+            sol = dec_solutions[0]
+            for node in sol['nodes']:
+                print('Materialize: ', node['name'])
 
-                # Add first module.
-                new_mod = lh.add_module(
-                    node['name'],
-                    color=lh.ColorWheel().next_color(),
-                    follow_selection=False)
+                if first_node:
+                    first_node = False
 
-                solution_nodes.append(new_mod)
+                    # Add first module.
+                    new_mod = lh.add_module(
+                        node['name'],
+                        color=lh.ColorWheel().next_color(),
+                        follow_selection=False)
 
-                # Project node.
-                tx = mathutils.Matrix(node['rot']).to_4x4()
-                tx.translation = [f/lh.blender_pymol_unit_conversion for f in node['tran']]
-                new_mod.matrix_world = tx * new_mod.matrix_world
+                    solution_nodes.append(new_mod)
 
-            else:
-                src_term = prev_node['src_term'].lower()
-                src_chain_name = prev_node['src_chain_name']
-                dst_chain_name = prev_node['dst_chain_name']
+                    # Project node.
+                    tx = mathutils.Matrix(node['rot']).to_4x4()
+                    tx.translation = [f/lh.blender_pymol_unit_conversion for f in node['tran']]
+                    new_mod.matrix_world = tx * new_mod.matrix_world
 
-                selector = lh.module_enum_tuple(
-                    node['name'], 
-                    extrude_from=src_chain_name, 
-                    extrude_into=dst_chain_name,
-                    direction=src_term)[0]
+                else:
+                    src_term = prev_node['src_term'].lower()
+                    src_chain_name = prev_node['src_chain_name']
+                    dst_chain_name = prev_node['dst_chain_name']
 
-                imported, _ = lh.extrude_terminus(
-                    which_term=src_term,
-                    selector=selector,
-                    sel_mod=new_mod,
-                    color=lh.ColorWheel().next_color(),
-                    reporter=None)
+                    selector = lh.module_enum_tuple(
+                        node['name'], 
+                        extrude_from=src_chain_name, 
+                        extrude_into=dst_chain_name,
+                        direction=src_term)[0]
 
-                assert(len(imported) == 1)
+                    imported, _ = lh.extrude_terminus(
+                        which_term=src_term,
+                        selector=selector,
+                        sel_mod=new_mod,
+                        color=lh.ColorWheel().next_color(),
+                        reporter=None)
 
-                new_mod = imported[0]
-                solution_nodes.append(new_mod)
+                    assert(len(imported) == 1)
 
-            prev_node = node
+                    new_mod = imported[0]
+                    solution_nodes.append(new_mod)
 
-        for node in solution_nodes:
-            node.select = True
+                prev_node = node
+
+            # Name network and select all nodes.
+            if solution_nodes:
+                solution_nodes[0].parent.name = ':'.join([pgn_name, dec_name])
+
+                for node in solution_nodes:
+                    node.select = True
+
+    return err_msg
