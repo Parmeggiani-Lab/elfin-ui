@@ -214,25 +214,21 @@ def add_module(mod_name, color, follow_selection=True):
 
     give_module_new_color(lmod, color)
 
+    # Cache active_object because it changes with create_network()
+    location = [0, 0, 0]
+    if follow_selection and get_selection_len():
+        location = bpy.context.active_object.\
+            matrix_world.translation.copy()
+        for s in get_selected(-1):
+            s.select = False
+
     # Imported objects are hidden by default.
     lmod.hide = False
 
     # Create a new empty object as network parent.
     network_parent = create_network('module')
+    network_parent.matrix_world.translation = location
     lmod.parent = network_parent
-
-    if follow_selection:
-        # Move new module to active object location.
-        selection = get_selected(-1)
-
-        if selection:
-            ao = bpy.context.active_object
-            ao_loc = ao.location.copy()
-            lmod.parent.location = ao_loc
-
-        # De-select everything.
-        for s in selection: 
-            s.select = False
 
     # Select new object.
     lmod.select = True
