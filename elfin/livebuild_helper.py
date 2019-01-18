@@ -531,7 +531,7 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
                 all_ext_mods += mirrored_extrude(
                     root_mod=sel_mod, 
                     new_mirrors=[ext_mod], 
-                    link_mod_name=ext_mod_name, 
+                    ext_mod_name=ext_mod_name, 
                     extrude_func=project_extruded_mod)
         elif sel_ext_type_pair == ('hub', 'single'):
             #
@@ -567,9 +567,9 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
 
             if sel_mod.elfin.mirrors:
                 all_ext_mods += mirrored_extrude(
-                    sel_mod,
-                    first_mirror_group,
-                    ext_mod_name,
+                    root_mod=sel_mod,
+                    new_mirrors=first_mirror_group,
+                    ext_mod_name=ext_mod_name,
                     extrude_func=extrude_hub_single)
 
         elif sel_ext_type_pair == ('hub', 'hub'):
