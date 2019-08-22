@@ -84,7 +84,7 @@ read ver_id
 if [[ $ver_id -le $n_vers ]] && [[ $ver_id -gt 0 ]]; then
     version=${bl_vers[$(expr ${ver_id} - 1)]}
     bl_addon_path=${version}/scripts/addons/
-    echo "Will symlink belfin into ${bl_addon_path}"
+    echo "Will symlink elfin into ${bl_addon_path}"
 else
     echo "Selection invalid"
     exit 1
@@ -98,7 +98,7 @@ realpath() {
 # WSL does not intepret ln -s properly on Windows' native filesystem
 link() {
     if [[ $OS == "WSL" ]]; then
-        cmd.exe /c mklink /D "$(wslpath -w $2)" "$(wslpath -w $1)"
+        cmd.exe /c mklink /D "$(wslpath -w ${2})" "$(wslpath -w ${1})"
     else
         ln -s $1 $2
     fi

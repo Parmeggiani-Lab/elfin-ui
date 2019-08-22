@@ -6,6 +6,10 @@ import bpy
 
 from . import livebuild_helper as lh
 
+# Constants --------------------------------------
+exporter_field = 'exporter'
+elfin_ui_exporter = 'elfin-ui'
+
 # Operators --------------------------------------
 
 class ExportPanel(bpy.types.Panel):
@@ -78,6 +82,8 @@ def create_output(networks, pg_networks):
 
     # Empty networks won't be included
     output = {
+        'exporter': 'elfin-ui',
+        'version': '1.0',
         'networks': {nw.name: network_to_dict(nw) for nw in networks if nw.children}, 
         'pg_networks': {nw.name: network_to_dict(nw) for nw in pg_networks if nw.children}
     }

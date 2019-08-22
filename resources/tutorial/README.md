@@ -119,6 +119,12 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
     * Exports the networks in the current scene to a elfin-core readable input file.
     * Short form: `#exp`
 
+## Import
+ * `Import`
+    * Imports elfin-solver output JSON.
+    * Does not support importing elfin-ui exported JSON yet (what!).
+    * Short form: `#imp`
+
 ## Module Related
  * `Add Module` (formerly called "Place Module")
     * Adds a new module to the scene at origin or the current selection.
