@@ -71,29 +71,30 @@ def materialize(json_data):
             # project_nodes(nodes, nw_name)
             print('TODO: Import network')
     else:
-        for pgn_name in json_data:
-            pg_network = json_data[pgn_name]
+        pg_networks_data = json_data['pg_networks']
+        for pgn_name, pgn in pg_networks_data.items():
 
             # for solution in pg_network:
             print('------------------------------------------')
             print('---------------IMPORT LOGS----------------')
             print('------------------------------------------')
 
-            if len(pg_network) == 0:
+            if len(pgn) == 0:
                 err_msg += 'ERROR: {} has no decimated parts.\n'.format(pgn_name)
                 continue
 
-            for dec_name, dec_solutions in pg_network.items():
-
+            for dec_name, dec_solution in pgn.items():
+                if len(dec_solution) > 0:
+                    err_msg += 'Warning: reading elfin-solver output defaults to the solution with lowest score in case of multiple solutions.\n'
+                    dec_solution = dec_solution[0]
                 print('Displaying best solution for {}:{}' \
                     .format(pgn_name, dec_name));
-                if not dec_solutions:
+                if not dec_solution:
                     err_msg += 'ERROR: {}:{} has no solutions.\n' \
                         .format(pgn_name, dec_name)
                     continue
 
-                sol = dec_solutions[0]
-                project_nodes(sol['nodes'], ':'.join([pgn_name, dec_name]))
+                project_nodes(dec_solution['nodes'], ':'.join([pgn_name, dec_name]))
 
     return err_msg
 
