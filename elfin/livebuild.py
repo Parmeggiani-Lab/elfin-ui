@@ -1013,7 +1013,7 @@ class LivebuildPanel(bpy.types.Panel):
         col.operator('elfin.add_module', text='Place a module into scene')
         col.operator('elfin.extrude_module', text='Extrude Module')
         col.operator('elfin.select_mirrors', text='Select Mirrors')
-        col.operator('elfin.select_network', text='Select Network')
+        col.operator('elfin.select_network_objects', text='Select Network')
         col.operator('elfin.list_mirrors', text='List Mirrors')
         col.operator('elfin.unlink_mirrors', text='Unlink Mirrors')
         col.operator('elfin.link_by_mirror', text='Link by Mirror')
