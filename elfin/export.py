@@ -66,6 +66,9 @@ class ExportOperator(bpy.types.Operator):
             ensure_ascii=False,
             indent=4)
 
+        blend_file_path = '_autosave.blend'.join(self.filepath.rsplit('.json', 1))
+        bpy.ops.wm.save_mainfile(filepath=blend_file_path)
+
         return {'FINISHED'}
 
 # Helpers ----------------------------------------
