@@ -1,6 +1,5 @@
 import glob
 import os
-
 import bpy
 import bpy.props
 import mathutils
@@ -37,7 +36,7 @@ class LoadAllObjFiles(bpy.types.Operator):
         src_folders = list(map(os.path.basename, src_path_list))
 
         module_types = ['singles', 'doubles', 'hubs']
-        
+
         if sum([folder in src_folders for folder in module_types]) != len(module_types):
             self.report({'ERROR'}, 'Source folder {} does not contain {} folders: {}'. \
                 format(abs_src_path, module_types, src_folders))
@@ -47,27 +46,34 @@ class LoadAllObjFiles(bpy.types.Operator):
 
         for src_obj_file in obj_files:
             bpy.ops.import_scene.obj(filepath=src_obj_file)
-        
+
         return {'FINISHED'}
 
 class BatchProcess(bpy.types.Operator):
     bl_idname = 'elfin.batch_process'
     bl_label = 'Batch process all module .obj files and export'
 
+#    def make_dir(directory):
+#        """Creates directory if does not exist."""
+#        if not os.path.exists(directory):
+#            os.makedirs(directory)
+#
     def execute(self, context):
         if len(context.scene.objects) != 0:
             self.report({'ERROR'}, 'Scene must be empty for processing')
             return {'CANCELLED'}
-        
+
         print('return: ', bpy.ops.elfin.load_all_obj_files())
 
-        make_dir(bpy.path.dirname(context.scene.elfin.pp_dst_dir))
+    #    if not os.path.exists():
+    #        os.makedirs(bpy.path.dirname(context.scene.elfin.pp_dst_dir))
+    #    make_dir(bpy.path.dirname(context.scene.elfin.pp_dst_dir))
         abs_dst_path = bpy.path.abspath(context.scene.elfin.pp_dst_dir)
 
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.elfin.process_obj()
         bpy.ops.wm.save_as_mainfile(filepath=abs_dst_path, copy=True)
-        
+
         return {'FINISHED'}
 
 class ProcessObj(bpy.types.Operator):
@@ -87,7 +93,7 @@ class ProcessObj(bpy.types.Operator):
             obj.location = origin_vec
             obj.rotation_euler = identity_euler
             context.scene.objects.active = obj
-            
+
             # Fix normals and remove superimposed vertices. Do this before
             # decimate so the ratio works as intended.
             bpy.ops.object.mode_set(mode='EDIT')
