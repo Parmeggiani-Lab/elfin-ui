@@ -5,7 +5,7 @@ echo "Downloading the latest elfin-library from Github."
 echo
 
 ADDON_DIR='elfin'
-RAW_URL='https://raw.githubusercontent.com/joy13975/elfin-library/master'
+RAW_URL='https://raw.githubusercontent.com/Parmeggiani-Lab/elfin-library-darpin/master'
 
 files=(xdb.json library.blend)
 for file in "${files[@]}"
