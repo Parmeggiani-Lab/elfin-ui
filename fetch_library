@@ -1,21 +1,33 @@
 #!/bin/bash
+# Repository that contains elfin-library (pre-processed protein module data)
+REPO='elfin-library-darpin'
+# Files to decompress into addon folder
+FILES=(xdb.json library.blend)
 
-echo
-echo "Downloading the latest elfin-library from Github."
-echo
+# Clone library repo
+# Authentication with API v3 is too much hassle, so let the git
+# command do the hard work.
+# Also, use HTTPS instead of SSH so user gets a user/paswd prompt.
+TMP_DIR="tmp_${REPO}"
+rm -rf ${TMP_DIR}
+git clone --depth 1 https://github.com/Parmeggiani-Lab/${REPO}.git ${TMP_DIR}
 
+# Exit if clone failed
+if [[ "$?" != 0 ]]; then
+	exit 1
+fi
+
+# Target folder
 ADDON_DIR='elfin'
-RAW_URL='https://raw.githubusercontent.com/Parmeggiani-Lab/elfin-library-darpin/master'
 
-files=(xdb.json library.blend)
-for file in "${files[@]}"
-do
+# Decompress
+for file in "${FILES[@]}"; do
 	bz2_file=${file}.tar.bz2
-	curl "$RAW_URL/$bz2_file" > "$bz2_file"
-	tar xjf "$bz2_file" -C "$ADDON_DIR"
-	rm -f "$bz2_file"
+	tar xjf ${TMP_DIR}/"$bz2_file" -C "$ADDON_DIR"
 done
 
+rm -rf ${TMP_DIR}
+
 echo
-echo "Done fetching."
+echo "Fetch finished."
 echo
