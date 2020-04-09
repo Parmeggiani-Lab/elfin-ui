@@ -209,7 +209,11 @@ def get_selected(n=1):
 
 # Helpers ----------------------------------------
 
+
 def add_module(mod_name, color, follow_selection=True):
+    lmod = import_module(mod_name)
+
+    give_module_new_color(lmod, color)
 
     # Cache active_object because it changes with create_network()
     location = [0, 0, 0]
@@ -218,9 +222,6 @@ def add_module(mod_name, color, follow_selection=True):
             matrix_world.translation.copy()
         for s in get_selected(-1):
             s.select = False
-    lmod = import_module(mod_name)
-
-    give_module_new_color(lmod, color)
 
     # Imported objects are hidden by default.
     lmod.hide = False
@@ -981,6 +982,9 @@ def import_module(mod_name):
         lmod = bpy.context.scene.objects.link(data_to.objects[0]).object
 
         lmod.elfin.init_module(lmod, mod_name)
+
+        # Force newly loaded module to not be in selected status
+        lmod.select = False
 
         return lmod
     except Exception as e:
