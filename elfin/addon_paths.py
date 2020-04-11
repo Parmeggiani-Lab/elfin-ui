@@ -1,7 +1,10 @@
-import bpy, os
+import bpy
+import os
+
 
 def make_path(*args):
     return os.path.realpath(os.path.join(*args))
+
 
 addon_root = bpy.utils.user_resource('SCRIPTS', 'addons')
 elfin_root = make_path(addon_root, 'elfin')

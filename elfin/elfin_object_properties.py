@@ -7,10 +7,12 @@ import bpy
 import mathutils
 from . import livebuild_helper as lh
 
-ElfinObjType = enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK PG_NETWORK')
+ElfinObjType = \
+    enum.Enum('ElfinObjType', 'NONE MODULE JOINT BRIDGE NETWORK PG_NETWORK')
 
-# translation tolerance in Angstroms - independent of conversion scale
+# Translation tolerance in Angstroms - independent of conversion scale
 bridge_default_tx_tol = 5.0
+
 
 class Link(bpy.types.PropertyGroup):
     terminus = bpy.props.StringProperty()
@@ -39,8 +41,10 @@ class Link(bpy.types.PropertyGroup):
 
             tl.remove(tl.find(self.target_chain_id))
 
+
 class ObjectPointerWrapper(bpy.types.PropertyGroup):
     obj = bpy.props.PointerProperty(type=bpy.types.Object)
+
 
 class ElfinObjectProperties(bpy.types.PropertyGroup):
     """Represents an elfin object (module/joint/bridge)."""
@@ -92,10 +96,11 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             data['c_linkage'] = [cl.as_dict() for cl in self.c_linkage]
             data['n_linkage'] = [nl.as_dict() for nl in self.n_linkage]
         elif self.is_joint():
-            data['occupant'] = '' # a module that has the same COM as this joint
-            data['occupant_parent'] = '' # occupant network name
-            data['hinge'] = '' # refers to the neighbor that has an occupant
-            data['tx_tol'] = 0.0 # translation tolerance in Angstroms
+            # a module that has the same COM as this joint
+            data['occupant'] = ''
+            data['occupant_parent'] = ''  # occupant network name
+            data['hinge'] = ''  # refers to the neighbor that has an occupant
+            data['tx_tol'] = 0.0  # translation tolerance in Angstroms
 
             """
             Rotation tolerance example:
@@ -115,20 +120,22 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             data['rt_tol'] = []
             data['neighbors'] = self.get_neighbor_joint_names()
         else:
-            raise ValueError('Should not convert this elfin object to dict: {}'.format(self.obj_type))
-        
+            raise ValueError(
+                'Should not convert this elfin object to dict: {}'.
+                format(self.obj_type))
+
         wm = self.obj_ptr.matrix_world
-        
+
         tran, rot, _ = wm.decompose()
         tran = tran * lh.blender_pymol_unit_conversion
         data['rot'] = list(list(vec) for vec in rot.to_matrix())
         data['tran'] = list(tran)
-        
+
         return data
 
     def joint_connects_joint(self, other_mod):
         if not self.is_joint() or \
-            not other_mod or not other_mod.elfin.is_joint():
+                not other_mod or not other_mod.elfin.is_joint():
             return False
 
         for nb in self.pg_neighbors:
@@ -204,24 +211,24 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         elif self.is_network() or self.is_pg_network():
             self.cleanup_network()
         else:
-            return # No obj_ptr to delete
+            return  # No obj_ptr to delete
 
         print('Cleaned up', self.obj_ptr)
 
         self.delete_object(self.obj_ptr)
 
         if parent and \
-            (parent.elfin.is_network() or \
-            parent.elfin.is_pg_network()) and \
-            len(parent.children) == 0:
+            (parent.elfin.is_network() or
+             parent.elfin.is_pg_network()) and \
+                len(parent.children) == 0:
             parent.elfin.destroy()
 
-        bpy.context.scene.update() # Flush out dead object
+        bpy.context.scene.update()  # Flush out dead object
 
     def delete_object(self, obj):
         """
         Delete the Blender object to which the current elfin object
-        PropertyGroup is associated with, preserving selection. 
+        PropertyGroup is associated with, preserving selection.
         """
 
         # Cache user selection
@@ -241,7 +248,8 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
 
         # Restore selection
         for ob in selection:
-            if ob: ob.select = True
+            if ob:
+                ob.select = True
 
     def cleanup_network(self):
         """Delete all children modules."""
@@ -318,7 +326,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         while neighbors:
             name, mod = neighbors.popitem()
 
-            # Could become None in some situations, 
+            # Could become None in some situations,
             # such as a deleted mirrors
             if mod and mod.parent == old_network:
                 lh.transfer_network(mod)
@@ -369,8 +377,8 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         joint_a.elfin.pg_neighbors.add().obj = bridge
         joint_b.elfin.pg_neighbors.add().obj = bridge
 
-        # Restore joint_b location 
-        # 
+        # Restore joint_b location
+        #
         # [!] Must call update so that constraints don't bug out. This works
         # normally in Blender console if you copy paste the code of this
         # function but will break in script if update() is not called.
@@ -400,11 +408,14 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
             if lh.mod_is_hub(mod_name):
                 self.module_type = 'hub'
             else:
-                raise ValueError('Attempting link a module that is neither single or hub type\n')
+                raise ValueError(
+                    'Attempting link a module that is neither single '
+                    'or hub type\n')
         self.obj_type = ElfinObjType.MODULE.value
 
         # Lock all transformation - only allow network parent to transform
-        obj.lock_location = obj.lock_rotation = obj.lock_scale = [True, True, True]
+        obj.lock_location = obj.lock_rotation = obj.lock_scale = [
+            True, True, True]
         obj.lock_rotation_w = obj.lock_rotations_4d = True
 
         # Always trigger dirty exit so we can clean up
@@ -416,6 +427,7 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         link.terminus = 'c'
         link.target_mod = target_mod
         link.target_chain_id = target_chain_id
+        return link
 
     def new_n_link(self, source_chain_id, target_mod, target_chain_id):
         link = self.n_linkage.add()
@@ -423,17 +435,22 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         link.terminus = 'n'
         link.target_mod = target_mod
         link.target_chain_id = target_chain_id
+        return link
 
     def show_links(self):
         print('Links of {}'.format(self.obj_ptr.name))
         print('C links:')
-        for cl in self.c_linkage: print(repr(cl))
+        for cl in self.c_linkage:
+            print(repr(cl))
         print('N links:')
-        for nl in self.n_linkage: print(repr(nl))
+        for nl in self.n_linkage:
+            print(repr(nl))
 
     def sever_links(self):
-        for cl in self.c_linkage: cl.sever()
-        for nl in self.n_linkage: nl.sever()
+        for cl in self.c_linkage:
+            cl.sever()
+        for nl in self.n_linkage:
+            nl.sever()
 
     @property
     def mirrors(self):

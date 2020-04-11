@@ -6,6 +6,7 @@ import mathutils
 
 # Panels -----------------------------------------
 
+
 class ProcessPanel(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
@@ -20,10 +21,12 @@ class ProcessPanel(bpy.types.Panel):
         col = row.column()
         col.prop(context.scene.elfin, 'pp_src_dir', text='Source')
         col.prop(context.scene.elfin, 'pp_dst_dir', text='Destination')
-        col.prop(context.scene.elfin, 'pp_decimate_ratio', text='Decimate Ratio')
+        col.prop(context.scene.elfin, 'pp_decimate_ratio',
+                 text='Decimate Ratio')
         col.operator('elfin.batch_process', text='Batch process & export')
 
 # Operators --------------------------------------
+
 
 class LoadAllObjFiles(bpy.types.Operator):
     bl_idname = 'elfin.load_all_obj_files'
@@ -37,17 +40,26 @@ class LoadAllObjFiles(bpy.types.Operator):
 
         module_types = ['singles', 'doubles', 'hubs']
 
-        if sum([folder in src_folders for folder in module_types]) != len(module_types):
-            self.report({'ERROR'}, 'Source folder {} does not contain {} folders: {}'. \
-                format(abs_src_path, module_types, src_folders))
+        if sum([folder in src_folders for folder in module_types]) != \
+                len(module_types):
+            self.report({'ERROR'}, 'Source folder {} '
+                        'does not contain {} folders: {}'.
+                        format(abs_src_path, module_types, src_folders))
             return {'CANCELLED'}
 
-        obj_files = [f for flist in [glob.glob(abs_src_path + '/{}/*.obj'.format(mt)) for mt in module_types] for f in flist]
+        obj_files = [f
+                     for flist in
+                     [
+                         glob.glob(abs_src_path + '/{}/*.obj'.format(mt))
+                         for mt in module_types
+                     ]
+                     for f in flist]
 
         for src_obj_file in obj_files:
             bpy.ops.import_scene.obj(filepath=src_obj_file)
 
         return {'FINISHED'}
+
 
 class BatchProcess(bpy.types.Operator):
     bl_idname = 'elfin.batch_process'
@@ -76,6 +88,7 @@ class BatchProcess(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
 class ProcessObj(bpy.types.Operator):
     bl_idname = 'elfin.process_obj'
     bl_label = 'Process module object'
@@ -103,7 +116,8 @@ class ProcessObj(bpy.types.Operator):
             # Reduce polygons
             bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.modifier_add(type='DECIMATE')
-            context.object.modifiers['Decimate'].ratio = context.scene.elfin.pp_decimate_ratio
+            context.object.modifiers['Decimate'].ratio = \
+                context.scene.elfin.pp_decimate_ratio
             bpy.ops.object.modifier_apply(apply_as='DATA', modifier='Decimate')
         return {'FINISHED'}
 

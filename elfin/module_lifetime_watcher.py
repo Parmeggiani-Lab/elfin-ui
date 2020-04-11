@@ -2,10 +2,12 @@ import time
 
 import bpy
 
+
 class ModuleLifetimeWatcher(object):
     """A watcher that periodically checks entrance and exit of Elfin modules
     """
-    check_interval = 100 # ms
+    check_interval = 100  # ms
+
     def __init__(self):
         self.last_checked = 0
         self.prev_object_names = set()
@@ -35,7 +37,7 @@ class ModuleLifetimeWatcher(object):
             self.last_checked = now
 
             now_object_names = set(scene.objects.keys())
-            
+
             # Even new modules might get immediately deleted due to collision.
             # However, the deletion at the collision detection operator takes
             # care of severing linkages and removing from bpy.data.objects.
@@ -62,9 +64,11 @@ class ModuleLifetimeWatcher(object):
             if ob.elfin.is_module():
                 print('Module enter: {}'.format(ob))
                 if not bpy.context.scene.elfin.disable_auto_collision_check:
-                    bpy.ops.elfin.check_collision_and_delete(object_name=ob.name)
+                    bpy.ops.elfin.check_collision_and_delete(
+                        object_name=ob.name)
         except KeyError:
-            print('Couldn\'t find entering object named', object_name, ' - probably a network parent?')
+            print('Couldn\'t find entering object named',
+                  object_name, ' - probably a network parent?')
 
     def on_module_exit(self, object_name):
         if object_name in bpy.data.objects:

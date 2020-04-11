@@ -2,16 +2,16 @@ import bpy
 import mathutils
 from bpy_extras import view3d_utils
 
-from . import addon_paths
-from .livebuild_helper import *
-from .elfin_object_properties import ElfinObjType
+from . import livebuild_helper as helper
 
 # Path guide operators ---------------------------
+
+
 class SetTranslationToleranceSetting(bpy.types.Operator):
     bl_idname = 'elfin.translation_tolerance_setting'
     bl_label = 'Set bridge translation tolerance (#bxt)'
     bl_options = {'REGISTER', 'UNDO'}
-    
+
     title = bpy.props.StringProperty(default='Bridge Translation Tolerance')
     icon = bpy.props.StringProperty(default='QUESTION')
 
@@ -30,8 +30,9 @@ class SetTranslationToleranceSetting(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return get_selection_len() == 1 and \
+        return helper.get_selection_len() == 1 and \
             context.selected_objects[0].elfin.is_bridge()
+
 
 class AddBridge(bpy.types.Operator):
     bl_idname = 'elfin.add_bridge'
@@ -40,7 +41,7 @@ class AddBridge(bpy.types.Operator):
 
     not_a_joint_error = 'Could not bridge because {} is not a joint.'
     max_branch_error = ('Could not bridge because {} already has or '
-                    'exceeds the maximum number of bridges possible.')
+                        'exceeds the maximum number of bridges possible.')
     already_bridged_error = 'Joints {} and {} are already bridged.'
 
     def clean_up(self):
@@ -51,7 +52,7 @@ class AddBridge(bpy.types.Operator):
     def add_bridge(self, jt_a, jt_b):
         msg = None
 
-        max_hub_branches = LivebuildState().max_hub_branches
+        max_hub_branches = helper.LivebuildState().max_hub_branches
         if not jt_a.elfin.is_joint():
             msg = self.not_a_joint_error.format(jt_a.name)
         elif not jt_b.elfin.is_joint():
@@ -63,19 +64,19 @@ class AddBridge(bpy.types.Operator):
         elif jt_a.elfin.joint_connects_joint(jt_b):
             msg = self.already_bridged_error.format(jt_a.name, jt_b.name)
         else:
-            transfer_network(jt_a, jt_b.parent)
-            bridge = import_bridge(jt_a, jt_b)
+            helper.transfer_network(jt_a, jt_b.parent)
+            bridge = helper.import_bridge(jt_a, jt_b)
             self.bridges.append(bridge)
 
         return msg
 
     def modal(self, context, event):
         # allow selection events from mouse to pass through
-        ret = {'PASS_THROUGH'} 
-        if get_selection_len() >= 2:
-            jt_a, jt_b = get_selected(2)
+        ret = {'PASS_THROUGH'}
+        if helper.get_selection_len() >= 2:
+            jt_a, jt_b = helper.get_selected(2)
             if jt_a not in self.last_selected or \
-                jt_b not in self.last_selected:
+                    jt_b not in self.last_selected:
 
                 # need to save active object identity because bridging shifts
                 # active object to pg network
@@ -118,6 +119,7 @@ class AddBridge(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
+
 class ExtrudeJoint(bpy.types.Operator):
     bl_idname = 'elfin.extrude_joint'
     bl_label = 'Extrude a path guide joint (#exj)'
@@ -125,11 +127,11 @@ class ExtrudeJoint(bpy.types.Operator):
 
     def create_new_joint(self):
         self.joints = []
-        for joint_a in get_selected(-1):
-            joint_b = import_joint()
+        for joint_a in helper.get_selected(-1):
+            joint_b = helper.import_joint()
             joint_b.parent = joint_a.parent
-            bridge = import_bridge(joint_a, joint_b)
-            joint_b.location = [0,5,0]
+            helper.import_bridge(joint_a, joint_b)
+            joint_b.location = [0, 5, 0]
 
             self.joints.append(
                 (
@@ -139,16 +141,18 @@ class ExtrudeJoint(bpy.types.Operator):
             )
 
     def execute(self, context):
-        #Contextual active object, 2D and 3D regions
+        # Contextual active object, 2D and 3D regions
         region = bpy.context.region
         region3D = bpy.context.space_data.region_3d
 
         mouse_offset = self.mouse
 
         # The direction indicated by the mouse position from the current view
-        view_vector = view3d_utils.region_2d_to_vector_3d(region, region3D, mouse_offset)
+        view_vector = view3d_utils.region_2d_to_vector_3d(
+            region, region3D, mouse_offset)
         # The 3D location in this direction
-        offset = view3d_utils.region_2d_to_location_3d(region, region3D, mouse_offset, view_vector)
+        offset = view3d_utils.region_2d_to_location_3d(
+            region, region3D, mouse_offset, view_vector)
 
         mw = self.active_joint.matrix_world.inverted()
         mouse_offset_from_first_ja = mw * offset
@@ -168,9 +172,9 @@ class ExtrudeJoint(bpy.types.Operator):
             self.mouse = (event.mouse_region_x, event.mouse_region_y)
             self.execute(context)
         elif event.type == 'LEFTMOUSE':
-            for s in get_selected(-1): 
+            for s in helper.get_selected(-1):
                 s.select = False
-            for ja, jb in self.joints: 
+            for ja, jb in self.joints:
                 ja.select, jb.select = False, True
             ret = {'FINISHED'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
@@ -188,8 +192,9 @@ class ExtrudeJoint(bpy.types.Operator):
         self.mouse_origin = (event.mouse_region_x, event.mouse_region_y)
 
         # Redirect active object (which might not be in selection)
-        if context.active_object and not context.active_object.elfin.is_joint():
-            self.active_joint = get_selected(-1)[-1]
+        if context.active_object and \
+                not context.active_object.elfin.is_joint():
+            self.active_joint = helper.get_selected(-1)[-1]
         else:
             self.active_joint = context.active_object
         context.window_manager.modal_handler_add(self)
@@ -197,15 +202,16 @@ class ExtrudeJoint(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        if get_selection_len() > 0:
-            max_hub_branches = LivebuildState().max_hub_branches
-            for s in get_selected(-1):
+        if helper.get_selection_len() > 0:
+            max_hub_branches = helper.LivebuildState().max_hub_branches
+            for s in helper.get_selected(-1):
                 if not s.elfin.is_joint() or \
-                    len(s.elfin.pg_neighbors) >= max_hub_branches:
+                        len(s.elfin.pg_neighbors) >= max_hub_branches:
                     return False
             else:
                 return True
         return False
+
 
 class JointToModule(bpy.types.Operator):
     bl_idname = 'elfin.joint_to_module'
@@ -213,7 +219,7 @@ class JointToModule(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        joint, module = get_selected(-1)
+        joint, module = helper.get_selected(-1)
         if joint.elfin.is_module():
             joint, module = module, joint
 
@@ -224,7 +230,8 @@ class JointToModule(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return selection_check(n_modules=1, n_joints=1)
+        return helper.selection_check(n_modules=1, n_joints=1)
+
 
 class AddJoint(bpy.types.Operator):
     bl_idname = 'elfin.add_joint'
@@ -232,8 +239,8 @@ class AddJoint(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def add_joint(self, at_mod=None):
-        network = create_network('pguide')
-        joint = import_joint()
+        network = helper.create_network('pguide')
+        joint = helper.import_joint()
         joint.parent = network
 
         network.location = [0, 0, 0]
@@ -245,7 +252,7 @@ class AddJoint(bpy.types.Operator):
 
     def execute(self, context):
         # Put a joint on each of the selected modules
-        sel = get_selected(-1)
+        sel = helper.get_selected(-1)
 
         if sel:
             for o in sel:
@@ -260,12 +267,14 @@ class AddJoint(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         # Forbid adding joint on top of existing joint
-        for s in get_selected(-1):
+        for s in helper.get_selected(-1):
             if s.elfin.is_joint():
                 return False
         return True
 
 # Module network operators -----------------------
+
+
 class JoinNetworks(bpy.types.Operator):
     bl_idname = 'elfin.join_networks'
     bl_label = 'Join two compatible networks (#jnw)'
@@ -276,24 +285,24 @@ class JoinNetworks(bpy.types.Operator):
     def relevant_extrudables(cls, extrudables, mod_name):
         res = []
         for ext in extrudables:
-            if ext != color_change_placeholder_enum_tuple and \
-                ext[0].split('.')[1] == mod_name:
+            if ext != helper.color_change_placeholder_enum_tuple and \
+                    ext[0].split('.')[1] == mod_name:
                 res.append(ext)
         return res
 
     def get_ways(self, context):
         # Check whether an extrusion is possible from mod_a to mod_b
-        no_way = [empty_list_placeholder_enum_tuple]
-        if get_selection_len() != 2:
+        no_way = [helper.empty_list_placeholder_enum_tuple]
+        if helper.get_selection_len() != 2:
             return no_way
 
         # mod_b is always the fixed module
-        mod_a, mod_b = get_selected(-1)
+        mod_a, mod_b = helper.get_selected(-1)
         if context.active_object == mod_a:
             mod_a, mod_b = mod_b, mod_a
 
         # disable joining with a network containing symmetric hub
-        if find_symmetric_hub([mod_a.parent, mod_b.parent]):
+        if helper.find_symmetric_hub([mod_a.parent, mod_b.parent]):
             return no_way
 
         a_mod_name = mod_a.elfin.module_name
@@ -301,24 +310,30 @@ class JoinNetworks(bpy.types.Operator):
 
         # Don't allow pull-join on symmetric hubs (yet?)
         if mod_a.elfin.module_type == 'hub':
-            if hub_is_symmetric(a_mod_name):
+            if helper.hub_is_symmetric(a_mod_name):
                 return no_way
         if mod_b.elfin.module_type == 'hub':
-            if hub_is_symmetric(b_mod_name):
+            if helper.hub_is_symmetric(b_mod_name):
                 return no_way
 
         # Plan: get n/c extrudables for both modules, then find out the
         # shared termini and let the user choose
-        n_extrudables, c_extrudables = LivebuildState().get_all_extrudables(mod_a)
-        an_extrudables = JoinNetworks.relevant_extrudables(n_extrudables, b_mod_name)
-        ac_extrudables = JoinNetworks.relevant_extrudables(c_extrudables, b_mod_name)
+        n_extrudables, c_extrudables = \
+            helper.LivebuildState().get_all_extrudables(mod_a)
+        an_extrudables = JoinNetworks.relevant_extrudables(
+            n_extrudables, b_mod_name)
+        ac_extrudables = JoinNetworks.relevant_extrudables(
+            c_extrudables, b_mod_name)
 
-        if len(an_extrudables) == 0 and len(ac_extrudables) == 0: 
+        if len(an_extrudables) == 0 and len(ac_extrudables) == 0:
             return no_way
 
-        n_extrudables, c_extrudables = LivebuildState().get_all_extrudables(mod_b)
-        bn_extrudables = JoinNetworks.relevant_extrudables(n_extrudables, a_mod_name)
-        bc_extrudables = JoinNetworks.relevant_extrudables(c_extrudables, a_mod_name)
+        n_extrudables, c_extrudables = \
+            helper.LivebuildState().get_all_extrudables(mod_b)
+        bn_extrudables = JoinNetworks.relevant_extrudables(
+            n_extrudables, a_mod_name)
+        bc_extrudables = JoinNetworks.relevant_extrudables(
+            c_extrudables, a_mod_name)
 
         an_chains = {ane[0].split('.')[2] for ane in an_extrudables}
         ac_chains = {ace[0].split('.')[0] for ace in ac_extrudables}
@@ -351,9 +366,9 @@ class JoinNetworks(bpy.types.Operator):
     way_selector = bpy.props.EnumProperty(items=get_ways)
 
     def execute(self, context):
-        if not self.way_selector in nop_enum_selectors:
+        if self.way_selector not in helper.nop_enum_selectors:
             # Execute pull-join (a to b)
-            mod_a, mod_b = get_selected(-1)
+            mod_a, mod_b = helper.get_selected(-1)
             if context.active_object == mod_a:
                 mod_a, mod_b = mod_b, mod_a
 
@@ -362,28 +377,28 @@ class JoinNetworks(bpy.types.Operator):
 
             old_network = mod_a.parent
             a_network_mods = []
-            for mod in walk_network(mod_a):
+            for mod in helper.walk_network(mod_a):
                 a_network_mods.append(mod)
 
-            a_mw = mod_a.matrix_world.copy()
-            a_rot, a_tran = scaleless_rot_tran(mod_a)
+            a_rot, a_tran = helper.scaleless_rot_tran(mod_a)
             a_rot.transpose()
             a_tran.translation *= -1
-            a_tx = a_rot * a_tran 
+            a_tx = a_rot * a_tran
 
             rel_type = (mod_b.elfin.module_type, mod_a.elfin.module_type)
-            tx = get_tx(
-                fixed_mod=mod_b, 
+            tx = helper.get_tx(
+                fixed_mod=mod_b,
                 extrude_from=fixed_mod_chain,
                 extrude_into=moving_mod_chain,
-                ext_mod=mod_a, 
-                which_term=which_term, 
+                ext_mod=mod_a,
+                which_term=which_term,
                 mod_types=rel_type
-                )
+            )
 
             old_network.matrix_world = tx * a_tx * old_network.matrix_world
-            context.scene.update() # mandatory update to reflect the loc/roc settings
-            transfer_network(mod_a, mod_b.parent)
+            # Mandatory update to reflect the loc/roc settings
+            context.scene.update()
+            helper.transfer_network(mod_a, mod_b.parent)
 
             mod_b_link_func = mod_b.elfin.new_n_link \
                 if which_term == 'n' else mod_b.elfin.new_c_link
@@ -399,7 +414,8 @@ class JoinNetworks(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return selection_check(n_modules=2)
+        return helper.selection_check(n_modules=2)
+
 
 class SeverNetwork(bpy.types.Operator):
     bl_idname = 'elfin.sever_network'
@@ -416,29 +432,29 @@ class SeverNetwork(bpy.types.Operator):
         linkage.remove(linkage.find(link.source_chain_id))
 
         # Move both sub-networks under new parents that has the correct COM
-        transfer_network(mod_a)
-        transfer_network(mod_b)
+        helper.transfer_network(mod_a)
+        helper.transfer_network(mod_b)
 
     def execute(self, context):
         # mod_b is always the fixed module
         mod_a, mod_b = self.ordered_selection
         if not mod_a:
             self.report(
-                {'ERROR'}, 
+                {'ERROR'},
                 'Error: selection lost')
             return {'CANCELLED'}
 
         if not self.link_info:
             self.report(
-                {'ERROR'}, 
+                {'ERROR'},
                 'Error: link_info is '.format(self.link_info))
             return {'CANCELLED'}
-        
+
         link, linkage = self.link_info
 
         should_warn_mirrors = False
 
-        symhub = find_symmetric_hub([mod_a.parent])
+        symhub = helper.find_symmetric_hub([mod_a.parent])
         if symhub and symhub == mod_a or symhub == mod_b:
             arm_mod = mod_a if symhub == mod_b else mod_b
             for m in arm_mod.elfin.mirrors:
@@ -477,27 +493,30 @@ class SeverNetwork(bpy.types.Operator):
         self.link_info = None
 
         if should_warn_mirrors:
-            # Could use WARNING, but it doesn't pop (shows at the top-right corner).
+            # Could use WARNING, but it doesn't pop
+            # (shows at the top-right corner).
             self.report(
                 {'ERROR'},
                 ('Warning (not an error): second module ({}) has mirrors.\n\n'
-                    'This operator only considers mirrors in the first selected module.')
+                    'This operator only considers mirrors in the '
+                    'first selected module.')
                 .format(mod_b.name))
             return {'FINISHED'}
         else:
-            MessagePrompt.message_lines=['Operation successful']
+            MessagePrompt.message_lines = ['Operation successful']
             bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
-                title='Sever network',
-                icon='INFO')
+                                         title='Sever network',
+                                         icon='INFO')
 
             return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
         # Objects don't really need to be ordered but it's convenient.
-        objs = get_ordered_selection()
+        objs = helper.get_ordered_selection()
 
-        # Check whether the two selected moduels are next to each other in network.
+        # Check whether the two selected moduels are next to each other
+        # in network.
         if objs[0] is not None:
             SeverNetwork.ordered_selection = objs
             SeverNetwork.link_info = objs[0].elfin.find_link(objs[1])
@@ -506,13 +525,14 @@ class SeverNetwork(bpy.types.Operator):
 
         return False
 
+
 class SelectNetworkParent(bpy.types.Operator):
     bl_idname = 'elfin.select_network_parent'
     bl_label = 'Select network parent (#snp)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        for s in get_selected(-1):
+        for s in helper.get_selected(-1):
             s.select = False
             s.parent.select = True
         return {'FINISHED'}
@@ -520,7 +540,8 @@ class SelectNetworkParent(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """This is intended to work for both module and pguide networks"""
-        return get_selection_len() > 0
+        return helper.get_selection_len() > 0
+
 
 class SelectNetworkObjects(bpy.types.Operator):
     bl_idname = 'elfin.select_network_objects'
@@ -528,37 +549,40 @@ class SelectNetworkObjects(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        for s in get_selected(-1):
-            walker = walk_pg_network \
-                    if s.elfin.is_joint() or s.elfin.is_bridge() else \
-                    walk_network
+        for s in helper.get_selected(-1):
+            walker = helper.walk_pg_network \
+                if s.elfin.is_joint() or s.elfin.is_bridge() else \
+                helper.walk_network
 
             for mod in walker(s):
                 mod.select = True
-                
+
         return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
         """This is intended to work for both module and pguide networks"""
-        return get_selection_len() > 0
+        return helper.get_selection_len() > 0
 
 # Mirror linking operators -----------------------
+
+
 class SelectMirrors(bpy.types.Operator):
     bl_idname = 'elfin.select_mirrors'
     bl_label = 'Select mirrors (all mirror-linked modules) (#smr)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        if get_selection_len() > 0:
-            for sm in get_selected(n=-1):
+        if helper.get_selection_len() > 0:
+            for sm in helper.get_selected(n=-1):
                 for m in sm.elfin.mirrors:
                     m.select = True
         return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
-        return get_selection_len() > 0
+        return helper.get_selection_len() > 0
+
 
 class ListMirrors(bpy.types.Operator):
     bl_idname = 'elfin.list_mirrors'
@@ -566,22 +590,23 @@ class ListMirrors(bpy.types.Operator):
     bl_options = {'REGISTER'}
 
     def execute(self, context):
-        mirrors = get_selected().elfin.mirrors
+        mirrors = helper.get_selected().elfin.mirrors
         mirror_strs = []
         for i in range(len(mirrors)):
             mirror_strs.append('[{}] {}'.format(i, mirrors[i].name))
         if len(mirror_strs) == 0:
             mirror_strs.append('No mirrors!')
-        MessagePrompt.message_lines=mirror_strs
+        MessagePrompt.message_lines = mirror_strs
         bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
-            title='List Mirror Result',
-            icon='INFO')
+                                     title='List Mirror Result',
+                                     icon='INFO')
         return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
-        return get_selection_len() == 1 and  \
-            get_selected().elfin.is_module()
+        return helper.get_selection_len() == 1 and  \
+            helper.get_selected().elfin.is_module()
+
 
 class UnlinkMirrors(bpy.types.Operator):
     bl_idname = 'elfin.unlink_mirrors'
@@ -590,24 +615,25 @@ class UnlinkMirrors(bpy.types.Operator):
 
     def unlink_mirrors(self, mirrors, recursive):
         if recursive:
-            for o in get_selected(-1):
+            for o in helper.get_selected(-1):
                 for m in o.elfin.mirrors:
-                    if m != o: m.elfin.mirrors = []
+                    if m != o:
+                        m.elfin.mirrors = []
                 o.elfin.mirrors = []
         else:
-            for o in get_selected(-1):
+            for o in helper.get_selected(-1):
                 o.elfin.mirrors = []
 
-        MessagePrompt.message_lines=['Operation successful']
+        MessagePrompt.message_lines = ['Operation successful']
         bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
-            title='Unlink Mirrors',
-            icon='INFO')
+                                     title='Unlink Mirrors',
+                                     icon='INFO')
 
     def execute(self, context):
-        self.unlink_mirrors(get_selected(-1), True)
+        self.unlink_mirrors(helper.get_selected(-1), True)
 
         # Can't think of a reason to not recursively unlink..
-        # mirrors = get_selected(-1) 
+        # mirrors = get_selected(-1)
         # YesNoPrmopt.callback_true = \
         #     YesNoPrmopt.Callback(self.unlink_mirrors, [mirrors, True])
         # YesNoPrmopt.callback_false = \
@@ -621,27 +647,29 @@ class UnlinkMirrors(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        if get_selection_len() > 0:
-            for s in get_selected(-1):
+        if helper.get_selection_len() > 0:
+            for s in helper.get_selected(-1):
                 if len(s.elfin.mirrors) > 0:
                     return True
         return False
+
 
 class LinkByMirror(bpy.types.Operator):
     bl_idname = 'elfin.link_by_mirror'
     bl_label = 'Link multiple modules of the same prototype by mirror (#lbm)'
     bl_options = {'REGISTER', 'UNDO'}
-    
+
     @classmethod
     def can_link(cls):
         """Only show operator if selected objects are of the same prototype
         """
-        if get_selection_len() > 1:
-            selection = get_selected(-1)
+        if helper.get_selection_len() > 1:
+            selection = helper.get_selected(-1)
             if selection:
                 mod_name = selection[0].elfin.module_name
                 for o in selection:
-                    if not o.elfin.is_module() or o.elfin.module_name != mod_name:
+                    if not o.elfin.is_module() or \
+                            o.elfin.module_name != mod_name:
                         return False
                 return True
         return False
@@ -658,20 +686,20 @@ class LinkByMirror(bpy.types.Operator):
     def link_by_mirror(self, mirrors):
         for m in mirrors:
             m.elfin.mirrors = mirrors
-        MessagePrompt.message_lines=['Operation successful']
+        MessagePrompt.message_lines = ['Operation successful']
         bpy.ops.elfin.message_prompt('INVOKE_DEFAULT',
-            title='Link by Mirror',
-            icon='INFO')
+                                     title='Link by Mirror',
+                                     icon='INFO')
 
     def execute(self, context):
         if not LinkByMirror.can_link():
             self.report(
-                {'ERROR'}, 
+                {'ERROR'},
                 ('Selection is not homogenous i.e. some selected modules '
                     ' have a different prototype'))
             return {'CANCELLED'}
 
-        mirrors = get_selected(-1)
+        mirrors = helper.get_selected(-1)
 
         # Check for existing mirrors and warn user about it
         existing = False
@@ -684,9 +712,11 @@ class LinkByMirror(bpy.types.Operator):
             YesNoPrmopt.callback_true = \
                 YesNoPrmopt.Callback(self.unlink_then_link, [mirrors])
             bpy.ops.elfin.yes_no_prompt('INVOKE_DEFAULT',
-                option=False,
-                title='{} already has mirrors. Unlink mirror group and replace?'.format(m.name),
-                message='Yes, replace.')
+                                        option=False,
+                                        title='{} already has mirrors. '
+                                        'Unlink mirror group and replace?'.
+                                        format(m.name),
+                                        message='Yes, replace.')
         else:
             self.link_by_mirror(mirrors)
 
@@ -697,17 +727,20 @@ class LinkByMirror(bpy.types.Operator):
         return cls.can_link()
 
 # Module manipulation operators ------------------
+
+
 class ModuleToJoint(bpy.types.Operator):
     bl_idname = 'elfin.module_to_joint'
     bl_label = 'Move a module and its network to a joint (#mtj)'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        joint, module = get_selected(-1)
+        joint, module = helper.get_selected(-1)
         if joint.elfin.is_module():
             joint, module = module, joint
 
-        trans = joint.matrix_world.translation - module.matrix_world.translation
+        trans = joint.matrix_world.translation - \
+            module.matrix_world.translation
         trans_m = mathutils.Matrix.Translation(trans)
 
         p_mw = module.parent.matrix_world
@@ -716,7 +749,8 @@ class ModuleToJoint(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return selection_check(n_modules=1, n_joints=1)
+        return helper.selection_check(n_modules=1, n_joints=1)
+
 
 class ExtrudeModule(bpy.types.Operator):
     bl_idname = 'elfin.extrude_module'
@@ -729,36 +763,40 @@ class ExtrudeModule(bpy.types.Operator):
 
         # suitable_for_extrusion() gurantees homogeneity so we get just take
         # the first object in selection
-        sel_mod = get_selected()
-        n_extrudables, c_extrudables = LivebuildState().get_all_extrudables(sel_mod)
+        sel_mod = helper.get_selected()
+        n_extrudables, c_extrudables = \
+            helper.LivebuildState().get_all_extrudables(sel_mod)
         if len(n_extrudables) > 0:
             available_termini.append(('N', 'N', ''))
         if len(c_extrudables) > 0:
             available_termini.append(('C', 'C', ''))
 
-        return available_termini if len(available_termini) > 0 else [empty_list_placeholder_enum_tuple]
+        return available_termini if len(available_termini) > 0 else \
+            [helper.empty_list_placeholder_enum_tuple]
 
     terminus_selector = bpy.props.EnumProperty(items=get_available_termini)
 
     def execute(self, context):
-        if self.terminus_selector in nop_enum_selectors:
+        if self.terminus_selector in helper.nop_enum_selectors:
             return {'FINISHED'}
         if self.terminus_selector.lower() == 'n':
             return bpy.ops.elfin.extrude_nterm('INVOKE_DEFAULT')
         elif self.terminus_selector.lower() == 'c':
             return bpy.ops.elfin.extrude_cterm('INVOKE_DEFAULT')
         else:
-            raise ValueError('Unknown terminus selector:', self.terminus_selector)
+            raise ValueError('Unknown terminus selector:',
+                             self.terminus_selector)
             return {'CANCELLED'}
 
     def invoke(self, context, event):
-        self.color = ColorWheel().next_color()
+        self.color = helper.ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}
 
     @classmethod
     def poll(cls, context):
-        return suitable_for_extrusion(context)
+        return helper.suitable_for_extrusion(context)
+
 
 class ExtrudeNTerm(bpy.types.Operator):
     bl_idname = 'elfin.extrude_nterm'
@@ -767,22 +805,23 @@ class ExtrudeNTerm(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     nterm_ext_module_selector = bpy.props.EnumProperty(
-        items=lambda self, context: LivebuildState().n_extrudables)
-    color = bpy.props.FloatVectorProperty(name="Display Color", 
-                                        subtype='COLOR', 
-                                        default=[0,0,0])
+        items=lambda self, context: helper.LivebuildState().n_extrudables)
+    color = bpy.props.FloatVectorProperty(name="Display Color",
+                                          subtype='COLOR',
+                                          default=[0, 0, 0])
 
     def execute(self, context):
-        return execute_extrusion(
+        return helper.execute_extrusion(
             which_term='n',
-            selector=self.nterm_ext_module_selector, 
+            selector=self.nterm_ext_module_selector,
             color=self.color,
             reporter=self)
 
     def invoke(self, context, event):
-        self.color = ColorWheel().next_color()
+        self.color = helper.ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}
+
 
 class ExtrudeCTerm(bpy.types.Operator):
     bl_idname = 'elfin.extrude_cterm'
@@ -791,22 +830,23 @@ class ExtrudeCTerm(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     cterm_ext_module_selector = bpy.props.EnumProperty(
-        items=lambda self, context: LivebuildState().c_extrudables)
-    color = bpy.props.FloatVectorProperty(name="Display Color", 
-                                        subtype='COLOR', 
-                                        default=[0,0,0])
+        items=lambda self, context: helper.LivebuildState().c_extrudables)
+    color = bpy.props.FloatVectorProperty(name="Display Color",
+                                          subtype='COLOR',
+                                          default=[0, 0, 0])
 
     def execute(self, context):
-        return execute_extrusion(
+        return helper.execute_extrusion(
             which_term='c',
-            selector=self.cterm_ext_module_selector, 
+            selector=self.cterm_ext_module_selector,
             color=self.color,
             reporter=self)
 
     def invoke(self, context, event):
-        self.color = ColorWheel().next_color()
+        self.color = helper.ColorWheel().next_color()
         context.window_manager.invoke_search_popup(self)
         return {'FINISHED'}
+
 
 class CheckCollisionAndDelete(bpy.types.Operator):
     bl_idname = 'elfin.check_collision_and_delete'
@@ -817,19 +857,20 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 
     def execute(self, context):
         found_overlap = False
-        check_against = [o for o in context.scene.objects if o.elfin.is_module()]
+        check_against = [
+            o for o in context.scene.objects if o.elfin.is_module()]
 
         try:
             object_is_valid = True
             ob = bpy.data.objects[self.object_name]
             if ob.elfin.is_module():
-                found_overlap |= delete_if_overlap(ob, check_against)
+                found_overlap |= helper.delete_if_overlap(ob, check_against)
         except KeyError:
             object_is_valid = False
 
         if not object_is_valid:
             # No valid object_name specified - try using selection
-            objs = get_selected(-1)
+            objs = helper.get_selected(-1)
 
             # Nothing selected - use all objects
             if len(objs) == 0:
@@ -837,17 +878,20 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 
             for ob in objs:
                 if ob.elfin.is_module():
-                    found_overlap |= delete_if_overlap(ob, check_against)
+                    found_overlap |= helper.delete_if_overlap(
+                        ob, check_against)
 
         if found_overlap:
-            MessagePrompt.message_lines=['Collision was detected and modules were deleted.']
+            MessagePrompt.message_lines = [
+                'Collision was detected and modules were deleted.']
             bpy.ops.elfin.message_prompt('INVOKE_DEFAULT')
-            
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
         self.object_name = ''
         return self.execute(context)
+
 
 class AddModule(bpy.types.Operator):
     bl_idname = 'elfin.add_module'
@@ -856,28 +900,29 @@ class AddModule(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     ask_prototype = bpy.props.BoolProperty(default=True, options={'HIDDEN'})
-    module_to_place = bpy.props.EnumProperty(items=LivebuildState().placeables)
-    color = bpy.props.FloatVectorProperty(name="Display Color", 
-                                        subtype='COLOR', 
-                                        default=[0,0,0])
+    module_to_place = bpy.props.EnumProperty(
+        items=helper.LivebuildState().placeables)
+    color = bpy.props.FloatVectorProperty(name="Display Color",
+                                          subtype='COLOR',
+                                          default=[0, 0, 0])
 
     def execute(self, context):
-        if self.module_to_place in nop_enum_selectors:
+        if self.module_to_place in helper.nop_enum_selectors:
             return {'FINISHED'}
 
         print('Placing module {}'.format(self.module_to_place))
-        
+
         sel_mod_name = self.module_to_place.split('.')[1]
 
-        add_module(sel_mod_name, color=self.color)
+        helper.add_module(sel_mod_name, color=self.color)
 
         self.ask_prototype = True
-            
+
         # Gurantees newly added module is both selected and active.
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        self.color = ColorWheel().next_color()
+        self.color = helper.ColorWheel().next_color()
 
         if self.ask_prototype:
             context.window_manager.invoke_search_popup(self)
@@ -887,32 +932,37 @@ class AddModule(bpy.types.Operator):
         return {'FINISHED'}
 
 # Utility operators ------------------------------
+
+
 class DestroyObject(bpy.types.Operator):
     bl_idname = 'elfin.destroy_object'
     bl_label = 'Destroys an elfin object gracefully'
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-    
+
     name = bpy.props.StringProperty()
 
     def execute(self, context):
         bpy.data.objects[self.name].elfin.destroy()
         return {'FINISHED'}
 
+
 class LoadXdb(bpy.types.Operator):
     bl_idname = 'elfin.load_xdb'
     bl_label = '(Re)load xdb'
 
     def execute(self, context):
-        LivebuildState().load_xdb()
+        helper.LivebuildState().load_xdb()
         return {'FINISHED'}
+
 
 class LoadModuleLibrary(bpy.types.Operator):
     bl_idname = 'elfin.load_module_library'
     bl_label = '(Re)load module library'
 
     def execute(self, context):
-        LivebuildState().load_library()
+        helper.LivebuildState().load_library()
         return {'FINISHED'}
+
 
 class MessagePrompt(bpy.types.Operator):
     """Elfin Module Collision Message"""
@@ -931,7 +981,7 @@ class MessagePrompt(bpy.types.Operator):
 
     def invoke(self, context, event):
         return context.window_manager.invoke_popup(self)
- 
+
     def draw(self, context):
         self.layout.label(self.title, icon=self.icon)
         row = self.layout.column()
@@ -940,11 +990,13 @@ class MessagePrompt(bpy.types.Operator):
 
 # Credits to:
 # https://blender.stackexchange.com/questions/73286/how-to-call-a-confirmation-dialog-box
+
+
 class YesNoPrmopt(bpy.types.Operator):
     bl_idname = 'elfin.yes_no_prompt'
     bl_label = 'Confirm option'
     bl_options = {'REGISTER', 'INTERNAL'}
-    
+
     title = bpy.props.StringProperty(default='Confirm?')
     icon = bpy.props.StringProperty(default='QUESTION')
 
@@ -963,11 +1015,11 @@ class YesNoPrmopt(bpy.types.Operator):
     def execute(self, context):
         if self.option and self.callback_true.func:
             self.callback_true.func(
-                *self.callback_true.args, 
+                *self.callback_true.args,
                 *self.callback_true.kwargs)
         elif self.callback_false.func:
             self.callback_false.func(
-                *self.callback_false.args, 
+                *self.callback_false.args,
                 *self.callback_false.kwargs)
 
         # Manually reset values
@@ -983,14 +1035,16 @@ class YesNoPrmopt(bpy.types.Operator):
         row.label(self.title, icon=self.icon)
         row.prop(self, 'option', text=self.message)
 
+
 class INFO_MT_mesh_elfin_add(bpy.types.Menu):
     bl_idname = 'INFO_MT_elfin_add'
     bl_label = 'elfin'
+
     def draw(self, context):
         layout = self.layout
 
-        for mod_tuple in LivebuildState().placeables:
-            if mod_tuple in nop_enum_selectors:
+        for mod_tuple in helper.LivebuildState().placeables:
+            if mod_tuple in helper.nop_enum_selectors:
                 continue
             mod_name = mod_tuple[0]
             props = layout.operator('elfin.add_module', text=mod_name)
@@ -998,6 +1052,8 @@ class INFO_MT_mesh_elfin_add(bpy.types.Menu):
             props.ask_prototype = False
 
 # Panels -----------------------------------------
+
+
 class LivebuildPanel(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
@@ -1009,7 +1065,8 @@ class LivebuildPanel(bpy.types.Panel):
         layout = self.layout
         row = layout.row(align=True)
         col = row.column()
-        col.prop(context.scene.elfin, 'disable_auto_collision_check', text='Disable Auto Collision Check')
+        col.prop(context.scene.elfin, 'disable_auto_collision_check',
+                 text='Disable Auto Collision Check')
         col.operator('elfin.add_module', text='Place a module into scene')
         col.operator('elfin.extrude_module', text='Extrude Module')
         col.operator('elfin.select_mirrors', text='Select Mirrors')

@@ -1,14 +1,14 @@
 import os
 import json
-import traceback
 
 import bpy
 import mathutils
 
-from . import livebuild_helper as lh
+from . import livebuild_helper as helper
 from .export import exporter_field, elfin_ui_exporter
 
 # Operators --------------------------------------
+
 
 class ImportPanel(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
@@ -24,6 +24,7 @@ class ImportPanel(bpy.types.Panel):
         col.operator('elfin.import', text='Import design')
 
 # Operators --------------------------------------
+
 
 class ImportOperator(bpy.types.Operator):
     bl_idname = 'elfin.import'
@@ -46,12 +47,14 @@ class ImportOperator(bpy.types.Operator):
         err_msg = materialize(json_data)
 
         if len(err_msg) > 0:
-            self.report({'ERROR'}, err_msg);
+            self.report({'ERROR'}, err_msg)
             return {'FINISHED'}
         else:
             return {'FINISHED'}
 
 # Helpers ----------------------------------------
+
+
 def materialize(json_data):
     # Reads elfin-solver or elfin-ui output JSON and projects modules into the
     # scene.
@@ -80,27 +83,33 @@ def materialize(json_data):
             print('------------------------------------------')
 
             if len(pgn) == 0:
-                err_msg += 'ERROR: {} has no decimated parts.\n'.format(pgn_name)
+                err_msg += 'ERROR: {} has no decimated parts.\n'.format(
+                    pgn_name)
                 continue
 
             for dec_name, dec_solution in pgn.items():
                 if len(dec_solution) > 0:
-                    err_msg += 'Warning: reading elfin-solver output defaults to the solution with lowest score in case of multiple solutions.\n'
+                    err_msg += 'Warning: reading elfin-solver output defaults '
+                    'to the solution with lowest score in case of multiple '
+                    'solutions.\n'
                     dec_solution = dec_solution[0]
-                print('Displaying best solution for {}:{}' \
-                    .format(pgn_name, dec_name));
+                print('Displaying best solution for {}:{}'
+                      .format(pgn_name, dec_name))
                 if not dec_solution:
                     err_msg += 'ERROR: {}:{} has no solutions.\n' \
                         .format(pgn_name, dec_name)
                     continue
 
-                project_nodes(dec_solution['nodes'], ':'.join([pgn_name, dec_name]))
+                project_nodes(dec_solution['nodes'],
+                              ':'.join([pgn_name, dec_name]))
 
     return err_msg
+
 
 def project_nodes(nodes, new_nw_name):
     first_node = True
     solution_nodes = []
+    prev_node = None
     for node in nodes:
         print('Projecting ', node['name'])
 
@@ -108,16 +117,17 @@ def project_nodes(nodes, new_nw_name):
             first_node = False
 
             # Add first module.
-            new_mod = lh.add_module(
+            new_mod = helper.add_module(
                 node['name'],
-                color=lh.ColorWheel().next_color(),
+                color=helper.ColorWheel().next_color(),
                 follow_selection=False)
 
             solution_nodes.append(new_mod)
 
             # Project node.
             tx = mathutils.Matrix(node['rot']).to_4x4()
-            tx.translation = [f/lh.blender_pymol_unit_conversion for f in node['tran']]
+            tx.translation = [
+                f/helper.blender_pymol_unit_conversion for f in node['tran']]
             new_mod.matrix_world = tx * new_mod.matrix_world
 
         else:
@@ -125,17 +135,17 @@ def project_nodes(nodes, new_nw_name):
             src_chain_name = prev_node['src_chain_name']
             dst_chain_name = prev_node['dst_chain_name']
 
-            selector = lh.module_enum_tuple(
-                node['name'], 
-                extrude_from=src_chain_name, 
+            selector = helper.module_enum_tuple(
+                node['name'],
+                extrude_from=src_chain_name,
                 extrude_into=dst_chain_name,
                 direction=src_term)[0]
 
-            imported, _ = lh.extrude_terminus(
+            imported, _ = helper.extrude_terminus(
                 which_term=src_term,
                 selector=selector,
                 sel_mod=new_mod,
-                color=lh.ColorWheel().next_color(),
+                color=helper.ColorWheel().next_color(),
                 reporter=None)
 
             assert(len(imported) == 1)

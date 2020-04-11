@@ -2,6 +2,7 @@ import bpy
 
 # Panels -----------------------------------------
 
+
 class DebugPanel(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
@@ -28,7 +29,7 @@ class DebugPanel(bpy.types.Panel):
 #     bl_idname = 'elfin.delete_faces'
 #     bl_label = 'Delete Faces (selected only)'
 #     bl_options = {'REGISTER', 'UNDO'}
-    
+
 #     def execute(self, context):
 #         selObjs = context.selected_objects
 #         for obj in selObjs:
