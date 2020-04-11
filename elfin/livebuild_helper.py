@@ -572,16 +572,24 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
             give_module_new_color(ext_mod, color)
             ext_mod.hide = False  # Unhide (default is hidden)
             if which_term == 'n':
-                fixed_mod.elfin.new_n_link(
+                n_link = fixed_mod.elfin.new_n_link(
                     src_chain, ext_mod, extrude_into)
-                ext_mod.elfin.new_c_link(
+                c_link = ext_mod.elfin.new_c_link(
                     extrude_into, fixed_mod, src_chain)
             else:
-                fixed_mod.elfin.new_c_link(
+                c_link = fixed_mod.elfin.new_c_link(
                     src_chain, ext_mod, extrude_into)
-                ext_mod.elfin.new_n_link(
+                n_link = ext_mod.elfin.new_n_link(
                     extrude_into, fixed_mod, src_chain)
             ext_mod.select = True
+            # Because ModuleLifetimeWatcher.on_module_enter() runs
+            # asynchronously, a newly added module can be immediately deleted
+            # just before or during the routine up to this point. In that
+            # case, we need to ensure link integrity.
+            if fixed_mod.elfin.destroy_entered or \
+                    ext_mod.elfin.destroy_entered:
+                n_link.sever()
+                c_link.sever()
 
             return [ext_mod]  # for mirror linking
 
