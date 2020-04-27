@@ -963,7 +963,8 @@ def find_overlap(test_obj, obj_list, scale_factor=0.85):
     mod_bm.transform(test_obj.matrix_world * scale)
     mod_bvh_tree = mathutils.bvhtree.BVHTree.FromBMesh(mod_bm)
     for ob in obj_list:
-        if ob == test_obj:
+        # Skip the test subject itself and its immediate neigbors.
+        if ob == test_obj or test_obj.elfin.find_link(ob):
             continue
 
         ob_bm = bmesh.new()
