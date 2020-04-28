@@ -129,7 +129,7 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
  * `Add Module` (formerly called "Place Module")
     * Adds a new module to the scene at origin or the current selection.
     * Short form: `#addm` 
-    * Automatically creates a new network and places the newly added module under that network.
+    * Automatically creates a new network and places the newly added module und er that network.
     * Only available <b>when nothing is selected</b>.
  * `Extrude Module` 
     * Add a module to the N- or C-Terminus of the selected module.
@@ -140,12 +140,12 @@ Mirrors can have any location and rotation - they do not need to be identical. Y
  * `Select Network Parent`
     * Selects the network parent object (arrow axes) the selected module(s) belong to.
     * Short form: `#snp`
-    * Only available <b>when at least one module or joint is selected<b>.
+    * Only available <b>when at least one module or joint is selected</b>.
     * Works for path guide objects too.
  * `Select Network Objects`
     * Selects all objects belonging to the same network as the selected objects.
     * Short form: `#sno`
-    * Only available <b>when at least one module or joint is selected<b>.
+    * Only available <b>when at least one module or joint is selected</b>.
     * Works for path guide objects too.
  * `Sever Network`
     * Sever one network into two at the specific point.
