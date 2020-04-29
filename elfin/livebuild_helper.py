@@ -911,41 +911,26 @@ def give_module_new_color(mod, new_color=None):
     mod.active_material = mat
 
 
-def overlapping_module_exists():
-    """Determines whether there is any overlapping module.
+def get_module_collision_map():
+    """Checks all elfin modules for collision and returns a map of which
+    modules collide which.
     """
     bpy.context.scene.update()
     mods = [o for o in bpy.context.scene.objects if o.elfin.is_module()]
+    collision_map = {mod: [] for mod in mods}
 
-    for mod in mods:
-        if find_overlap(mod, mods):
-            return True
+    for mod in collision_map:
+        collision_map[mod] = find_overlap(mod, mods)
 
-    return False
-
-
-def detect_overlap(obj, obj_list):
-    """
-    Detect whether obj overlaps with any object in obj_list.
-
-    Caller is responsible for providing the right object and list. No module
-    relationship check is done.
-    """
-
-    # Update must be called first because operations like extrude will first
-    # transform the object.
-    bpy.context.scene.update()
-    if find_overlap(obj, obj_list):
-        return True
-    return False
+    return collision_map
 
 
-def find_overlap(test_obj, obj_list, scale_factor=0.85):
+def find_overlap(test_obj, obj_list, scale_factor=0.90):
     """
     Tests whether an object's mesh overlaps with any mesh in obj_list.
 
-    Caller is responsible for providing the right object and list. No module
-    check is done.
+    The collision check will be skipped for test_obj itself, and its
+    immediate neighbors.
 
     Args:
      - test_obj - the object under test.
@@ -953,14 +938,16 @@ def find_overlap(test_obj, obj_list, scale_factor=0.85):
      - scale_factor - optional; the scale to apply before testing.
 
     Returns:
-     - bool - whether or not a collision (overlap) was found.
+     - list of colliding objects
     """
+    bpy.context.scene.update()
     scale = mathutils.Matrix.Scale(scale_factor, 4)
 
     mod_bm = bmesh.new()
     mod_bm.from_mesh(test_obj.data)
     mod_bm.transform(test_obj.matrix_world * scale)
     mod_bvh_tree = mathutils.bvhtree.BVHTree.FromBMesh(mod_bm)
+    colliding_objs = []
     for ob in obj_list:
         # Skip the test subject itself and its immediate neigbors.
         if ob == test_obj or test_obj.elfin.find_link(ob):
@@ -974,9 +961,9 @@ def find_overlap(test_obj, obj_list, scale_factor=0.85):
         overlaps = mod_bvh_tree.overlap(ob_bvh_tree)
 
         if len(overlaps) > 0:
-            return ob
+            colliding_objs.append(ob)
 
-    return None
+    return colliding_objs
 
 
 def scale_and_shift(n_to_c_tx, invert=False, fixed_mod=None):

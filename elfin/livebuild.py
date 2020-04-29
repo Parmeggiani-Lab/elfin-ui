@@ -848,43 +848,47 @@ class ExtrudeCTerm(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CheckCollisionAndDelete(bpy.types.Operator):
-    bl_idname = 'elfin.check_collision_and_delete'
-    bl_label = 'Check collision and delete if positive (#ccd)'
+class CheckCollision(bpy.types.Operator):
+    bl_idname = 'elfin.check_collision'
+    bl_label = 'Check collision (#ccl)'
 
     # Allow keyword specification
     object_name = bpy.props.StringProperty(default='__unset__')
 
     def execute(self, context):
-        found_overlap = False
         check_against = [
             o for o in context.scene.objects if o.elfin.is_module()]
-
+        subjects = []
         try:
-            object_is_valid = True
-            ob = bpy.data.objects[self.object_name]
-            if ob.elfin.is_module():
-                found_overlap |= helper.detect_overlap(ob, check_against)
+            object_name_is_valid = True
+            subjects.append(bpy.data.objects[self.object_name])
         except KeyError:
-            object_is_valid = False
+            object_name_is_valid = False
 
-        if not object_is_valid:
+        if not object_name_is_valid:
             # No valid object_name specified - try using selection
             objs = helper.get_selected(-1)
 
             # Nothing selected - use all objects
             if len(objs) == 0:
                 objs = context.scene.objects
+            subjects.extend(objs)
 
-            for ob in objs:
-                if ob.elfin.is_module():
-                    found_overlap |= helper.detect_overlap(
-                        ob, check_against)
+        collision_map = dict()
+        for sub in subjects:
+            if not sub.elfin.is_module():
+                continue
+            collision_map[sub] = helper.find_overlap(sub, check_against)
 
-        if found_overlap:
+        if any(collision_map.values()):
             MessagePrompt.message_lines = [
                 'Collision detected!',
-                'Consider reverting the last module placement.']
+                'Resolve the following collisions before proceeding: '
+            ] + [
+                '\"{}\" collides with \"{}\"'
+                .format(k.name, [vmod.name for vmod in v])
+                for k, v in collision_map.items()
+            ]
             bpy.ops.elfin.message_prompt('INVOKE_DEFAULT')
 
         return {'FINISHED'}

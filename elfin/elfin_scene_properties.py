@@ -14,7 +14,7 @@ class ElfinSceneProperties(bpy.types.PropertyGroup):
         default='module_library.blend')
     pp_decimate_ratio = bpy.props.FloatProperty(
         default=0.15, min=0.00, max=1.00)
-    disable_auto_collision_check = bpy.props.BoolProperty(default=True)
+    disable_auto_collision_check = bpy.props.BoolProperty(default=False)
 
     def reset(self):
         print('{} reset'.format(self.__class__.__name__))

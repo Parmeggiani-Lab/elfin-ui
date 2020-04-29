@@ -119,20 +119,36 @@ def validate_and_annotate(networks, pg_networks, output):
            free termini in the ocucpant module. Otherwise error out as invalid
            occupancy.
         B) COM not equal: error out as unintentional collision.
+        C) Joint collides with multiple modules.
     """
     try:
-        if helper.overlapping_module_exists():
+        collision_map = helper.get_module_collision_map()
+        if any(collision_map.values()):
             # 1.
             validity = False
-            msg = ('There are overlapping modules. '
-                   'Remove them first '
-                   '(try deleting colliding modules with #ccd).')
+            colliding_pairs = set()
+            for k, v in collision_map.items():
+                for vmod in v:
+                    if (vmod.name, k.name) in colliding_pairs:
+                        continue
+                    # Exclude reversed names
+                    colliding_pairs.add((k.name, vmod.name))
+            collision_info = \
+                '\n'.join('\"{}\" collides with \"{}\"'.format(mod1, mod2)
+                          for mod1, mod2 in colliding_pairs)
+            msg = 'Collision detected!\n' + \
+                'Resolve the following collisions before proceeding:\n' + \
+                collision_info
         else:
             # 2.
             for jt in produce(pg_networks):
-                mod = helper.find_overlap(jt, produce(networks))
-                if mod:
+                colliding_mods = helper.find_overlap(jt, produce(networks))
+                if not colliding_mods:
+                    continue
+                print('{} collision: {}.'.format(jt.name, colliding_mods))
+                if len(colliding_mods) == 1:
                     jt_com = jt.matrix_world.translation
+                    mod = colliding_mods[0]
                     mod_com = mod.matrix_world.translation
                     if coms_approximately_equal(jt_com, mod_com):
                         # A)
@@ -150,13 +166,20 @@ def validate_and_annotate(networks, pg_networks, output):
                     else:
                         # B)
                         validity = False
-                        msg = ('Joint {} overlaps with module {}, but '
+                        msg = ('Joint \"{}\" overlaps with module \"{}\", but '
                                'their COMs are not close enough to be '
-                               'considered as an occupancy. Try using '
-                               '#jtm or #mtj if an occupancy is your '
-                               'intention.').format(
-                            jt.name, mod.name)
+                               'considered as an occupancy.\n'
+                               'Try using #jtm or #mtj if an occupancy is '
+                               'your intention.').format(jt.name, mod.name)
                         break
+                else:
+                    validity = False
+                    msg = ('Joint \"{}\" overlaps with multiple modules.\n'
+                           'Resolve its collision with the following before '
+                           'proceeding:\n{}').\
+                        format(jt.name,
+                               '\n'.join(mod.name for mod in colliding_mods))
+                    break
 
     except Exception as e:
         # If there's any other weird error, we don't want to proceed to
