@@ -1,23 +1,20 @@
 #
-# Elfin's GUI Front-end as a Blender addon
+# Elfin-UI: Elfin's user interface for designing protein module networks
 #
 # Author: Joy Yeh
 # Email: joyyeh.tw@gmail.com
+# Repository: https://github.com/Parmeggiani-Lab/elfin-ui
 #
 
-# Addon design notes
-#   * Each separate object is a separate chain
-#   * There should be no faces in any design spec object
-#       * Code simply ignores faces
-#       x Provide a face delete operator
+# Add-on notes:
+#   * Each module is a separate chain.
+#   * Multiple modules connected together form a network.
+#   * "PG" is short for path guide, which expresses user's
+#         desired 3D geometry for Elfin Solver to solve.
 #   * There should be no discontinuities in an object
 #       * Code should verify this
-#   x Unit conversion: 1 blender unit is 10 A, or 1 nm
-#       x 1 blender unit === 10 pymol units
-#   * Module avatar generation:
-#       * How to do avatars in viewport elegantly?
-#           * Use links so none of the models can be edited
-#
+#   * Unit conversion: 1 blender unit is 10 A, or 1 nm
+#       * 1 blender unit === 10 pymol units
 
 from bpy.app.handlers import persistent
 import bpy
@@ -30,8 +27,8 @@ bl_info = {
     'author': 'Joy Yeh',
     'version': (0, 1, 0),
     'blender': (2, 79, 0),
-    'description': 'Addon for assembling proteins',
-    'wiki_url': 'https://github.com/joy13975/elfin-ui'
+    'description': 'An add-on for assembling protein modules.',
+    'wiki_url': 'https://github.com/Parmeggiani-Lab/elfin-ui'
 }
 
 
