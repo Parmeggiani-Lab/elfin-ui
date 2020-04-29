@@ -924,19 +924,18 @@ def overlapping_module_exists():
     return False
 
 
-def delete_if_overlap(obj, obj_list):
+def detect_overlap(obj, obj_list):
     """
-    Delete obj if it overlaps with any object in obj_list.
+    Detect whether obj overlaps with any object in obj_list.
 
     Caller is responsible for providing the right object and list. No module
-    check is done.
+    relationship check is done.
     """
 
     # Update must be called first because operations like extrude will first
     # transform the object.
     bpy.context.scene.update()
     if find_overlap(obj, obj_list):
-        obj.elfin.destroy()
         return True
     return False
 

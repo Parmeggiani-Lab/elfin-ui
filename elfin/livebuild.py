@@ -864,7 +864,7 @@ class CheckCollisionAndDelete(bpy.types.Operator):
             object_is_valid = True
             ob = bpy.data.objects[self.object_name]
             if ob.elfin.is_module():
-                found_overlap |= helper.delete_if_overlap(ob, check_against)
+                found_overlap |= helper.detect_overlap(ob, check_against)
         except KeyError:
             object_is_valid = False
 
@@ -878,12 +878,13 @@ class CheckCollisionAndDelete(bpy.types.Operator):
 
             for ob in objs:
                 if ob.elfin.is_module():
-                    found_overlap |= helper.delete_if_overlap(
+                    found_overlap |= helper.detect_overlap(
                         ob, check_against)
 
         if found_overlap:
             MessagePrompt.message_lines = [
-                'Collision was detected and modules were deleted.']
+                'Collision detected!',
+                'Consider reverting the last module placement.']
             bpy.ops.elfin.message_prompt('INVOKE_DEFAULT')
 
         return {'FINISHED'}
