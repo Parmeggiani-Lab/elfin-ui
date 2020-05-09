@@ -1,6 +1,6 @@
 #!/bin/bash
 # Repository that contains elfin-library (pre-processed protein module data)
-REPO='elfin-library-darpin'
+REPO='Library_01'
 # Files to decompress into addon folder
 FILES=(xdb.json library.blend)
 
