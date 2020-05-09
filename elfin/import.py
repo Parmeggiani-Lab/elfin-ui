@@ -89,9 +89,8 @@ def materialize(json_data):
 
             for dec_name, dec_solution in pgn.items():
                 if len(dec_solution) > 0:
-                    err_msg += 'Warning: reading elfin-solver output defaults '
-                    'to the solution with lowest score in case of multiple '
-                    'solutions.\n'
+                    err_msg += 'Warning: defaulting to solution with ' + \
+                        'lowest score for {}.\n'.format(pgn_name)
                     dec_solution = dec_solution[0]
                 print('Displaying best solution for {}:{}'
                       .format(pgn_name, dec_name))
@@ -126,8 +125,11 @@ def project_nodes(nodes, new_nw_name):
 
             # Project node.
             tx = mathutils.Matrix(node['rot']).to_4x4()
-            tx.translation = [
-                f/helper.blender_pymol_unit_conversion for f in node['tran']]
+            # Must not use direct Vector division by scalar here
+            # before Blender's Vector scalar division is less accurate than
+            # float division
+            tx.translation = [f / helper.blender_pymol_unit_conversion
+                              for f in node['tran']]
             new_mod.matrix_world = tx * new_mod.matrix_world
 
         else:

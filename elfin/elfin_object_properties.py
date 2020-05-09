@@ -127,7 +127,10 @@ class ElfinObjectProperties(bpy.types.PropertyGroup):
         wm = self.obj_ptr.matrix_world
 
         tran, rot, _ = wm.decompose()
-        tran = tran * lh.blender_pymol_unit_conversion
+        # Must not use direct Vector division by scalar here
+        # before Blender's Vector scalar division is less accurate than
+        # float division
+        tran = [f * lh.blender_pymol_unit_conversion for f in tran]
         data['rot'] = list(list(vec) for vec in rot.to_matrix())
         data['tran'] = list(tran)
 
