@@ -2,7 +2,7 @@
 
 A Blender plugin for building proteins from smaller proteins.
 
-Main application suite: [elfin](https://github.com/joy13975/elfin)
+Main application suite: [elfin](https://github.com/Parmeggiani-Lab/elfin)
 
 <p align="center">
 <img src="resources/images/h_bench.gif" width="70%">
@@ -16,13 +16,13 @@ Main application suite: [elfin](https://github.com/joy13975/elfin)
 ## Goals
 
  * Enable full assembly design through manual manipulation of modules and networks.
- * Enable partially automated (with [elfin-solver](https://github.com/joy13975/elfin-solver)) design through path guides.
+ * Enable partially automated (with [elfin-solver](https://github.com/Parmeggiani-Lab/elfin-solver)) design through path guides.
 
 ## Getting Started
 
 Get [Blender v2.79b](https://builder.blender.org/download/).
 
-This addon was developed for and tested on Blender v2.79. 
+This addon was developed for and tested on Blender v2.79.
 
 Beware that Blender v2.8 (now beta) will probably introduce significant changes so it's best to stay away for now.
 
@@ -51,7 +51,7 @@ Next, refer to: [Tutorial With GIFs](resources/tutorial/README.md)
  * Auto-seek extrusion
      * List all extrudable termini of the network that the selected module belongs to.
      * If there are hubs in the network there might be multiple heads. In this case ask the user to choose one.
-        
+
 ### Once Blender gets an API upgrade
  * Hooking callback upon object deletion or entrance to scene
      * In v2.79 there are no callback hooks for object deletion/entrance.
