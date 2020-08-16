@@ -883,7 +883,8 @@ class CheckCollision(bpy.types.Operator):
         if any(collision_map.values()):
             MessagePrompt.message_lines = [
                 'Collision detected!',
-                'Resolve the following collisions before proceeding: '
+                'Resolve the following ',
+                'collisions before proceeding: '
             ] + [
                 '\"{}\" collides with \"{}\"'
                 .format(k.name, [vmod.name for vmod in v])

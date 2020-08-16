@@ -137,8 +137,9 @@ def validate_and_annotate(networks, pg_networks, output):
                 '\n'.join('\"{}\" collides with \"{}\"'.format(mod1, mod2)
                           for mod1, mod2 in colliding_pairs)
             msg = 'Collision detected!\n' + \
-                'Resolve the following collisions before proceeding:\n' + \
-                collision_info
+                    'Resolve the following collisions \n' + \
+                    'before proceeding:\n' + \
+                    collision_info
         else:
             # 2.
             for jt in produce(pg_networks):
