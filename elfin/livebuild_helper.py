@@ -565,12 +565,7 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
 
             ext_mod.matrix_world = tx * ext_mod.matrix_world
 
-            # Touch up
-            bpy.context.scene.update()  # Update to get the correct matrices
-            change_parent_preserve_transform(ext_mod, fixed_mod.parent)
-
-            give_module_new_color(ext_mod, color)
-            ext_mod.hide = False  # Unhide (default is hidden)
+            # Create link
             if which_term == 'n':
                 n_link = fixed_mod.elfin.new_n_link(
                     src_chain, ext_mod, extrude_into)
@@ -581,6 +576,14 @@ def extrude_terminus(which_term, selector, sel_mod, color, reporter):
                     src_chain, ext_mod, extrude_into)
                 n_link = ext_mod.elfin.new_n_link(
                     extrude_into, fixed_mod, src_chain)
+            print('Debug: done linking')
+
+            # Touch up
+            bpy.context.scene.update()  # Update to get the correct matrices
+            change_parent_preserve_transform(ext_mod, fixed_mod.parent)
+
+            give_module_new_color(ext_mod, color)
+            ext_mod.hide = False  # Unhide (default is hidden)
             ext_mod.select = True
             # Because ModuleLifetimeWatcher.on_module_enter() runs
             # asynchronously, a newly added module can be immediately deleted
@@ -952,7 +955,7 @@ def find_overlap(test_obj, obj_list, scale_factor=0.90):
         # Skip the test subject itself and its immediate neigbors.
         if ob == test_obj or test_obj.elfin.find_link(ob):
             continue
-
+        
         ob_bm = bmesh.new()
         ob_bm.from_mesh(ob.data)
         ob_bm.transform(ob.matrix_world * scale)
